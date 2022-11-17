@@ -11,7 +11,7 @@ namespace rest_webserver
   typedef struct rest_server_context
   {
     char base_path[ESP_VFS_PATH_MAX + 1];
-    char scratch[Prefs::SCRATCH_BUFSIZE];
+    char scratch[Prefs::WEB_SCRATCH_BUFSIZE];
   } rest_server_context_t;
 
   class RestServer

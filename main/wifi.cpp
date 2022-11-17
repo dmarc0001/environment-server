@@ -8,6 +8,7 @@
 
 #include "AppPreferences.hpp"
 #include "wifi.hpp"
+#include "statusObject.hpp"
 
 namespace rest_webserver
 {
@@ -22,6 +23,7 @@ namespace rest_webserver
     {
         ESP_LOGI(WifiThings::tag, "init wifi...");
         // init structures
+        StatusObject::setWlanState(WlanState::DISCONNECTED);
         WifiThings::s_wifi_event_group = xEventGroupCreate();
         ESP_ERROR_CHECK(esp_netif_init());
         ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -134,12 +136,14 @@ namespace rest_webserver
     {
         if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
         {
+            StatusObject::setWlanState(WlanState::SEARCHING);
             esp_wifi_connect();
         }
         else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
         {
-            if (WifiThings::s_retry_num < Prefs::MAXIMUM_RETRY)
+            if (WifiThings::s_retry_num < Prefs::WIFI_MAXIMUM_RETRY)
             {
+                StatusObject::setWlanState(WlanState::SEARCHING);
                 esp_wifi_connect();
                 WifiThings::s_retry_num++;
                 ESP_LOGI(WifiThings::tag, "retry to connect to the AP");
@@ -147,6 +151,7 @@ namespace rest_webserver
             else
             {
                 xEventGroupSetBits(WifiThings::s_wifi_event_group, WIFI_FAIL_BIT);
+                StatusObject::setWlanState(WlanState::FAILED);
             }
             ESP_LOGI(WifiThings::tag, "connect to the AP fail");
         }
@@ -154,6 +159,7 @@ namespace rest_webserver
         {
             ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
             ESP_LOGI(WifiThings::tag, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+            StatusObject::setWlanState(WlanState::CONNECTED);
             WifiThings::s_retry_num = 0;
             xEventGroupSetBits(WifiThings::s_wifi_event_group, WIFI_CONNECTED_BIT);
         }

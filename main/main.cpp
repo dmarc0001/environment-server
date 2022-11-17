@@ -15,8 +15,9 @@
 #include "main.hpp"
 #include "AppPreferences.hpp"
 #include "wifi.hpp"
-#include "Hardware.hpp"
-#include "RestServer.hpp"
+#include "ledStripe.hpp"
+#include "restServer.hpp"
+#include "tempMeasure.hpp"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
 
@@ -45,8 +46,6 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    ESP_LOGI(TAG, "Init hardware...");
-    rest_webserver::Hardware::init();
     ESP_LOGI(TAG, "wifi init...");
     rest_webserver::WifiThings::init();
     ESP_LOGI(TAG, "wifi init...OK");
@@ -56,16 +55,16 @@ void app_main(void)
     ESP_LOGI(TAG, "webserver start...");
     rest_webserver::RestServer::compute();
     ESP_LOGI(TAG, "webserver start...OK");
+
+    ESP_LOGI(TAG, "service Tasks stsart...");
+    rest_webserver::TempMeasure::start();
+    rest_webserver::LedStripe::start();
+    ESP_LOGI(TAG, "service Tasks stsart...OK");
     //
     // i'm boring
     //
     while (true)
     {
-        vTaskDelay(pdMS_TO_TICKS(450));
-        rest_webserver::Hardware::setLed(0, 10, 0);
-        vTaskDelay(pdMS_TO_TICKS(800));
-        rest_webserver::Hardware::setLed(255, 255, 255);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        rest_webserver::Hardware::setLed(false);
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
