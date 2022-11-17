@@ -15,7 +15,7 @@
 #include "main.hpp"
 #include "AppPreferences.hpp"
 #include "wifi.hpp"
-#include "hardware.hpp"
+#include "Hardware.hpp"
 #include "RestServer.hpp"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
@@ -61,9 +61,11 @@ void app_main(void)
     //
     while (true)
     {
-        vTaskDelay(pdMS_TO_TICKS(200));
-        rest_webserver::Hardware::toggle_led();
-        vTaskDelay(pdMS_TO_TICKS(500));
-        rest_webserver::Hardware::toggle_led();
+        vTaskDelay(pdMS_TO_TICKS(450));
+        rest_webserver::Hardware::setLed(0, 10, 0);
+        vTaskDelay(pdMS_TO_TICKS(800));
+        rest_webserver::Hardware::setLed(255, 255, 255);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        rest_webserver::Hardware::setLed(false);
     }
 }

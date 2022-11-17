@@ -8,8 +8,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
+list( APPEND EXTRA_COMPONENT_DIRS /usr/local/esp-extra-components/components )
 
 project(rest-server
         VERSION 0.0.1
         DESCRIPTION "try rest server"
         LANGUAGE CXX )
+
+
+# generatred files
+#         add_custom_command(OUTPUT logo.h
+#      COMMAND bmp2h -i ${COMPONENT_DIR}/logo.bmp -o log.h
+#      DEPENDS ${COMPONENT_DIR}/logo.bmp
+#      VERBATIM)
+
+# add_custom_target(logo DEPENDS logo.h)
+# add_dependencies(${COMPONENT_LIB} logo)
+
+# set_property(DIRECTORY "${COMPONENT_DIR}" APPEND PROPERTY
+#      ADDITIONAL_MAKE_CLEAN_FILES logo.h)

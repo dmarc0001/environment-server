@@ -2,5 +2,6 @@
     "idf.flashType": "UART",
     "idf.port": "/dev/ttyUSB0",
     "editor.tabCompletion": "on",
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "idf.adapterTargetName": "esp32s2"
 }
