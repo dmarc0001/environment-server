@@ -46,6 +46,8 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+    setenv("TZ", Prefs::TIMEZONE, 1);
+    tzset();
     ESP_LOGI(TAG, "wifi init...");
     rest_webserver::WifiThings::init();
     ESP_LOGI(TAG, "wifi init...OK");
@@ -55,7 +57,6 @@ void app_main(void)
     ESP_LOGI(TAG, "webserver start...");
     rest_webserver::RestServer::compute();
     ESP_LOGI(TAG, "webserver start...OK");
-
     ESP_LOGI(TAG, "service Tasks stsart...");
     rest_webserver::TempMeasure::start();
     rest_webserver::LedStripe::start();

@@ -23,5 +23,6 @@ namespace rest_webserver
   private:
     static void init_mdns();
     static void event_handler(void *, esp_event_base_t, int32_t, void *);
+    static void time_sync_notification_cb(struct timeval *);
   };
 }

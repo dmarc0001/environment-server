@@ -13,7 +13,8 @@ namespace rest_webserver
   rgb_t LedStripe::curr_color[Prefs::LED_STRIPE_COUNT]{};
   const rgb_t LedStripe::wlan_discon_colr{.r = 0x32, .g = 0x32, .b = 0x00};
   const rgb_t LedStripe::wlan_search_colr{.r = 0x66, .g = 0x41, .b = 0x06};
-  const rgb_t LedStripe::wlan_connect_colr{.r = 0x01, .g = 0x08, .b = 0x01};
+  const rgb_t LedStripe::wlan_connect_colr{.r = 0x06, .g = 0x08, .b = 0x01};
+  const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x01, .g = 0x08, .b = 0x01};
   const rgb_t LedStripe::wlan_fail_col{.r = 0xa0, .g = 0x0, .b = 0x0};
   const rgb_t LedStripe::msg_nominal_col{.r = 0x10, .g = 0xc0, .b = 0x10};
   const rgb_t LedStripe::msg_warn_col{.r = 0x6e, .g = 0x4f, .b = 0x00};
@@ -101,6 +102,10 @@ namespace rest_webserver
           case WlanState::CONNECTED:
             rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
             break;
+          case WlanState::TIMESYNCED:
+            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
+            break;
+          default:
           case WlanState::FAILED:
             rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_fail_col);
             break;

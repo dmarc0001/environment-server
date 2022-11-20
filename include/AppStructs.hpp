@@ -1,6 +1,7 @@
 #pragma once
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <ds18x20.h>
 
 namespace rest_webserver
 {
@@ -10,6 +11,7 @@ namespace rest_webserver
     DISCONNECTED,
     SEARCHING,
     CONNECTED,
+    TIMESYNCED,
     FAILED
   };
 
@@ -20,5 +22,15 @@ namespace rest_webserver
     MSG_ERR,
     MSG_CRIT
   };
+
+  struct env_measure_t
+  {
+    uint32_t timestamp;
+    ds18x20_addr_t addr;
+    float temp;
+    float humidy;
+  };
+
+  using env_measure_a = env_measure_t[];
 
 }

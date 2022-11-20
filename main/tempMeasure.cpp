@@ -88,12 +88,12 @@ namespace rest_webserver
         ESP_LOGI(TempMeasure::tag, "Measuring...");
         //
         // all addrs
-        // buffering local, is faster
-        float temperatures[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
+        // plus 1 for dht11
+        env_measure_t m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1]{};
         for (int addr_idx = 0; addr_idx < sensor_count; ++addr_idx)
         {
-          ds18x20_addr_t addr = addrs[addr_idx];
-          res = ds18x20_measure_and_read(Prefs::TEMPERATURE_SENSOR_GPIO, addr, &temperatures[addr_idx]);
+          m_values[addr_idx].addr = addrs[addr_idx];
+          res = ds18x20_measure_and_read(Prefs::TEMPERATURE_SENSOR_GPIO, m_values[addr_idx].addr, &m_values[addr_idx].temp);
           if (res != ESP_OK)
           {
             ESP_LOGE(TempMeasure::tag, "Sensors (ds10x20) read error %d (%s)", res, esp_err_to_name(res));
@@ -102,25 +102,34 @@ namespace rest_webserver
           }
           else
           {
-            float temp_c = temperatures[addr_idx];
+            float temp_c = m_values[addr_idx].temp;
             ESP_LOGI(TempMeasure::tag, "Sensor %08" PRIx32 "%08" PRIx32 " (%s) reports %.3f°C",
-                     (uint32_t)(addrs[addr_idx] >> 32), (uint32_t)addrs[addr_idx],
-                     (addrs[addr_idx] & 0xff) == DS18B20_FAMILY_ID ? "DS18B20" : "DS18S20",
+                     (uint32_t)(m_values[addr_idx].addr >> 32), (uint32_t)m_values[addr_idx].addr,
+                     (m_values[addr_idx].addr & 0xff) == DS18B20_FAMILY_ID ? "DS18B20" : "DS18S20",
                      temp_c);
           }
           vTaskDelay(pdMS_TO_TICKS(125));
         }
-        float temperature, humidity;
-        res = dht_read_float_data(Prefs::DHT_SENSOR_TYPE, Prefs::DHT_SENSOR_GPIO, &humidity, &temperature);
+        m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].addr = 0;
+        res = dht_read_float_data(Prefs::DHT_SENSOR_TYPE, Prefs::DHT_SENSOR_GPIO, &m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].humidy, &m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].temp);
         if (res == ESP_OK)
-          ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
+          ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC\n", m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].humidy, m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].temp);
         else
           ESP_LOGW(TempMeasure::tag, "Could not read data from dht11 sensor\n");
         vTaskDelay(pdMS_TO_TICKS(50));
-        //
-        // send to status object
-        //
-        StatusObject::setMeasures(sensor_count, addrs, temperatures, temperature, humidity);
+        if (StatusObject::getWlanState() == WlanState::TIMESYNCED)
+        {
+          //
+          // send to status object
+          //
+          timeval val;
+          gettimeofday(&val, nullptr);
+          //StatusObject::setMeasures(sensor_count, m_values);
+        }
+        else
+        {
+          ESP_LOGW(TempMeasure::tag, "time not sync, no save mesure values!");
+        }
       }
       vTaskDelay(pdMS_TO_TICKS(500));
     }

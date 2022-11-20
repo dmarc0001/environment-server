@@ -18,6 +18,7 @@ namespace rest_webserver
     static const rgb_t wlan_discon_colr;              //! color if wlan disconnected
     static const rgb_t wlan_search_colr;              //! color if wland connecting
     static const rgb_t wlan_connect_colr;             //! color if wlan connected
+    static const rgb_t wlan_connect_and_sync_colr;    //! color if WLAN connected and time synced
     static const rgb_t wlan_fail_col;                 //! color if wlan failed
     static const rgb_t msg_nominal_col;               // color msg all is nominal
     static const rgb_t msg_warn_col;                  // color msg warning

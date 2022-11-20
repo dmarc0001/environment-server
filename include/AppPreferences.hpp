@@ -11,6 +11,7 @@
 
 namespace Prefs
 {
+  constexpr const char *TIMEZONE{"CET-1"};                        //! my own timezone
   constexpr const char *MDNS_INSTANCE{"esp rest server"};         //! instance nama of mdns process
   constexpr const char *WEB_PATH{"/spiffs"};                      //! virtual path wegserver
   constexpr uint32_t WEB_SCRATCH_BUFSIZE{1024};                   //! buffsize für http server answers

@@ -13,9 +13,7 @@ namespace rest_webserver
   private:
     static portMUX_TYPE statMutex;
     static bool is_init;
-    static ds18x20_addr_t addrs[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
-    static float temps[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
-    static float temperature, humidity;
+    static env_measure_t m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1];
     static size_t sensor_count;
     static WlanState wlanState;
     static MsgState msgState;
@@ -25,7 +23,7 @@ namespace rest_webserver
     static void init();
 
   public:
-    static void setMeasures(size_t, ds18x20_addr_t[], float[], float, float);
+    static void setMeasures(size_t, const env_measure_a &);
     static void setWlanState(WlanState);
     static void setMsgState(MsgState);
     static MsgState getMsgState();

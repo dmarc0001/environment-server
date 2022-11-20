@@ -5,11 +5,8 @@ namespace rest_webserver
 {
   portMUX_TYPE StatusObject::statMutex{0U, 0U};
   bool StatusObject::is_init{false};
-  ds18x20_addr_t StatusObject::addrs[Prefs::TEMPERATURE_SENSOR_MAX_COUNT]{};
-  float StatusObject::temps[Prefs::TEMPERATURE_SENSOR_MAX_COUNT]{};
+  env_measure_t StatusObject::m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1]{};
   size_t StatusObject::sensor_count;
-  float StatusObject::temperature{};
-  float StatusObject::humidity{};
   WlanState StatusObject::wlanState{WlanState::DISCONNECTED};
   MsgState StatusObject::msgState{MsgState::MSG_NOMINAL};
   bool StatusObject::http_active{false};
@@ -21,7 +18,7 @@ namespace rest_webserver
     StatusObject::is_init = true;
   }
 
-  void StatusObject::setMeasures(size_t _sensor_count, ds18x20_addr_t _addrs[], float temperatures[], float _temp, float _humidy)
+  void StatusObject::setMeasures(size_t _sensor_count, const env_measure_a &_values)
   {
     if (!StatusObject::is_init)
       init();
@@ -29,23 +26,20 @@ namespace rest_webserver
     if (_sensor_count > 0)
     {
       StatusObject::sensor_count = _sensor_count;
-      for (int idx = 0; idx < Prefs::TEMPERATURE_SENSOR_MAX_COUNT; ++idx)
+      for (int idx = 0; idx < Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1; ++idx)
       {
         if (idx < _sensor_count)
         {
-          StatusObject::addrs[idx] = _addrs[idx];
-          StatusObject::temps[idx] = temperatures[idx];
+          StatusObject::m_values[idx] = _values[idx];
         }
         else
         {
-          StatusObject::addrs[idx] = 0ULL;
-          StatusObject::temps[idx] = .0f;
+          StatusObject::m_values[idx] = {};
         }
       }
     }
-    StatusObject::temperature = _temp;
-    StatusObject::humidity = _humidy;
     portEXIT_CRITICAL(&StatusObject::statMutex);
+    // TODO: sichern in file
   }
 
   void StatusObject::setWlanState(WlanState _state)
