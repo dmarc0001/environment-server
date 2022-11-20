@@ -87,7 +87,7 @@ namespace rest_webserver
     //
     // allocate RAM
     //
-    rest_server_context_t *rest_context = static_cast<rest_server_context_t *>(calloc(1, sizeof(rest_server_context_t)));
+    web_server_context_t *rest_context = static_cast<web_server_context_t *>(calloc(1, sizeof(web_server_context_t)));
     // TODO: REST_CHECK( rest_context, "No memory for rest context", err );
     strlcpy(rest_context->base_path, base_path, sizeof(rest_context->base_path));
 
@@ -103,12 +103,40 @@ namespace rest_webserver
     ESP_ERROR_CHECK(httpd_start(&server, &config));
 
     RestServer::registerSystemInfoHandler(server, rest_context);
+    RestServer::registerRestHandler(server, rest_context);
     RestServer::registerRootHandler(server, rest_context);
 
     return ESP_OK;
   }
 
-  esp_err_t RestServer::registerRootHandler(httpd_handle_t server, rest_server_context_t *rest_context)
+  esp_err_t RestServer::registerRestHandler(httpd_handle_t server, web_server_context_t *rest_context)
+  {
+    // URI handler for REST api
+    httpd_uri_t system_info_get_uri;
+    system_info_get_uri.uri = "/rest/v1/*";
+    system_info_get_uri.method = HTTP_GET;
+    system_info_get_uri.handler = RestServer::restGetHandler;
+    system_info_get_uri.user_ctx = rest_context;
+    httpd_register_uri_handler(server, &system_info_get_uri);
+    return ESP_OK;
+  }
+
+  esp_err_t RestServer::restGetHandler(httpd_req_t *req)
+  {
+    httpd_resp_set_type(req, "application/json");
+    cJSON *root = cJSON_CreateObject();
+    esp_chip_info_t chip_info;
+    esp_chip_info(&chip_info);
+    cJSON_AddStringToObject(root, "current", IDF_VER);
+    cJSON_AddNumberToObject(root, "temp", 99.9);
+    const char *tmp_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, tmp_info);
+    free((void *)tmp_info);
+    cJSON_Delete(root);
+    return ESP_OK;
+  }
+
+  esp_err_t RestServer::registerRootHandler(httpd_handle_t server, web_server_context_t *rest_context)
   {
     /* URI handler for fetching system info */
     httpd_uri_t root_index_uri;
@@ -125,33 +153,106 @@ namespace rest_webserver
     /*https://github.com/espressif/esp-idf/blob/96b0cb2828fb550ab0fe5cc7a5b3ac42fb87b1d2/examples/protocols/http_server/file_serving/main/file_server.c
     212
     */
-    httpd_resp_set_type(req, "text/html");
-    if (is_spiffs_ready)
+    char filepath[FILE_PATH_MAX];
+    FILE *fd = nullptr;
+    struct stat file_stat;
+
+    if (!is_spiffs_ready)
     {
-      //
-      // fuer "/" dateipfad zusammenbauen
-      //
-      FILE *f = fopen("/spiffs/index.html", "r");
-      if (f == nullptr)
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "SPIFFS not ready!");
+      return ESP_FAIL;
+    }
+
+    // max pathlen check
+    const char *filename = getPathFromUri(filepath, ((struct webServerContext *)req->user_ctx)->base_path,
+                                          req->uri, sizeof(filepath));
+    if (!filename)
+    {
+      ESP_LOGE(RestServer::tag, "Filename is too long");
+      /* Respond with 500 Internal Server Error */
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long");
+      return ESP_FAIL;
+    }
+
+    //
+    // check if filename exits
+    // or its hardcodet path
+    //
+    if (stat(filepath, &file_stat) == -1)
+    {
+      /* If file not present on SPIFFS check if URI
+         * corresponds to one of the hardcoded paths */
+      if (strcmp(filename, "/") == 0)
       {
-        ESP_LOGE(RestServer::tag, "Failed to open index.html");
-        return ESP_FAIL;
+        return indexHtmlGetHandler(req);
       }
-      char line[1024];
-      memset(line, 0, sizeof(line));
-      fread(line, 1, sizeof(line), f);
-      fclose(f);
-      httpd_resp_sendstr(req, line);
+      ESP_LOGE(RestServer::tag, "Failed to stat file : %s", filepath);
+      /* Respond with 404 Not Found */
+      httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
+      return ESP_FAIL;
     }
-    else
+    //
+    // try to open file, readonly of course
+    //
+    fd = fopen(filepath, "r");
+    if (!fd)
     {
-      const char *msg{"<!DOCTYPE html> <html lang=\"de\"> <head>  <meta charset=\"utf-8\"> <title>TEST</title> </head> <body> <h1>ANFANG</h1> <div>inhalt</div></body></html>"};
-      httpd_resp_sendstr(req, msg);
+      ESP_LOGE(RestServer::tag, "Failed to read existing file : %s", filepath);
+      /* Respond with 500 Internal Server Error */
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+      return ESP_FAIL;
     }
+    //
+    // content-type from file find and set
+    //
+    ESP_LOGI(RestServer::tag, "Sending file : <%s> (%ld bytes)...", filename, file_stat.st_size);
+    //httpd_resp_set_type(req, "text/html");
+    setContentTypeFromFile(req, filename);
+    //
+    // deliver the file chunk-whise
+    //
+
+    // Retrieve the pointer to scratch buffer for temporary storage
+    char *chunk = ((struct webServerContext *)req->user_ctx)->scratch;
+    size_t chunksize;
+    do
+    {
+      //
+      // Read file in chunks into the scratch buffer
+      //
+      chunksize = fread(chunk, 1, Prefs::WEB_SCRATCH_BUFSIZE, fd);
+      //
+      // if read any content
+      //
+      if (chunksize > 0)
+      {
+        //
+        // Send the buffer contents as HTTP response chunk
+        //
+        if (httpd_resp_send_chunk(req, chunk, chunksize) != ESP_OK)
+        {
+          // was is wrong?
+          fclose(fd);
+          ESP_LOGE(RestServer::tag, "File sending failed!");
+          // Abort sending file
+          httpd_resp_sendstr_chunk(req, nullptr);
+          // Respond with 500 Internal Server Error
+          httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+          return ESP_FAIL;
+        }
+      }
+      // Keep looping till the whole file is sent
+    } while (chunksize != 0);
+    httpd_resp_sendstr_chunk(req, nullptr);
+    //
+    // Close file after sending complete
+    //
+    fclose(fd);
+    ESP_LOGI(RestServer::tag, "File sending complete");
     return ESP_OK;
   }
 
-  esp_err_t RestServer::registerSystemInfoHandler(httpd_handle_t server, rest_server_context_t *rest_context)
+  esp_err_t RestServer::registerSystemInfoHandler(httpd_handle_t server, web_server_context_t *rest_context)
   {
     /* URI handler for fetching system info */
     httpd_uri_t system_info_get_uri;
@@ -179,19 +280,20 @@ namespace rest_webserver
     return ESP_OK;
   }
 
-  /* Handler to redirect incoming GET request for /index.html to /
- * This can be overridden by uploading file with same name */
-  esp_err_t RestServerindex_html_get_handler(httpd_req_t *req)
+  //
+  // redirect from "/" to "/index.html"
+  //
+  esp_err_t RestServer::indexHtmlGetHandler(httpd_req_t *req)
   {
     httpd_resp_set_status(req, "307 Temporary Redirect");
-    httpd_resp_set_hdr(req, "Location", "/");
+    httpd_resp_set_hdr(req, "Location", "/index.html");
     httpd_resp_send(req, NULL, 0); // Response body can be empty
     return ESP_OK;
   }
 
   /* Copies the full path into destination buffer and returns
  * pointer to path (skipping the preceding base path) */
-  const char *RestServer::get_path_from_uri(char *dest, const char *base_path, const char *uri, size_t destsize)
+  const char *RestServer::getPathFromUri(char *dest, const char *base_path, const char *uri, size_t destsize)
   {
     const size_t base_pathlen = strlen(base_path);
     size_t pathlen = strlen(uri);
@@ -219,6 +321,30 @@ namespace rest_webserver
 
     /* Return pointer to path, skipping the base */
     return dest + base_pathlen;
+  }
+
+  /* Set HTTP response content type according to file extension */
+  esp_err_t RestServer::setContentTypeFromFile(httpd_req_t *req, const char *filename)
+  {
+    if (RestServer::isFileTypeExist(filename, ".pdf"))
+    {
+      return httpd_resp_set_type(req, "application/pdf");
+    }
+    else if (RestServer::isFileTypeExist(filename, ".html"))
+    {
+      return httpd_resp_set_type(req, "text/html");
+    }
+    else if (RestServer::isFileTypeExist(filename, ".jpeg"))
+    {
+      return httpd_resp_set_type(req, "image/jpeg");
+    }
+    else if (RestServer::isFileTypeExist(filename, ".ico"))
+    {
+      return httpd_resp_set_type(req, "image/x-icon");
+    }
+    /* This is a limited set only */
+    /* For any other type always set as plain text */
+    return httpd_resp_set_type(req, "text/plain");
   }
 
 }

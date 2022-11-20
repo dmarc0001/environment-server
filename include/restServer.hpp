@@ -8,11 +8,13 @@
 
 namespace rest_webserver
 {
-  typedef struct rest_server_context
+  constexpr int FILE_PATH_MAX = (ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN);
+
+  typedef struct webServerContext
   {
     char base_path[ESP_VFS_PATH_MAX + 1];
     char scratch[Prefs::WEB_SCRATCH_BUFSIZE];
-  } rest_server_context_t;
+  } web_server_context_t;
 
   class RestServer
   {
@@ -26,13 +28,20 @@ namespace rest_webserver
 
   private:
     static esp_err_t spiffs_init();
-    static esp_err_t index_html_get_handler(httpd_req_t *);
-    static const char *get_path_from_uri(char *, const char *, const char *, size_t);
+    static esp_err_t indexHtmlGetHandler(httpd_req_t *);
+    static const char *getPathFromUri(char *, const char *, const char *, size_t);
     static esp_err_t startRestServer(const char *);
-    static esp_err_t registerSystemInfoHandler(httpd_handle_t, rest_server_context_t *);
+    static esp_err_t registerSystemInfoHandler(httpd_handle_t, web_server_context_t *);
     static esp_err_t systemInfoGetHandler(httpd_req_t *);
-    static esp_err_t registerRootHandler(httpd_handle_t, rest_server_context_t *);
+    static esp_err_t registerRootHandler(httpd_handle_t, web_server_context_t *);
     static esp_err_t rootGetHandler(httpd_req_t *);
+    static esp_err_t registerRestHandler(httpd_handle_t, web_server_context_t *);
+    static esp_err_t restGetHandler(httpd_req_t *);
+    static esp_err_t setContentTypeFromFile(httpd_req_t *, const char *);
+    inline static bool isFileTypeExist(const char *filename, const char *ext)
+    {
+      return (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0);
+    }
   };
 
 }
