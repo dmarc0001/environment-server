@@ -10,20 +10,30 @@ namespace rest_webserver
 {
   const char *LedStripe::tag{"hardware"};
   led_strip_t LedStripe::strip{};
-  rgb_t LedStripe::curr_color{.r = 0x00, .g = 0x00, .b = 0x00};
+  rgb_t LedStripe::curr_color[Prefs::LED_STRIPE_COUNT]{};
   const rgb_t LedStripe::wlan_discon_colr{.r = 0x32, .g = 0x32, .b = 0x00};
   const rgb_t LedStripe::wlan_search_colr{.r = 0x66, .g = 0x41, .b = 0x06};
-  const rgb_t LedStripe::wlan_connect_colr{.r = 0x02, .g = 0x0a, .b = 0x02};
+  const rgb_t LedStripe::wlan_connect_colr{.r = 0x01, .g = 0x08, .b = 0x01};
   const rgb_t LedStripe::wlan_fail_col{.r = 0xa0, .g = 0x0, .b = 0x0};
   const rgb_t LedStripe::msg_nominal_col{.r = 0x10, .g = 0xc0, .b = 0x10};
+  const rgb_t LedStripe::msg_warn_col{.r = 0x6e, .g = 0x4f, .b = 0x00};
+  const rgb_t LedStripe::msg_err_col{.r = 0x80, .g = 0x00, .b = 0x00};
+  const rgb_t LedStripe::msg_crit_col{.r = 0xff, .g = 0x10, .b = 0x10};
+  const rgb_t LedStripe::http_active{.r = 0xa0, .g = 0xa0, .b = 0x00};
   bool LedStripe::is_running{false};
-  int64_t nextLedActionTime{0LL};
-  uint8_t ledStage{0};
-  int64_t nowTime = esp_timer_get_time();
 
   void LedStripe::ledTask(void *)
   {
+    using namespace Prefs;
+    int64_t nextWLANLedActionTime{800000LL};
+    int64_t nextMsgLedActionTime{100000LL};
+    int64_t nextHTTPLedActionTime{3000000LL};
+    uint8_t ledStage{0};
+    int64_t nowTime = esp_timer_get_time();
     LedStripe::is_running = true;
+    WlanState cWlanState{WlanState::FAILED};
+    bool curr_http_state{false};
+    bool led_changed{false};
     // ESP32-S2 RGB LED
     ESP_LOGI(LedStripe::tag, "initialize WS2812 led stripe...");
     //
@@ -32,14 +42,14 @@ namespace rest_webserver
     // temporary object
     //
     led_strip_t _strip = {
-        .type = Prefs::LED_STRIPE_TYPE,
-        .is_rgbw = true,
+        .type = LED_STRIPE_TYPE,
+        .is_rgbw = false,
 #ifdef LED_STRIP_BRIGHTNESS
         .brightness = 255,
 #endif
-        .length = Prefs::LED_STRIPE_COUNT,
-        .gpio = Prefs::LED_STRIPE_RMT_TX_GPIO,
-        .channel = Prefs::LED_STRIPE_RMT_CHANNEL,
+        .length = LED_STRIPE_COUNT,
+        .gpio = LED_STRIPE_RMT_TX_GPIO,
+        .channel = LED_STRIPE_RMT_CHANNEL,
         .buf = nullptr,
     };
     //
@@ -55,7 +65,12 @@ namespace rest_webserver
     {
       // Clear LED strip (turn off all LEDs)
       ESP_LOGI(LedStripe::tag, "clear led...");
-      led_strip_set_pixel(&LedStripe::strip, 0, LedStripe::curr_color);
+      for (int idx = 0; idx < LED_STRIPE_COUNT; ++idx)
+      {
+        rgb_t col = {.r = 0, .g = 0, .b = 0};
+        LedStripe::curr_color[idx] = col;
+        led_strip_set_pixel(&LedStripe::strip, idx, LedStripe::curr_color[idx]);
+      }
       led_strip_flush(&LedStripe::strip);
       //
       ESP_LOGI(LedStripe::tag, "install WS2812 led stripe driver...OK");
@@ -69,98 +84,172 @@ namespace rest_webserver
       //
       // ist it time for led action
       //
-      if (nextLedActionTime < nowTime)
+      if (nextWLANLedActionTime < nowTime)
+      {
+        if (cWlanState != StatusObject::getWlanState())
+        {
+          // only if changed
+          cWlanState = StatusObject::getWlanState();
+          switch (cWlanState)
+          {
+          case WlanState::DISCONNECTED:
+            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_discon_colr);
+            break;
+          case WlanState::SEARCHING:
+            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_search_colr);
+            break;
+          case WlanState::CONNECTED:
+            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
+            break;
+          case WlanState::FAILED:
+            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_fail_col);
+            break;
+          }
+          led_changed = true;
+        }
+        nextWLANLedActionTime = esp_timer_get_time() + 800000LL;
+      }
+      if (nextMsgLedActionTime < nowTime)
       {
         // it ist time for LED action
         switch (ledStage)
         {
-        case 1:
-          // WLAN state
-          switch (StatusObject::getWlanState())
+        case 0:
+          // Message state flash
+          nextMsgLedActionTime = esp_timer_get_time() + 40000LL;
+          switch (StatusObject::getMsgState())
           {
-          case WlanState::DISCONNECTED:
-            rest_webserver::LedStripe::setLed(LedStripe::wlan_discon_colr);
+          case MsgState::MSG_NOMINAL:
+            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_nominal_col);
             break;
-          case WlanState::SEARCHING:
-            rest_webserver::LedStripe::setLed(LedStripe::wlan_search_colr);
+
+          case MsgState::MSG_WARN:
+            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_warn_col);
             break;
-          case WlanState::CONNECTED:
-            rest_webserver::LedStripe::setLed(LedStripe::wlan_connect_colr);
+
+          case MsgState::MSG_ERR:
+            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_err_col);
             break;
-          case WlanState::FAILED:
-            rest_webserver::LedStripe::setLed(LedStripe::wlan_fail_col);
+
+          default:
+            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_crit_col);
             break;
           }
-          nextLedActionTime = esp_timer_get_time() + 800000LL;
+          ++ledStage;
           break;
 
-        case 2:
-          // Message state
-          rest_webserver::LedStripe::setLed(LedStripe::msg_nominal_col);
-          nextLedActionTime = esp_timer_get_time() + 60000LL;
-          break;
-
-        case 3:
-          rest_webserver::LedStripe::setLed(false);
-          nextLedActionTime = esp_timer_get_time() + 450000LL;
-          break;
-
+        case 1:
         default:
-          rest_webserver::LedStripe::setLed(false);
+          // message state dark
+          rest_webserver::LedStripe::setLed(LED_MSG, false);
+          nextMsgLedActionTime = esp_timer_get_time() + 1200000LL;
           ledStage = 0;
           break;
         }
-        ++ledStage;
+        led_changed = true;
       }
+      if (nextHTTPLedActionTime < nowTime)
+      {
+        if (StatusObject::getHttpActive() != curr_http_state)
+        {
+          if (StatusObject::getHttpActive())
+          {
+            StatusObject::setHttpActive(false);
+            rest_webserver::LedStripe::setLed(LED_HTTP, LedStripe::http_active);
+          }
+          else
+          {
+            rest_webserver::LedStripe::setLed(LED_HTTP, false);
+          }
+        }
+        nextHTTPLedActionTime = esp_timer_get_time() + 40000LL;
+        led_changed = true;
+      }
+      if (led_changed)
+        led_strip_flush(&LedStripe::strip);
+      led_changed = false;
     }
   }
 
   /**
    * switch LED on or off
    */
-  esp_err_t LedStripe::setLed(bool _onoff)
+  esp_err_t LedStripe::setLed(uint8_t _led, bool _onoff)
   {
     if (_onoff)
     {
       // set old value
-      led_strip_set_pixel(&LedStripe::strip, 0, LedStripe::curr_color);
-      return led_strip_flush(&LedStripe::strip);
+      if (_led == Prefs::LED_ALL)
+      {
+        for (int idx = 0; idx < Prefs::LED_STRIPE_COUNT; ++idx)
+        {
+          led_strip_set_pixel(&LedStripe::strip, idx, LedStripe::curr_color[idx]);
+        }
+      }
+      else
+      {
+        led_strip_set_pixel(&LedStripe::strip, _led, LedStripe::curr_color[_led]);
+      }
     }
     else
     {
+      // set dark
       rgb_t col = {.r = 0x00, .g = 0x00, .b = 0x00};
-      led_strip_set_pixel(&LedStripe::strip, 0, col);
-      return led_strip_flush(&LedStripe::strip);
+      if (_led == Prefs::LED_ALL)
+      {
+        for (int idx = 0; idx < Prefs::LED_STRIPE_COUNT; ++idx)
+        {
+          led_strip_set_pixel(&LedStripe::strip, idx, col);
+        }
+      }
+      else
+      {
+        led_strip_set_pixel(&LedStripe::strip, _led, col);
+      }
     }
-  }
-
-  esp_err_t LedStripe::setLed(rgb_t _rgb)
-  {
-    led_strip_set_pixel(&LedStripe::strip, 0, _rgb);
     return led_strip_flush(&LedStripe::strip);
   }
+
+  /**
+   * set led color
+  */
+  esp_err_t LedStripe::setLed(uint8_t _led, rgb_t _rgb)
+  {
+    if (_led == Prefs::LED_ALL)
+    {
+      for (int idx = 0; idx < Prefs::LED_STRIPE_COUNT; ++idx)
+      {
+        LedStripe::curr_color[idx] = _rgb;
+        led_strip_set_pixel(&LedStripe::strip, idx, _rgb);
+      }
+    }
+    else
+    {
+      LedStripe::curr_color[_led] = _rgb;
+      led_strip_set_pixel(&LedStripe::strip, _led, _rgb);
+    }
+    return led_strip_flush(&LedStripe::strip);
+  }
+
   /**
    * LED in RGB each param an color
   */
-  esp_err_t LedStripe::setLed(uint8_t r, uint8_t g, uint8_t b)
+  esp_err_t LedStripe::setLed(uint8_t _led, uint8_t r, uint8_t g, uint8_t b)
   {
-    LedStripe::curr_color.r = r;
-    LedStripe::curr_color.g = g;
-    LedStripe::curr_color.b = b;
-    led_strip_set_pixel(&LedStripe::strip, 0, LedStripe::curr_color);
-    return led_strip_flush(&LedStripe::strip);
+    rgb_t color{.r = r, .g = g, .b = b};
+    return LedStripe::setLed(_led, color);
   }
 
   /**
    * RGB as an single param
   */
-  esp_err_t LedStripe::setLed(uint32_t _rgb)
+  esp_err_t LedStripe::setLed(uint8_t _led, uint32_t _rgb)
   {
-    LedStripe::curr_color.r = static_cast<uint8_t>(0xff & (_rgb >> 16));
-    LedStripe::curr_color.g = static_cast<uint8_t>(0xff & (_rgb >> 8));
-    LedStripe::curr_color.b = static_cast<uint8_t>(0xff & (_rgb));
-    led_strip_set_pixel(&LedStripe::strip, 0, LedStripe::curr_color);
-    return led_strip_flush(&LedStripe::strip);
+    rgb_t color{
+        .r = static_cast<uint8_t>(0xff & (_rgb >> 16)),
+        .g = static_cast<uint8_t>(0xff & (_rgb >> 8)),
+        .b = static_cast<uint8_t>(0xff & (_rgb))};
+    return LedStripe::setLed(_led, color);
   }
 
   void LedStripe::start()
@@ -175,5 +264,4 @@ namespace rest_webserver
       xTaskCreate(LedStripe::ledTask, "led-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
     }
   }
-
 }

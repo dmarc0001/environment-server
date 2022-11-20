@@ -13,4 +13,12 @@ namespace rest_webserver
     FAILED
   };
 
+  enum MsgState : uint8_t
+  {
+    MSG_NOMINAL,
+    MSG_WARN,
+    MSG_ERR,
+    MSG_CRIT
+  };
+
 }

@@ -16,7 +16,7 @@ namespace rest_webserver
     size_t sensor_count = 0;
     ds18x20_addr_t addrs[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
     int64_t measure_interval = static_cast<int64_t>(Prefs::MEASURE_INTERVAL_SEC) * 1000000LL;
-    int64_t scan_interval = static_cast<int64_t>(Prefs::MEASURE_SCAN_SENMSOR_INTERVAL) * 1000000LL;
+    int64_t scan_interval = static_cast<int64_t>(Prefs::MEASURE_SCAN_SENSOR_INTERVAL) * 1000000LL;
 
     //
     // DHT-11 init
@@ -67,7 +67,7 @@ namespace rest_webserver
         {
           // earlier checking
           nextSensorsScanTime = nowTime + (10LL * 1000000LL);
-          ESP_LOGW(TempMeasure::tag, "No sensors detected!");
+          ESP_LOGW(TempMeasure::tag, "No ds18x20 sensors detected!");
           vTaskDelay(pdMS_TO_TICKS(50));
           continue;
         }
@@ -96,7 +96,7 @@ namespace rest_webserver
           res = ds18x20_measure_and_read(Prefs::TEMPERATURE_SENSOR_GPIO, addr, &temperatures[addr_idx]);
           if (res != ESP_OK)
           {
-            ESP_LOGE(TempMeasure::tag, "Sensors read error %d (%s)", res, esp_err_to_name(res));
+            ESP_LOGE(TempMeasure::tag, "Sensors (ds10x20) read error %d (%s)", res, esp_err_to_name(res));
             vTaskDelay(pdMS_TO_TICKS(250));
             continue;
           }
@@ -115,7 +115,7 @@ namespace rest_webserver
         if (res == ESP_OK)
           ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
         else
-          ESP_LOGW(TempMeasure::tag, "Could not read data from sensor\n");
+          ESP_LOGW(TempMeasure::tag, "Could not read data from dht11 sensor\n");
         vTaskDelay(pdMS_TO_TICKS(50));
         //
         // send to status object
