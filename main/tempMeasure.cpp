@@ -3,7 +3,7 @@
 #include "statusObject.hpp"
 #include "AppPreferences.hpp"
 
-namespace rest_webserver
+namespace webserver
 {
   const char *TempMeasure::tag{"measure_thread"};
   bool TempMeasure::is_running{false};

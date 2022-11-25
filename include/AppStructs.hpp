@@ -4,7 +4,7 @@
 #include "freertos/task.h"
 #include <ds18x20.h>
 
-namespace rest_webserver
+namespace webserver
 {
 
   enum WlanState : uint8_t

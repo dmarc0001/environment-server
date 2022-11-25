@@ -5,6 +5,7 @@
 #include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include <esp_netif.h>
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -13,11 +14,10 @@
 #include "lwip/sys.h"
 
 #include "main.hpp"
-#include "AppPreferences.hpp"
-#include "wifi.hpp"
 #include "ledStripe.hpp"
-#include "restServer.hpp"
+#include "webServer.hpp"
 #include "tempMeasure.hpp"
+#include "AppPreferences.hpp"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
 
@@ -48,24 +48,19 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
     setenv("TZ", Prefs::TIMEZONE, 1);
     tzset();
-    ESP_LOGI(TAG, "wifi init...");
-    rest_webserver::WifiThings::init();
-    ESP_LOGI(TAG, "wifi init...OK");
-    ESP_LOGI(TAG, "webserver init...");
-    rest_webserver::RestServer::init();
+    ESP_LOGI(TAG, "wifi/webserver init...");
+    webserver::WebServer::init();
     ESP_LOGI(TAG, "webserver init...OK");
-    ESP_LOGI(TAG, "webserver start...");
-    rest_webserver::RestServer::compute();
-    ESP_LOGI(TAG, "webserver start...OK");
-    ESP_LOGI(TAG, "service Tasks stsart...");
-    rest_webserver::TempMeasure::start();
-    rest_webserver::LedStripe::start();
-    ESP_LOGI(TAG, "service Tasks stsart...OK");
+    ESP_LOGI(TAG, "service Tasks start...");
+    webserver::TempMeasure::start();
+    webserver::LedStripe::start();
+    ESP_LOGI(TAG, "service Tasks start...OK");
     //
     // i'm boring
     //
     while (true)
     {
+        webserver::WebServer::compute();
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }

@@ -8,7 +8,7 @@
 #include <esp_err.h>
 #include "AppPreferences.hpp"
 
-namespace rest_webserver
+namespace webserver
 {
   class TempMeasure
   {

@@ -6,7 +6,7 @@
 #include "AppPreferences.hpp"
 #include "statusObject.hpp"
 
-namespace rest_webserver
+namespace webserver
 {
   portMUX_TYPE StatusObject::statMutex{0U, 0U};
   bool StatusObject::is_init{false};

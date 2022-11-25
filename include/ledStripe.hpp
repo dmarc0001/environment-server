@@ -6,7 +6,7 @@
 
 #include "AppPreferences.hpp"
 
-namespace rest_webserver
+namespace webserver
 {
   class LedStripe
   {

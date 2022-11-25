@@ -7,7 +7,7 @@
 #include <led_strip.h>
 #include "AppPreferences.hpp"
 
-namespace rest_webserver
+namespace webserver
 {
   class StatusObject
   {

@@ -6,7 +6,7 @@
 #include "statusObject.hpp"
 #include "AppPreferences.hpp"
 
-namespace rest_webserver
+namespace webserver
 {
   const char *LedStripe::tag{"hardware"};
   led_strip_t LedStripe::strip{};
@@ -96,20 +96,20 @@ namespace rest_webserver
           switch (cWlanState)
           {
           case WlanState::DISCONNECTED:
-            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_discon_colr);
+            LedStripe::setLed(LED_WLAN, LedStripe::wlan_discon_colr);
             break;
           case WlanState::SEARCHING:
-            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_search_colr);
+            LedStripe::setLed(LED_WLAN, LedStripe::wlan_search_colr);
             break;
           case WlanState::CONNECTED:
-            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
+            LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
             break;
           case WlanState::TIMESYNCED:
-            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
+            LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
             break;
           default:
           case WlanState::FAILED:
-            rest_webserver::LedStripe::setLed(LED_WLAN, LedStripe::wlan_fail_col);
+            LedStripe::setLed(LED_WLAN, LedStripe::wlan_fail_col);
             break;
           }
           led_changed = true;
@@ -127,22 +127,22 @@ namespace rest_webserver
           switch (StatusObject::getMeasureState())
           {
           case MeasureState::MEASURE_UNKNOWN:
-            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_unknown_colr);
+            LedStripe::setLed(LED_MEASURE, LedStripe::measure_unknown_colr);
             break;
           case MeasureState::MEASURE_ACTION:
-            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_action_colr);
+            LedStripe::setLed(LED_MEASURE, LedStripe::measure_action_colr);
             break;
           case MeasureState::MEASURE_NOMINAL:
-            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
+            LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
             break;
           case MeasureState::MEASURE_WARN:
-            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_warn_colr);
+            LedStripe::setLed(LED_MEASURE, LedStripe::measure_warn_colr);
             break;
           case MeasureState::MEASURE_ERR:
-            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_err_colr);
+            LedStripe::setLed(LED_MEASURE, LedStripe::measure_err_colr);
             break;
           default:
-            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_crit_colr);
+            LedStripe::setLed(LED_MEASURE, LedStripe::measure_crit_colr);
             break;
           }
           ++ledStage;
@@ -153,7 +153,7 @@ namespace rest_webserver
           if (StatusObject::getMeasureState() != MeasureState::MEASURE_NOMINAL)
           {
             // dark
-            rest_webserver::LedStripe::setLed(LED_MEASURE, false);
+            LedStripe::setLed(LED_MEASURE, false);
             nextMeasureLedActionTime = esp_timer_get_time() + 1000000LL;
           }
           else
@@ -173,12 +173,12 @@ namespace rest_webserver
           if (StatusObject::getHttpActive())
           {
             StatusObject::setHttpActive(false);
-            rest_webserver::LedStripe::setLed(LED_HTTP, LedStripe::http_active);
+            LedStripe::setLed(LED_HTTP, LedStripe::http_active);
             nextHTTPLedActionTime = esp_timer_get_time() + 40000LL;
           }
           else
           {
-            rest_webserver::LedStripe::setLed(LED_HTTP, false);
+            LedStripe::setLed(LED_HTTP, false);
             nextHTTPLedActionTime = esp_timer_get_time() + 20000LL;
           }
         }
