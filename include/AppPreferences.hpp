@@ -7,7 +7,6 @@
 #include <esp_wifi.h>
 #include <led_strip.h>
 #include <dht.h>
-#include "AppStructs.hpp"
 
 namespace Prefs
 {
@@ -20,7 +19,7 @@ namespace Prefs
   constexpr rmt_channel_t LED_STRIPE_RMT_CHANNEL = RMT_CHANNEL_3; //! which remote control channel
   constexpr uint32_t LED_STRIPE_COUNT = 3U;                       //! count of rgb-led
   constexpr uint8_t LED_WLAN = 0;                                 //! indicator WLAN
-  constexpr uint8_t LED_MSG = 1;                                  //! indicator generall messages
+  constexpr uint8_t LED_MEASURE = 1;                              //! indicator generall messages
   constexpr uint8_t LED_HTTP = 2;                                 //! indicator http activity
   constexpr uint8_t LED_ALL = 255;                                //! indicator means all led'S
   constexpr const char *WIFI_SSID{"Controller\0"};                //! WLAN SSID
@@ -36,5 +35,7 @@ namespace Prefs
   //constexpr int MEASURE_SCAN_SENMSOR_INTERVAL = 610;              //! scan for new sensors
   constexpr int MEASURE_INTERVAL_SEC = 20;         //! interval between two measures
   constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 62; //! scan for new sensors
-
+  constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;    //! how many failed mesures to critical display?
 } // namespace Prefs
+
+#include "AppStructs.hpp"

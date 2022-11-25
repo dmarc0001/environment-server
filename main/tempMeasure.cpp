@@ -11,9 +11,8 @@ namespace rest_webserver
   void TempMeasure::measureTask(void *pvParameter)
   {
     TempMeasure::is_running = true;
-    // ds18x20_addr_t addrs[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
-    // float temps[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
     size_t sensor_count = 0;
+    int warning_rounds_count = 0;
     ds18x20_addr_t addrs[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
     int64_t measure_interval = static_cast<int64_t>(Prefs::MEASURE_INTERVAL_SEC) * 1000000LL;
     int64_t scan_interval = static_cast<int64_t>(Prefs::MEASURE_SCAN_SENSOR_INTERVAL) * 1000000LL;
@@ -83,58 +82,95 @@ namespace rest_webserver
       //############################################################
       if (nextMeasureTime < nowTime)
       {
+        StatusObject::setMeasureState(MeasureState::MEASURE_ACTION);
         // next mesure time set
         nextMeasureTime = nowTime + measure_interval;
         ESP_LOGI(TempMeasure::tag, "Measuring...");
+        timeval val;
+        gettimeofday(&val, nullptr);
         //
         // all addrs
         // plus 1 for dht11
-        env_measure_t m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1]{};
+        std::shared_ptr<env_dataset> dataset = std::shared_ptr<env_dataset>(new env_dataset());
         for (int addr_idx = 0; addr_idx < sensor_count; ++addr_idx)
         {
-          m_values[addr_idx].addr = addrs[addr_idx];
-          res = ds18x20_measure_and_read(Prefs::TEMPERATURE_SENSOR_GPIO, m_values[addr_idx].addr, &m_values[addr_idx].temp);
+          env_measure_t current;
+          current.addr = addrs[addr_idx];
+          current.timestamp = val.tv_sec;
+          current.humidy = -100.0;
+          res = ds18x20_measure_and_read(Prefs::TEMPERATURE_SENSOR_GPIO, current.addr, &current.temp);
           if (res != ESP_OK)
           {
             ESP_LOGE(TempMeasure::tag, "Sensors (ds10x20) read error %d (%s)", res, esp_err_to_name(res));
+            StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
+            current.temp = -100.0;
             vTaskDelay(pdMS_TO_TICKS(250));
             continue;
           }
           else
           {
-            float temp_c = m_values[addr_idx].temp;
+            float temp_c = current.temp;
             ESP_LOGI(TempMeasure::tag, "Sensor %08" PRIx32 "%08" PRIx32 " (%s) reports %.3f°C",
-                     (uint32_t)(m_values[addr_idx].addr >> 32), (uint32_t)m_values[addr_idx].addr,
-                     (m_values[addr_idx].addr & 0xff) == DS18B20_FAMILY_ID ? "DS18B20" : "DS18S20",
+                     (uint32_t)(current.addr >> 32), (uint32_t)current.addr,
+                     (current.addr & 0xff) == DS18B20_FAMILY_ID ? "DS18B20" : "DS18S20",
                      temp_c);
           }
+          dataset->push_back(current);
           vTaskDelay(pdMS_TO_TICKS(125));
         }
-        m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].addr = 0;
-        res = dht_read_float_data(Prefs::DHT_SENSOR_TYPE, Prefs::DHT_SENSOR_GPIO, &m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].humidy, &m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].temp);
+        env_measure_t current_dht;
+        current_dht.addr = 0;
+        current_dht.timestamp = val.tv_sec;
+        res = dht_read_float_data(Prefs::DHT_SENSOR_TYPE, Prefs::DHT_SENSOR_GPIO, &current_dht.humidy, &current_dht.temp);
         if (res == ESP_OK)
-          ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC\n", m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].humidy, m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT].temp);
+        {
+          dataset->push_back(current_dht);
+          ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC\n", current_dht.humidy, current_dht.temp);
+          if (StatusObject::getMeasureState() == MeasureState::MEASURE_ACTION)
+          {
+            // nur wenn keine Warnungen gesetzt wurden
+            // TODO: Anzahl der Warndurchläufe zählen, dann später CRIT setzten
+            StatusObject::setMeasureState(MeasureState::MEASURE_NOMINAL);
+            warning_rounds_count = 0;
+          }
+        }
         else
+        {
           ESP_LOGW(TempMeasure::tag, "Could not read data from dht11 sensor\n");
+          StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
+        }
         vTaskDelay(pdMS_TO_TICKS(50));
         if (StatusObject::getWlanState() == WlanState::TIMESYNCED)
         {
           //
           // send to status object
           //
-          timeval val;
-          gettimeofday(&val, nullptr);
-          //StatusObject::setMeasures(sensor_count, m_values);
+          StatusObject::setMeasures(dataset);
         }
         else
         {
           ESP_LOGW(TempMeasure::tag, "time not sync, no save mesure values!");
+          StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
+        }
+        //
+        // count warning rounds
+        //
+        if (StatusObject::getMeasureState() == MeasureState::MEASURE_WARN)
+        {
+          ++warning_rounds_count;
+          if (warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT)
+          {
+            StatusObject::setMeasureState(MeasureState::MEASURE_CRIT);
+          }
         }
       }
       vTaskDelay(pdMS_TO_TICKS(500));
     }
   }
 
+  /**
+   * start the measures as RTOS Task
+  */
   void TempMeasure::start()
   {
     if (TempMeasure::is_running)
@@ -143,8 +179,6 @@ namespace rest_webserver
     }
     else
     {
-      //xTaskCreate(static_cast<void (*)(void *)>(&(rest_webserver::TempMeasure::measureTask)), "ds18x20", configMINIMAL_STACK_SIZE * 4, NULL, 5, NULL);
-
       xTaskCreate(TempMeasure::measureTask, "temp-measure", configMINIMAL_STACK_SIZE * 4, NULL, 5, NULL);
     }
   }

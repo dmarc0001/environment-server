@@ -1,3 +1,8 @@
+#include <time.h>
+#include <memory>
+#include <algorithm>
+#include <iostream>
+
 #include "AppPreferences.hpp"
 #include "statusObject.hpp"
 
@@ -5,10 +10,8 @@ namespace rest_webserver
 {
   portMUX_TYPE StatusObject::statMutex{0U, 0U};
   bool StatusObject::is_init{false};
-  env_measure_t StatusObject::m_values[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1]{};
-  size_t StatusObject::sensor_count;
   WlanState StatusObject::wlanState{WlanState::DISCONNECTED};
-  MsgState StatusObject::msgState{MsgState::MSG_NOMINAL};
+  MeasureState StatusObject::msgState{MeasureState::MEASURE_UNKNOWN};
   bool StatusObject::http_active{false};
 
   void StatusObject::init()
@@ -18,27 +21,31 @@ namespace rest_webserver
     StatusObject::is_init = true;
   }
 
-  void StatusObject::setMeasures(size_t _sensor_count, const env_measure_a &_values)
+  void StatusObject::setMeasures(std::shared_ptr<env_dataset> dataset)
   {
     if (!StatusObject::is_init)
       init();
-    portENTER_CRITICAL(&StatusObject::statMutex);
-    if (_sensor_count > 0)
-    {
-      StatusObject::sensor_count = _sensor_count;
-      for (int idx = 0; idx < Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1; ++idx)
-      {
-        if (idx < _sensor_count)
-        {
-          StatusObject::m_values[idx] = _values[idx];
-        }
-        else
-        {
-          StatusObject::m_values[idx] = {};
-        }
-      }
-    }
-    portEXIT_CRITICAL(&StatusObject::statMutex);
+
+    //portENTER_CRITICAL(&StatusObject::statMutex);
+    std::for_each(dataset->begin(), dataset->end(), [](const env_measure_t n) {
+      std::cout << n.addr << std::endl;
+    });
+    // if (_sensor_count > 0)
+    // {
+    //   StatusObject::sensor_count = _sensor_count;
+    //   for (int idx = 0; idx < Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1; ++idx)
+    //   {
+    //     if (idx < _sensor_count)
+    //     {
+    //       StatusObject::m_values[idx] = _values[idx];
+    //     }
+    //     else
+    //     {
+    //       StatusObject::m_values[idx] = {};
+    //     }
+    //   }
+    // }
+    //portEXIT_CRITICAL(&StatusObject::statMutex);
     // TODO: sichern in file
   }
 
@@ -52,12 +59,12 @@ namespace rest_webserver
     return StatusObject::wlanState;
   }
 
-  void StatusObject::setMsgState(MsgState _st)
+  void StatusObject::setMeasureState(MeasureState _st)
   {
     StatusObject::msgState = _st;
   }
 
-  MsgState StatusObject::getMsgState()
+  MeasureState StatusObject::getMeasureState()
   {
     return StatusObject::msgState;
   }
@@ -70,6 +77,17 @@ namespace rest_webserver
   bool StatusObject::getHttpActive()
   {
     return StatusObject::http_active;
+  }
+
+  void StatusObject::saveTask(void *ptr)
+  {
+
+    // time_t rawtime;
+    // struct tm *timeinfo;
+
+    // time(&rawtime);
+    // timeinfo = localtime(&rawtime);
+    // printf("The current date/time is: %s", asctime(timeinfo));
   }
 
 }

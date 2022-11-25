@@ -20,10 +20,12 @@ namespace rest_webserver
     static const rgb_t wlan_connect_colr;             //! color if wlan connected
     static const rgb_t wlan_connect_and_sync_colr;    //! color if WLAN connected and time synced
     static const rgb_t wlan_fail_col;                 //! color if wlan failed
-    static const rgb_t msg_nominal_col;               // color msg all is nominal
-    static const rgb_t msg_warn_col;                  // color msg warning
-    static const rgb_t msg_err_col;                   // color msg error
-    static const rgb_t msg_crit_col;                  // color msg critical
+    static const rgb_t measure_unknown_colr;          //! color if state unknown
+    static const rgb_t measure_action_colr;           //! color if state is while measuring
+    static const rgb_t measure_nominal_colr;          //! color msg all is nominal
+    static const rgb_t measure_warn_colr;             //! color msg warning
+    static const rgb_t measure_err_colr;              //! color msg error
+    static const rgb_t measure_crit_colr;             //! color msg critical
     static const rgb_t http_active;                   //! indicates httpd activity
 
   public:

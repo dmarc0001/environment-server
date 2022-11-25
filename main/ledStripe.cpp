@@ -16,10 +16,12 @@ namespace rest_webserver
   const rgb_t LedStripe::wlan_connect_colr{.r = 0x06, .g = 0x08, .b = 0x01};
   const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x01, .g = 0x08, .b = 0x01};
   const rgb_t LedStripe::wlan_fail_col{.r = 0xa0, .g = 0x0, .b = 0x0};
-  const rgb_t LedStripe::msg_nominal_col{.r = 0x10, .g = 0xc0, .b = 0x10};
-  const rgb_t LedStripe::msg_warn_col{.r = 0x6e, .g = 0x4f, .b = 0x00};
-  const rgb_t LedStripe::msg_err_col{.r = 0x80, .g = 0x00, .b = 0x00};
-  const rgb_t LedStripe::msg_crit_col{.r = 0xff, .g = 0x10, .b = 0x10};
+  const rgb_t LedStripe::measure_unknown_colr{.r = 0x80, .g = 0x80, .b = 0x00};
+  const rgb_t LedStripe::measure_action_colr{.r = 0x70, .g = 0x50, .b = 0x00};
+  const rgb_t LedStripe::measure_nominal_colr{LedStripe::wlan_connect_and_sync_colr};
+  const rgb_t LedStripe::measure_warn_colr{.r = 0xff, .g = 0x40, .b = 0x00};
+  const rgb_t LedStripe::measure_err_colr{.r = 0x80, .g = 0x00, .b = 0x00};
+  const rgb_t LedStripe::measure_crit_colr{.r = 0xff, .g = 0x10, .b = 0x10};
   const rgb_t LedStripe::http_active{.r = 0xa0, .g = 0xa0, .b = 0x00};
   bool LedStripe::is_running{false};
 
@@ -27,7 +29,7 @@ namespace rest_webserver
   {
     using namespace Prefs;
     int64_t nextWLANLedActionTime{800000LL};
-    int64_t nextMsgLedActionTime{100000LL};
+    int64_t nextMeasureLedActionTime{100000LL};
     int64_t nextHTTPLedActionTime{3000000LL};
     uint8_t ledStage{0};
     int64_t nowTime = esp_timer_get_time();
@@ -114,30 +116,33 @@ namespace rest_webserver
         }
         nextWLANLedActionTime = esp_timer_get_time() + 800000LL;
       }
-      if (nextMsgLedActionTime < nowTime)
+      if (nextMeasureLedActionTime < nowTime)
       {
         // it ist time for LED action
         switch (ledStage)
         {
         case 0:
-          // Message state flash
-          nextMsgLedActionTime = esp_timer_get_time() + 40000LL;
-          switch (StatusObject::getMsgState())
+          // Measure state flash
+          nextMeasureLedActionTime = esp_timer_get_time() + 40000LL;
+          switch (StatusObject::getMeasureState())
           {
-          case MsgState::MSG_NOMINAL:
-            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_nominal_col);
+          case MeasureState::MEASURE_UNKNOWN:
+            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_unknown_colr);
             break;
-
-          case MsgState::MSG_WARN:
-            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_warn_col);
+          case MeasureState::MEASURE_ACTION:
+            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_action_colr);
             break;
-
-          case MsgState::MSG_ERR:
-            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_err_col);
+          case MeasureState::MEASURE_NOMINAL:
+            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
             break;
-
+          case MeasureState::MEASURE_WARN:
+            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_warn_colr);
+            break;
+          case MeasureState::MEASURE_ERR:
+            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_err_colr);
+            break;
           default:
-            rest_webserver::LedStripe::setLed(LED_MSG, LedStripe::msg_crit_col);
+            rest_webserver::LedStripe::setLed(LED_MEASURE, LedStripe::measure_crit_colr);
             break;
           }
           ++ledStage;
@@ -145,9 +150,17 @@ namespace rest_webserver
 
         case 1:
         default:
-          // message state dark
-          rest_webserver::LedStripe::setLed(LED_MSG, false);
-          nextMsgLedActionTime = esp_timer_get_time() + 1200000LL;
+          if (StatusObject::getMeasureState() != MeasureState::MEASURE_NOMINAL)
+          {
+            // dark
+            rest_webserver::LedStripe::setLed(LED_MEASURE, false);
+            nextMeasureLedActionTime = esp_timer_get_time() + 1000000LL;
+          }
+          else
+          {
+            // if not dark, shorte sleep
+            nextMeasureLedActionTime = esp_timer_get_time() + 500000LL;
+          }
           ledStage = 0;
           break;
         }
@@ -161,13 +174,14 @@ namespace rest_webserver
           {
             StatusObject::setHttpActive(false);
             rest_webserver::LedStripe::setLed(LED_HTTP, LedStripe::http_active);
+            nextHTTPLedActionTime = esp_timer_get_time() + 40000LL;
           }
           else
           {
             rest_webserver::LedStripe::setLed(LED_HTTP, false);
+            nextHTTPLedActionTime = esp_timer_get_time() + 20000LL;
           }
         }
-        nextHTTPLedActionTime = esp_timer_get_time() + 40000LL;
         led_changed = true;
       }
       if (led_changed)
