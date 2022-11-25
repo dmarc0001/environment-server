@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -12,15 +13,22 @@ namespace rest_webserver
   {
   private:
     static portMUX_TYPE statMutex;
-    static ds18x20_addr_t addrs[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
-    static float temps[Prefs::TEMPERATURE_SENSOR_MAX_COUNT];
-    static float temperature, humidity;
-    static size_t sensor_count;
+    static bool is_init;
     static WlanState wlanState;
+    static MeasureState msgState;
+    static bool http_active;
 
   public:
-    static void setMeasures(size_t, ds18x20_addr_t[], float[], float, float);
+    static void init();
+    static void setMeasures(std::shared_ptr<env_dataset>);
     static void setWlanState(WlanState);
+    static void setMeasureState(MeasureState);
+    static MeasureState getMeasureState();
     static WlanState getWlanState();
+    static void setHttpActive(bool);
+    static bool getHttpActive();
+
+  private:
+    static void saveTask(void *);
   };
 }

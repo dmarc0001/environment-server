@@ -2,6 +2,7 @@
 #include <cstring>
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_sntp.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include <mdns.h>
@@ -162,6 +163,33 @@ namespace rest_webserver
             StatusObject::setWlanState(WlanState::CONNECTED);
             WifiThings::s_retry_num = 0;
             xEventGroupSetBits(WifiThings::s_wifi_event_group, WIFI_CONNECTED_BIT);
+            sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
+            sntp_setoperatingmode(SNTP_OPMODE_POLL);
+            sntp_setservername(1, "pool.ntp.org");
+            sntp_set_time_sync_notification_cb(WifiThings::time_sync_notification_cb);
+            sntp_init();
+        }
+    }
+
+    void WifiThings::time_sync_notification_cb(struct timeval *tv)
+    {
+        using namespace Prefs;
+        sntp_sync_status_t state = sntp_get_sync_status();
+        switch (state)
+        {
+        case SNTP_SYNC_STATUS_COMPLETED:
+            ESP_LOGI(WifiThings::tag, "Notification: time status sync competed!");
+            if (StatusObject::getWlanState() == WlanState::CONNECTED)
+            {
+                StatusObject::setWlanState(WlanState::TIMESYNCED);
+            }
+            break;
+        default:
+            ESP_LOGI(WifiThings::tag, "Notification: time status not synced!");
+            if (StatusObject::getWlanState() == WlanState::TIMESYNCED)
+            {
+                StatusObject::setWlanState(WlanState::CONNECTED);
+            }
         }
     }
 
