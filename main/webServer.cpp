@@ -38,8 +38,6 @@ namespace webserver
     /* register a callback as an example to how you can integrate your code with the wifi manager */
     wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &WebServer::callBackConnectionOk);
     wifi_manager_set_callback(WM_EVENT_STA_DISCONNECTED, &WebServer::callBackDisconnect);
-
-    http_app_set_handler_hook(HTTP_GET, &WebServer::callbackGetHttpHandler);
   }
 
   void WebServer::compute()
@@ -100,6 +98,8 @@ namespace webserver
   void WebServer::callBackConnectionOk(void *pvParameter)
   {
     StatusObject::setWlanState(WlanState::CONNECTED);
+    http_server_delete_handler()
+        http_app_set_handler_hook(HTTP_GET, &WebServer::callbackGetHttpHandler);
     if (!WebServer::is_snmp_init)
     {
       sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
@@ -125,6 +125,7 @@ namespace webserver
   void WebServer::callBackDisconnect(void *)
   {
     StatusObject::setWlanState(WlanState::DISCONNECTED);
+    http_app_set_handler_hook(HTTP_GET, nullptr);
   }
 
   esp_err_t WebServer::callbackGetHttpHandler(httpd_req_t *req)
@@ -240,23 +241,46 @@ namespace webserver
     //
     ESP_LOGI(WebServer::tag, "sending file : <%s> (%ld bytes)...", filePath.c_str(), file_stat.st_size);
     // set content type of file
-    setContentTypeFromFile(req, filePath);
+    std::string content{"text"};
+    setContentTypeFromFile(content, req, filePath);
     //
-    // deliver the file chunk-whise
+    // deliver the file chunk-whise if too big for buffsize
     // create smart buffer
     //
-    if (file_stat.st_size < Prefs::WEB_SCRATCH_BUFSIZE)
+    if (file_stat.st_size + 6 < Prefs::WEB_SCRATCH_BUFSIZE)
     {
       // one piece
-      std::unique_ptr<char> deliverBuf(new char[file_stat.st_size]);
-      // read in buffer
-      fread(deliverBuf.get(), 1, file_stat.st_size, fd);
-      httpd_resp_sendstr(req, deliverBuf.get());
+      if (content.compare("json") == 0)
+      {
+        //
+        // "{" and "}" for correct json file
+        //
+        std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
+        char *buffptr = deliverBuf.get();
+        *(buffptr++) = '{';
+        *(buffptr++) = '\n';
+        buffptr += fread(buffptr, 1, file_stat.st_size, fd);
+        *(buffptr++) = '}';
+        *(buffptr++) = '\n';
+        *(buffptr++) = '\0';
+        httpd_resp_sendstr(req, deliverBuf.get());
+      }
+      else
+      {
+        std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 4]);
+        // read in buffer
+        fread(deliverBuf.get(), 1, file_stat.st_size, fd);
+        httpd_resp_sendstr(req, deliverBuf.get());
+      }
     }
     {
       // send chunked
       std::unique_ptr<char> deliverBuf(new char[Prefs::WEB_SCRATCH_BUFSIZE]);
       // Retrieve the pointer to scratch buffer for temporary storage
+      if (content.compare("json") == 0)
+      {
+        httpd_resp_send_chunk(req, "{\n", 2);
+      }
       char *chunk = deliverBuf.get();
       size_t chunksize;
       do
@@ -288,6 +312,10 @@ namespace webserver
         // Keep looping till the whole file is sent
       } while (chunksize != 0);
       // send signal "sending done!"
+      if (content.compare("json") == 0)
+      {
+        httpd_resp_send_chunk(req, "\n}\n", 3);
+      }
       httpd_resp_sendstr_chunk(req, nullptr);
     }
     //
@@ -358,32 +386,38 @@ namespace webserver
   }
 
   /* Set HTTP response content type according to file extension */
-  esp_err_t WebServer::setContentTypeFromFile(httpd_req_t *req, const std::string &filename)
+  esp_err_t WebServer::setContentTypeFromFile(std::string &type, httpd_req_t *req, const std::string &filename)
   {
     if (filename.rfind(".pdf") != std::string::npos)
     {
+      type = "pdf";
       return httpd_resp_set_type(req, "application/pdf");
     }
     if (filename.rfind(".html") != std::string::npos)
     {
+      type = "html";
       return httpd_resp_set_type(req, "text/html");
     }
     if (filename.rfind(".jpeg") != std::string::npos)
     {
+      type = "jpeg";
       return httpd_resp_set_type(req, "image/jpeg");
     }
     if (filename.rfind(".ico") != std::string::npos)
     {
+      type = "ico";
       return httpd_resp_set_type(req, "image/x-icon");
     }
     if (filename.rfind(".json") != std::string::npos)
     {
+      type = "json";
       return httpd_resp_set_type(req, "application/json");
     }
     //
     // This is a limited set only
     // For any other type always set as plain text
     //
+    type = "text";
     return httpd_resp_set_type(req, "text/plain");
   }
 
