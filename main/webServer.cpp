@@ -192,7 +192,6 @@ namespace webserver
       httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long");
       return ESP_FAIL;
     }
-    ESP_LOGW(WebServer::tag, "result URI: %s", filePath.c_str());
     //
     // check if filename not exits
     // its hardcodet path ?
