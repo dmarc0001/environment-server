@@ -1,4 +1,5 @@
 #include <string>
+#include <memory>
 #include <sys/param.h>
 #include <esp_vfs.h>
 #include <esp_wifi.h>
@@ -30,9 +31,6 @@ namespace webserver
   void WebServer::init()
   {
     ESP_LOGI(WebServer::tag, "WebServer init...");
-    web_server_context_t *rest_context = static_cast<web_server_context_t *>(calloc(1, sizeof(web_server_context_t)));
-    // TODO: REST_CHECK( rest_context, "No memory for rest context", err );
-    strlcpy(rest_context->base_path, Prefs::WEB_PATH, sizeof(rest_context->base_path));
 
     WebServer::spiffs_init();
     wifi_manager_start();
@@ -42,9 +40,6 @@ namespace webserver
     wifi_manager_set_callback(WM_EVENT_STA_DISCONNECTED, &WebServer::callBackDisconnect);
 
     http_app_set_handler_hook(HTTP_GET, &WebServer::callbackGetHttpHandler);
-    // WebServer::registerSystemInfoHandler(httpd_handle, rest_context);
-    // WebServer::registerRestHandler(httpd_handle, rest_context);
-    // WebServer::registerRootHandler(httpd_handle, rest_context);
   }
 
   void WebServer::compute()
@@ -145,9 +140,12 @@ namespace webserver
     }
     else
     {
-      /* send a 404 otherwise */
-      httpd_resp_send_404(req);
+      WebServer::rootGetHandler(req);
     }
+    // {
+    //   /* send a 404 otherwise */
+    //   httpd_resp_send_404(req);
+    // }
     return ESP_OK;
   }
 
@@ -167,24 +165,15 @@ namespace webserver
     return ESP_OK;
   }
 
-  esp_err_t WebServer::registerRootHandler(httpd_handle_t server, web_server_context_t *rest_context)
-  {
-    /* URI handler for fetching system info */
-    httpd_uri_t root_index_uri;
-    root_index_uri.uri = "/*";
-    root_index_uri.method = HTTP_GET;
-    root_index_uri.handler = WebServer::rootGetHandler;
-    root_index_uri.user_ctx = rest_context;
-    httpd_register_uri_handler(server, &root_index_uri);
-    return ESP_OK;
-  }
-
   esp_err_t WebServer::rootGetHandler(httpd_req_t *req)
   {
     /*https://github.com/espressif/esp-idf/blob/96b0cb2828fb550ab0fe5cc7a5b3ac42fb87b1d2/examples/protocols/http_server/file_serving/main/file_server.c
     212
     */
-    char filepath[FILE_PATH_MAX];
+    static const std::string basePath{Prefs::WEB_PATH};
+    std::string filePath;
+    std::string uri(req->uri);
+
     FILE *fd = nullptr;
     struct stat file_stat;
 
@@ -195,40 +184,49 @@ namespace webserver
     }
 
     // max pathlen check
-    const char *filename = getPathFromUri(filepath, ((struct webServerContext *)req->user_ctx)->base_path,
-                                          req->uri, sizeof(filepath));
-    if (!filename)
+    esp_err_t ret = getPathFromUri(filePath, basePath, uri);
+    if (ret != ESP_OK)
     {
       ESP_LOGE(WebServer::tag, "Filename is too long");
       /* Respond with 500 Internal Server Error */
       httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long");
       return ESP_FAIL;
     }
-
+    ESP_LOGW(WebServer::tag, "result URI: %s", filePath.c_str());
     //
-    // check if filename exits
-    // or its hardcodet path
+    // check if filename not exits
+    // its hardcodet path ?
+    // do this after file check, so i can overwrite this
+    // behavior if an file is exist
     //
-    if (stat(filepath, &file_stat) == -1)
+    if (stat(filePath.c_str(), &file_stat) == -1)
     {
-      /* If file not present on SPIFFS check if URI
-         * corresponds to one of the hardcoded paths */
-      if (strcmp(filename, "/") == 0)
+      //
+      // If file not present on SPIFFS check if URI
+      // corresponds to one of the hardcoded paths
+      //
+      if (uri.compare("/") == 0)
       {
-        return indexHtmlGetHandler(req);
+        //
+        // redirect to index.html
+        //
+        return WebServer::indexHtmlGetHandler(req);
       }
-      ESP_LOGE(WebServer::tag, "Failed to stat file : %s", filepath);
-      /* Respond with 404 Not Found */
+      //
+      // so i not found file or hardcodet uri
+      // make a failure message
+      //
+      ESP_LOGE(WebServer::tag, "Failed to stat file : %s", filePath.c_str());
       httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
       return ESP_FAIL;
     }
     //
     // try to open file, readonly of course
     //
-    fd = fopen(filepath, "r");
+    fd = fopen(filePath.c_str(), "r");
     if (!fd)
     {
-      ESP_LOGE(WebServer::tag, "Failed to read existing file : %s", filepath);
+      ESP_LOGE(WebServer::tag, "Failed to read existing file : %s", filePath.c_str());
       /* Respond with 500 Internal Server Error */
       httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
       return ESP_FAIL;
@@ -236,45 +234,58 @@ namespace webserver
     //
     // content-type from file find and set
     //
-    ESP_LOGI(WebServer::tag, "Sending file : <%s> (%ld bytes)...", filename, file_stat.st_size);
-    //httpd_resp_set_type(req, "text/html");
-    setContentTypeFromFile(req, filename);
+    ESP_LOGI(WebServer::tag, "Sending file : <%s> (%ld bytes)...", filePath.c_str(), file_stat.st_size);
+    // set content type of file
+    setContentTypeFromFile(req, filePath);
     //
     // deliver the file chunk-whise
+    // create smart buffer
     //
-
-    // Retrieve the pointer to scratch buffer for temporary storage
-    char *chunk = ((struct webServerContext *)req->user_ctx)->scratch;
-    size_t chunksize;
-    do
+    if (file_stat.st_size < Prefs::WEB_SCRATCH_BUFSIZE)
     {
-      //
-      // Read file in chunks into the scratch buffer
-      //
-      chunksize = fread(chunk, 1, Prefs::WEB_SCRATCH_BUFSIZE, fd);
-      //
-      // if read any content
-      //
-      if (chunksize > 0)
+      // one piece
+      std::unique_ptr<char> deliverBuf(new char[file_stat.st_size]);
+      // read in buffer
+      fread(deliverBuf.get(), 1, file_stat.st_size, fd);
+      httpd_resp_sendstr(req, deliverBuf.get());
+    }
+    {
+      // send chunked
+      std::unique_ptr<char> deliverBuf(new char[Prefs::WEB_SCRATCH_BUFSIZE]);
+      // Retrieve the pointer to scratch buffer for temporary storage
+      char *chunk = deliverBuf.get();
+      size_t chunksize;
+      do
       {
         //
-        // Send the buffer contents as HTTP response chunk
+        // Read file in chunks into the scratch buffer
         //
-        if (httpd_resp_send_chunk(req, chunk, chunksize) != ESP_OK)
+        chunksize = fread(chunk, 1, Prefs::WEB_SCRATCH_BUFSIZE, fd);
+        //
+        // if read any content
+        //
+        if (chunksize > 0)
         {
-          // was is wrong?
-          fclose(fd);
-          ESP_LOGE(WebServer::tag, "File sending failed!");
-          // Abort sending file
-          httpd_resp_sendstr_chunk(req, nullptr);
-          // Respond with 500 Internal Server Error
-          httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
-          return ESP_FAIL;
+          //
+          // Send the buffer contents as HTTP response chunk
+          //
+          if (httpd_resp_send_chunk(req, chunk, chunksize) != ESP_OK)
+          {
+            // is something wrong?
+            fclose(fd);
+            ESP_LOGE(WebServer::tag, "File sending failed!");
+            // Abort sending file
+            httpd_resp_sendstr_chunk(req, nullptr);
+            // Respond with 500 Internal Server Error
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+            return ESP_FAIL;
+          }
         }
-      }
-      // Keep looping till the whole file is sent
-    } while (chunksize != 0);
-    httpd_resp_sendstr_chunk(req, nullptr);
+        // Keep looping till the whole file is sent
+      } while (chunksize != 0);
+      // send signal "sending done!"
+      httpd_resp_sendstr_chunk(req, nullptr);
+    }
     //
     // Close file after sending complete
     //
@@ -311,59 +322,60 @@ namespace webserver
     return ESP_OK;
   }
 
-  /* Copies the full path into destination buffer and returns
- * pointer to path (skipping the preceding base path) */
-  const char *WebServer::getPathFromUri(char *dest, const char *base_path, const char *uri, size_t destsize)
+  /**
+   * copy basepath and uri to the filepath in the filesystem
+   * return in dest the filepath in the spiffs
+   * max size is Prefs::FILEPATH_MAX_SIZE
+  */
+
+  esp_err_t WebServer::getPathFromUri(std::string &dest, const std::string &base_path, std::string &uri)
   {
-    const size_t base_pathlen = strlen(base_path);
-    size_t pathlen = strlen(uri);
+    size_t pos{std::string::npos};
 
-    const char *quest = strchr(uri, '?');
-    if (quest)
+    pos = uri.find_first_of("?#", 0);
+    if (pos != std::string::npos)
     {
-      pathlen = MIN(pathlen, quest - uri);
-    }
-    const char *hash = strchr(uri, '#');
-    if (hash)
-    {
-      pathlen = MIN(pathlen, hash - uri);
+      uri = uri.substr(0, pos);
     }
 
-    if (base_pathlen + pathlen + 1 > destsize)
+    if ((base_path.length() + uri.length()) > Prefs::FILEPATH_MAX_SIZE)
     {
       /* Full path string won't fit into destination buffer */
-      return NULL;
+      dest.clear();
+      return ESP_FAIL;
     }
 
-    /* Construct full path (base + path) */
-    strcpy(dest, base_path);
-    strlcpy(dest + base_pathlen, uri, pathlen + 1);
-
-    /* Return pointer to path, skipping the base */
-    return dest + base_pathlen;
+    //
+    // dest if reference so ist this the filepath after return
+    //
+    dest = base_path;
+    dest += uri;
+    return ESP_OK;
   }
 
   /* Set HTTP response content type according to file extension */
-  esp_err_t WebServer::setContentTypeFromFile(httpd_req_t *req, const char *filename)
+  esp_err_t WebServer::setContentTypeFromFile(httpd_req_t *req, const std::string &filename)
   {
-    if (WebServer::isFileTypeExist(filename, ".pdf"))
+    if (filename.rfind(".pdf") != std::string::npos)
     {
       return httpd_resp_set_type(req, "application/pdf");
     }
-    else if (WebServer::isFileTypeExist(filename, ".html"))
+    if (filename.rfind(".html") != std::string::npos)
     {
       return httpd_resp_set_type(req, "text/html");
     }
-    else if (WebServer::isFileTypeExist(filename, ".jpeg"))
+    if (filename.rfind(".jpeg") != std::string::npos)
     {
       return httpd_resp_set_type(req, "image/jpeg");
     }
-    else if (WebServer::isFileTypeExist(filename, ".ico"))
+    if (filename.rfind(".ico") != std::string::npos)
     {
       return httpd_resp_set_type(req, "image/x-icon");
     }
-    /* This is a limited set only */
-    /* For any other type always set as plain text */
+    //
+    // This is a limited set only
+    // For any other type always set as plain text
+    //
     return httpd_resp_set_type(req, "text/plain");
   }
 
@@ -388,5 +400,4 @@ namespace webserver
       }
     }
   }
-
 }

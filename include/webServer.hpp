@@ -1,3 +1,4 @@
+#include <string>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -11,12 +12,6 @@ namespace webserver
 {
 
   constexpr int FILE_PATH_MAX = (ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN);
-
-  typedef struct webServerContext
-  {
-    char base_path[ESP_VFS_PATH_MAX + 1];
-    char scratch[Prefs::WEB_SCRATCH_BUFSIZE];
-  } web_server_context_t;
 
   class WebServer
   {
@@ -36,17 +31,12 @@ namespace webserver
     static esp_err_t callbackGetHttpHandler(httpd_req_t *);
     static void time_sync_notification_cb(struct timeval *);
 
-    static const char *getPathFromUri(char *, const char *, const char *, size_t);
+    static esp_err_t getPathFromUri(std::string &, const std::string &, std::string &);
     static esp_err_t indexHtmlGetHandler(httpd_req_t *);
     static esp_err_t systemInfoGetHandler(httpd_req_t *);
-    static esp_err_t registerRootHandler(httpd_handle_t, web_server_context_t *);
     static esp_err_t rootGetHandler(httpd_req_t *);
     static esp_err_t restGetHandler(httpd_req_t *);
-    static esp_err_t setContentTypeFromFile(httpd_req_t *, const char *);
-    inline static bool isFileTypeExist(const char *filename, const char *ext)
-    {
-      return (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0);
-    }
+    static esp_err_t setContentTypeFromFile(httpd_req_t *, const std::string &);
   };
 
 }
