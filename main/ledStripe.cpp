@@ -170,6 +170,7 @@ namespace webserver
       {
         if (StatusObject::getHttpActive() != curr_http_state)
         {
+          curr_http_state = !curr_http_state;
           if (StatusObject::getHttpActive())
           {
             StatusObject::setHttpActive(false);

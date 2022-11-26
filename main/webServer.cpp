@@ -130,6 +130,11 @@ namespace webserver
   esp_err_t WebServer::callbackGetHttpHandler(httpd_req_t *req)
   {
     std::string uri(req->uri);
+    //
+    // Aktion zum anzeigen der LED
+    //
+    StatusObject::setHttpActive(true);
+
     if ((uri.substr(0, 19)).compare("/api/v1/system/info") == 0)
     {
       WebServer::systemInfoGetHandler(req);
