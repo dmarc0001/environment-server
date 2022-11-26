@@ -8,7 +8,7 @@
 
 namespace webserver
 {
-  portMUX_TYPE StatusObject::statMutex{0U, 0U};
+  //portMUX_TYPE StatusObject::statMutex{0U, 0U};
   bool StatusObject::is_init{false};
   WlanState StatusObject::wlanState{WlanState::DISCONNECTED};
   MeasureState StatusObject::msgState{MeasureState::MEASURE_UNKNOWN};
@@ -16,7 +16,7 @@ namespace webserver
 
   void StatusObject::init()
   {
-    spinlock_initialize(&StatusObject::statMutex);
+    //spinlock_initialize(&StatusObject::statMutex);
     //vPortCPUInitializeMutex(&StatusObject::statMutex);
     StatusObject::is_init = true;
   }
@@ -26,7 +26,6 @@ namespace webserver
     if (!StatusObject::is_init)
       init();
 
-    //portENTER_CRITICAL(&StatusObject::statMutex);
     std::for_each(dataset->begin(), dataset->end(), [](const env_measure_t n) {
       std::cout << n.addr << std::endl;
     });
@@ -45,7 +44,6 @@ namespace webserver
     //     }
     //   }
     // }
-    //portEXIT_CRITICAL(&StatusObject::statMutex);
     // TODO: sichern in file
   }
 

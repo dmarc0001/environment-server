@@ -12,7 +12,7 @@ namespace webserver
   class StatusObject
   {
   private:
-    static portMUX_TYPE statMutex;
+    //static portMUX_TYPE statMutex;
     static bool is_init;
     static WlanState wlanState;
     static MeasureState msgState;

@@ -21,7 +21,7 @@
 namespace webserver
 {
 
-  const char *WebServer::tag{"RestServer"}; //! tag fürs debug logging
+  const char *WebServer::tag{"WebServer"}; //! tag fürs debug logging
   bool WebServer::is_spiffs_ready{false};
   bool WebServer::is_snmp_init{false};
 
