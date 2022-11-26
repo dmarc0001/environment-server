@@ -12,14 +12,17 @@ namespace webserver
   class StatusObject
   {
   private:
-    //static portMUX_TYPE statMutex;
+    static const char *tag;
     static bool is_init;
+    static bool is_running;
     static WlanState wlanState;
     static MeasureState msgState;
     static bool http_active;
+    static std::shared_ptr<env_dataset> dataset;
 
   public:
     static void init();
+    static void start();
     static void setMeasures(std::shared_ptr<env_dataset>);
     static void setWlanState(WlanState);
     static void setMeasureState(MeasureState);
