@@ -4,170 +4,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="default.css">
+  <script src="chart-4.0.1-min.js"></script>
+  <script src="app.js"></script>
   <title>Temperatur</title>
-  <style>
-    body {
-      background-color: #f0f0f0;
-      color: rgb(0, 0, 119);
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    h1 {
-      text-transform: uppercase;
-      font-weight: bolder;
-      font-size: larger;
-      padding-left: 1em;
-      padding-top: 1em;
-      width: 85%;
-      border-bottom: medium solid rgb(92, 92, 92);
-      padding-bottom: .3em;
-    }
-
-    h1:first-letter {
-      font-size: x-large;
-      color: crimson;
-    }
-
-    a {
-      padding: 1em;
-      border: 1px solid gray;
-      color: gray;
-      font-weight: bold;
-      border-radius: .2em;
-    }
-
-    a:hover {
-      background-color: silver;
-      color: rgb(0, 0, 119);
-    }
-
-    a:active {
-      border: 2px solid red;
-      background-color: rgb(241, 122, 122);
-      color: rgb(0, 0, 119);
-    }
-
-    div.complete {
-      margin: 0;
-      margin-top: 2em;
-      width: 80%;
-      -ms-transform: translateX(+10%);
-      transform: translateX(+10%);
-      border: thin solid gray;
-      border-radius: 1em;
-      box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    }
-
-    div.workarea,
-    div.linkarea {
-      margin-top: 1em;
-      text-align: center;
-    }
-
-    div.linkarea {
-      margin-top: 2.5em;
-      margin-bottom: 2.5em;
-    }
-
-    /*kleine Displays*/
-    @media all and (max-width: 75em) {
-      h1 {
-        font-size: xxx-large;
-      }
-
-      h1:first-letter {
-        font-size: xxx-large;
-      }
-
-      a {
-        padding: 2em;
-        font-weight: bold;
-        border-radius: .4em;
-      }
-
-      div.workarea {
-        margin-top: 2.6em;
-      }
-
-      div.linkarea {
-        margin-top: 5em;
-        margin-bottom: 5em;
-        font-size: 2em
-      }
-    }
-
-  </style>
   <script>
-    var lastChange = 10;
-    var busyLock = 10;
-    var busyLockStart = 30;
-    var ignoreCallback = false;
-
-    function init_page() {
-      getTempFromController();
-      // var elem = document.getElementById('led_standby_checkbox');
-      // if (elem) {
-      //   elem.onclick = function () { setStandby(!this.checked) };
-      // }
-      // elem = document.getElementById("color_picker");
-      // if (elem) {
-      //   elem.addEventListener("input", colorInput, false);
-      //   elem.addEventListener("change", colorChange, false);
-      // }
-      setInterval(function () {
-        if (lastChange > 0) { lastChange-- };
-        if (busyLock > 0) { busyLock-- };
-        colorReload += 1;
-        if (busyLock <= 0 && (colorReload % 6 == 0)) {
-          getTempFromController();
-        }
-      }, 500);
-    }
-
-    function varToHex(rgb) {
-      var hex = Number(rgb).toString(16);
-      if (hex.length < 2) {
-        hex = "0" + hex;
-      }
-      return hex;
-    }
-
-    function getTempFromController() {
-      var elem = document.getElementById("color_picker");
-      var elem2 = document.getElementById('led_standby_checkbox');
-      if (elem && elem2) {
-        busyLock = busyLockStart;
-        var xhr = new XMLHttpRequest();
-        var url = '/rest/led';
-        xhr.open('GET', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-            var json = JSON.parse(xhr.responseText);
-            // if (json.rgbw) {
-            //   red_val = Math.round((parseFloat(json.rgbw.red) * 255.0) / 100.0);
-            //   green_val = Math.round((parseFloat(json.rgbw.green) * 255.0) / 100.0);
-            //   blue_val = Math.round((parseFloat(json.rgbw.blue) * 255.0) / 100.0);
-            //   colorValue = "#" + varToHex(red_val) + varToHex(green_val) + varToHex(blue_val);
-            //   if (currentColor != colorValue) {
-            //     currentColor = colorValue;
-            //     elem.value = colorValue;
-            //     console.debug("recived color: <" + colorValue + ">")
-            //   }
-            //   var recivedStandby = (JSON.stringify(json.standby) == "true");
-            //   if (elem2.checked == recivedStandby) {
-            //     ignoreCallback = true;
-            //     elem2.checked = !recivedStandby;
-            //     console.debug("standby checkbox set to: <" + recivedStandby + ">");
-            //     ignoreCallback = false;
-            //   }
-            // }
-            busyLock = 0;
-          }
-        };
-        xhr.send();
-      }
-    }
   </script>
 
 </head>
@@ -176,21 +17,18 @@
   <h1>Temperaturen</h1>
   <div class="complete">
     <div class="workarea">
-      <label class="color_picker" for="led_standby_checkbox">LED STANDBY</label>
-      <br />
-      <label class="switch">
-        Temperatur aktuell
-        <span class="slider"></span>
+      <label>
+        Temperatur
       </label>
+      <canvas id="temp_chart" style="width:100%;min-height:550px; max-height:600px;"></canvas>
+      <br />
+      <label>
+        Feuchtigkeit
+      </label>
+      <canvas id="humidy_chart" style="width:100%;min-height:550px;max-height:660px;"></canvas>
     </div>
-    <div class="linkarea">
-      <a href="/rest/v1/current" target="_self">[ Aktuelle Werte ]</a>
-    </div>
-
   </div>
-
   <div id="stat">
-
   </div>
 </body>
 

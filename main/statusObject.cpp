@@ -114,13 +114,20 @@ namespace webserver
         char *buffer_ptr = static_cast<char *>(&buffer[0]);
         std::string fileTemplate(Prefs::WEB_PATH);
         fileTemplate += "/%F-measure.json";
+        struct stat file_stat;
+        bool exist_file{false};
+        FILE *fd = nullptr;
         // get time
         time(&rawtime);
         timeinfo = localtime(&rawtime);
         // make filename to buffer
         strftime(buffer_ptr, 48, fileTemplate.c_str(), timeinfo);
+
+        if (stat(buffer_ptr, &file_stat) == 0)
+        {
+          exist_file = true;
+        }
         // open File mode append
-        FILE *fd = nullptr;
         fd = fopen(buffer_ptr, "a");
         if (fd)
         {
@@ -130,10 +137,22 @@ namespace webserver
           {
             auto elem = StatusObject::dataset->front();
             StatusObject::dataset->erase(StatusObject::dataset->begin());
-            auto timestamp = "[\"" + std::to_string(elem.timestamp) + "\", ";
-            auto addr = "\"" + std::to_string(elem.addr) + "\", ";
-            auto temp = "\"" + std::to_string(elem.temp) + "\", ";
-            auto humidy = "\"" + std::to_string(elem.humidy) + "\" ],\n";
+            auto timestamp = "{ \"timestamp\":\"" + std::to_string(elem.timestamp) + "\", ";
+            auto addr = "\"id\":\"" + std::to_string(elem.addr) + "\", ";
+            auto temp = "\"temp\":\"" + std::to_string(elem.temp) + "\", ";
+            auto humidy = "\"humidy\":\"" + std::to_string(elem.humidy) + "\" }\n";
+            if (exist_file)
+            {
+              // exist the file, is there minimum on dataset,
+              // an i need a comma to write
+              fputs(",", fd);
+            }
+            else
+            {
+              // this is the first dataset, it's permitted
+              // wo write a comma on first entry
+              exist_file = true;
+            }
             fputs(timestamp.c_str(), fd);
             fputs(addr.c_str(), fd);
             fputs(temp.c_str(), fd);

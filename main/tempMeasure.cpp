@@ -32,8 +32,8 @@ namespace webserver
     // requirements from the ds18x20 datasheet and may not always be reliable.
     // For a real application, a proper 4.7k external pull-up resistor is
     // recommended instead!)
-    ESP_LOGI(TempMeasure::tag, "init internal pullup for ds18x20 sensor...");
-    gpio_set_pull_mode(Prefs::TEMPERATURE_SENSOR_GPIO, GPIO_PULLUP_ONLY);
+    //ESP_LOGI(TempMeasure::tag, "init internal pullup for ds18x20 sensor...");
+    //gpio_set_pull_mode(Prefs::TEMPERATURE_SENSOR_GPIO, GPIO_PULLUP_ONLY);
 
     esp_err_t res;
     while (true)
