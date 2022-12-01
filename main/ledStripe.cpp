@@ -13,8 +13,8 @@ namespace webserver
   rgb_t LedStripe::curr_color[Prefs::LED_STRIPE_COUNT]{};
   const rgb_t LedStripe::wlan_discon_colr{.r = 0x32, .g = 0x32, .b = 0x00};
   const rgb_t LedStripe::wlan_search_colr{.r = 0x66, .g = 0x41, .b = 0x06};
-  const rgb_t LedStripe::wlan_connect_colr{.r = 0x06, .g = 0x08, .b = 0x01};
-  const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x01, .g = 0x08, .b = 0x01};
+  const rgb_t LedStripe::wlan_connect_colr{.r = 0x02, .g = 0x04, .b = 0x01};
+  const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x01, .g = 0x04, .b = 0x01};
   const rgb_t LedStripe::wlan_fail_col{.r = 0xa0, .g = 0x0, .b = 0x0};
   const rgb_t LedStripe::measure_unknown_colr{.r = 0x80, .g = 0x80, .b = 0x00};
   const rgb_t LedStripe::measure_action_colr{.r = 0x70, .g = 0x50, .b = 0x00};
@@ -22,7 +22,7 @@ namespace webserver
   const rgb_t LedStripe::measure_warn_colr{.r = 0xff, .g = 0x40, .b = 0x00};
   const rgb_t LedStripe::measure_err_colr{.r = 0x80, .g = 0x00, .b = 0x00};
   const rgb_t LedStripe::measure_crit_colr{.r = 0xff, .g = 0x10, .b = 0x10};
-  const rgb_t LedStripe::http_active{.r = 0xa0, .g = 0xa0, .b = 0x00};
+  const rgb_t LedStripe::http_active{.r = 0x80, .g = 0x80, .b = 0x00};
   bool LedStripe::is_running{false};
 
   void LedStripe::ledTask(void *)
@@ -35,7 +35,6 @@ namespace webserver
     int64_t nowTime = esp_timer_get_time();
     LedStripe::is_running = true;
     WlanState cWlanState{WlanState::FAILED};
-    bool curr_http_state{false};
     bool led_changed{false};
     // ESP32-S2 RGB LED
     ESP_LOGI(LedStripe::tag, "initialize WS2812 led stripe...");
@@ -168,26 +167,31 @@ namespace webserver
       }
       if (nextHTTPLedActionTime < nowTime)
       {
-        if (StatusObject::getHttpActive() != curr_http_state)
+        //
+        // time for http-indicator-action
+        //
+        if (StatusObject::getHttpActive())
         {
-          curr_http_state = !curr_http_state;
-          if (StatusObject::getHttpActive())
-          {
-            StatusObject::setHttpActive(false);
-            LedStripe::setLed(LED_HTTP, LedStripe::http_active);
-            nextHTTPLedActionTime = esp_timer_get_time() + 40000LL;
-          }
-          else
-          {
-            LedStripe::setLed(LED_HTTP, false);
-            nextHTTPLedActionTime = esp_timer_get_time() + 20000LL;
-          }
+          StatusObject::setHttpActive(false);
+          // should set the led to "on"?
+          LedStripe::setLed(LED_HTTP, LedStripe::http_active);
+          // next time for activity check
+          nextHTTPLedActionTime = esp_timer_get_time() + 45000LL;
+          // activity rest
+        }
+        else
+        {
+          LedStripe::setLed(LED_HTTP, false);
+          // next time to activity check
+          nextHTTPLedActionTime = esp_timer_get_time() + 60000LL;
         }
         led_changed = true;
       }
       if (led_changed)
+      {
         led_strip_flush(&LedStripe::strip);
-      led_changed = false;
+        led_changed = false;
+      }
     }
   }
 
