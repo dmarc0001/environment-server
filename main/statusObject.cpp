@@ -115,22 +115,12 @@ namespace webserver
         // there are data, try to save in file(s)
         // one for every day
         //
-        time_t rawtime;
-        struct tm *timeinfo;
-        char buffer[48];
-        char *buffer_ptr = static_cast<char *>(&buffer[0]);
-        std::string fileTemplate(Prefs::WEB_PATH);
-        fileTemplate += "/%F-measure.json";
         struct stat file_stat;
+        std::string daylyFileName(Prefs::WEB_DAYLY_FILE);
         bool exist_file{false};
         FILE *fd = nullptr;
-        // get time
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        // make filename to buffer
-        strftime(buffer_ptr, 48, fileTemplate.c_str(), timeinfo);
 
-        if (stat(buffer_ptr, &file_stat) == 0)
+        if (stat(daylyFileName.c_str(), &file_stat) == 0)
         {
           exist_file = true;
         }
@@ -144,11 +134,11 @@ namespace webserver
           // shared resource.
 
           // open File mode append
-          fd = fopen(buffer_ptr, "a");
+          fd = fopen(daylyFileName.c_str(), "a");
           if (fd)
           {
             // file is opened!
-            ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", buffer_ptr);
+            ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
             while (!StatusObject::dataset->empty())
             {
               auto elem = StatusObject::dataset->front();
@@ -175,7 +165,7 @@ namespace webserver
               fputs(humidy.c_str(), fd);
             }
             fclose(fd);
-            ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", buffer_ptr);
+            ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
           }
           else
           {
@@ -183,7 +173,7 @@ namespace webserver
             {
               StatusObject::dataset->erase(StatusObject::dataset->begin());
             }
-            ESP_LOGE(StatusObject::tag, "datafile <%s> can't open, data lost...", buffer_ptr);
+            ESP_LOGE(StatusObject::tag, "datafile <%s> can't open, data lost...", daylyFileName.c_str());
           }
           // We have finished accessing the shared resource.  Release the
           // semaphore.
@@ -197,7 +187,7 @@ namespace webserver
             {
               StatusObject::dataset->erase(StatusObject::dataset->begin());
             }
-            ESP_LOGE(StatusObject::tag, "datafile <%s> can't write, data lost...", buffer_ptr);
+            ESP_LOGE(StatusObject::tag, "datafile <%s> can't write, data lost...", daylyFileName.c_str());
           }
         }
       }

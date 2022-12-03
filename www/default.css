@@ -26,6 +26,9 @@ a {
     color: gray;
     font-weight: bold;
     border-radius: .2em;
+    text-decoration: none;
+    display: inline-block;
+    width: 10em;
 }
 
 a:hover {
@@ -54,12 +57,19 @@ div.workarea {
     margin-top: 1em;
     padding-left: 2.2em;
     padding-right: 2.2em;
+    padding-bottom: 2.5em;
     text-align: center;
 }
 
+canvas.measure {
+    /*border: thin solid red;*/
+    width: 100%;
+    min-height: 25em;
+    max-height: 35em;
+}
 
 /*kleine Displays*/
-@media all and (max-width: 75em) {
+@media all and (max-width: 45em) {
     h1 {
         font-size: xx-large;
     }
@@ -74,10 +84,30 @@ div.workarea {
         border-radius: .4em;
     }
 
-    div.workarea {
-        margin-top: 2.6em;
-        padding-left: .2em;
-        padding-right: .2em;
+    div.complete {
+        margin-top: .8em;
+        width: 92%;
+        -ms-transform: translateX(+4%);
+        transform: translateX(+4%);
+        border-radius: .6em;
+        box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.2), 0 4px 15px 0 rgba(0, 0, 0, 0.19);
     }
+
+    div.workarea {
+        font-size: x-small;
+        margin-top: 2.6em;
+        padding-left: .35em;
+        padding-right: .35em;
+        padding-bottom: .4em;
+    }
+
+    canvas.measure {
+        font-size: xx-small;
+        border: thin solid green;
+        width: 100%;
+        min-height: 15em;
+        max-height: 25em;
+    }
+
 
 }

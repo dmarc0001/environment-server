@@ -21,9 +21,10 @@ namespace webserver
     static void start(); //! start the task if is not running
 
   private:
-    static void init();                        //! init vars etc
-    static void filesystemTask(void *);        // the ininite task
-    static void computeFilesysCheck(uint32_t); //! compute the filesystem
-    static uint32_t getMidnight(uint32_t);     //! give last midnight time in sec since 01.01.1970 (up to 2038)
+    static void init();                                            //! init vars etc
+    static void filesystemTask(void *);                            // the ininite task
+    static void computeFileWithLimit(std::string, uint32_t, bool); // chef file for borders in timestamp
+    static void computeFilesysCheck(uint32_t);                     //! compute the filesystem
+    static uint32_t getMidnight(uint32_t);                         //! give last midnight time in sec since 01.01.1970 (up to 2038)
   };
 }

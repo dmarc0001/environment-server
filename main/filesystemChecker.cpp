@@ -1,7 +1,9 @@
 #include <string.h>
 #include <string>
+#include <stdio.h>
 #include <esp_log.h>
 #include "appPreferences.hpp"
+#include "statusObject.hpp"
 #include "filesystemChecker.hpp"
 
 namespace webserver
@@ -130,18 +132,163 @@ namespace webserver
         {
           ESP_LOGE(FsCheckObject::tag, "can't create marker file <%s>...", fileName.c_str());
         }
-        // next iteration
+        // next iteration in a few munutes
+        vTaskDelay(pdMS_TO_TICKS(Prefs::FILESYS_CHECK_TEST_INTERVAL * 1000U));
         continue;
+      }
+    }
+  }
+
+  void FsCheckObject::computeFileWithLimit(std::string fileName, uint32_t timestamp, bool _lock = false)
+  {
+    struct stat file_stat;
+    FILE *rFile{nullptr};
+    FILE *wFile{nullptr};
+    int counter{0};
+    std::string delimiter_dp = ":";
+    std::string delimiter_str = "\"";
+    std::string delimiter_comma = ",";
+    std::string tempFileName(Prefs::WEB_TEMP_FILE);
+    ESP_LOGI(FsCheckObject::tag, "check the file <%s> for obsolete data...", fileName.c_str());
+
+    // if exist, of course
+    if (stat(fileName.c_str(), &file_stat) == 0)
+    {
+      //
+      // file exist
+      //
+      ESP_LOGI(FsCheckObject::tag, "file <%s> exist...", fileName.c_str());
+      // 30 days back
+      uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
+      rFile = fopen(fileName.c_str(), "r");
+      if (rFile)
+      {
+        //
+        // file is open for read
+        //
+        counter = 0;
+        char buffer[128];
+        auto c_line = fgets(&buffer[0], 128, rFile);
+        while (c_line)
+        {
+          std::string lineStr{c_line};
+          ESP_LOGI(FsCheckObject::tag, "line <%s>...", c_line);
+          // search first double point
+          int dp_pos;
+          if ((dp_pos = lineStr.find(delimiter_dp)) != std::string::npos)
+          {
+            // point to "\""
+            ++dp_pos;
+            // point to first character
+            ++dp_pos;
+            int str_pos;
+            if ((str_pos = lineStr.find(delimiter_str, dp_pos)) != std::string::npos)
+            {
+              // extract value of timestring
+              auto token = lineStr.substr(dp_pos, str_pos);
+              auto timestamp_current = std::stoul(token);
+              if (timestamp_current > border_timestamp)
+              {
+                // the timestamp is inner of the allowed value
+                if (!wFile)
+                {
+                  // okay i hav to open a file
+                  wFile = fopen(tempFileName.c_str(), "w");
+                }
+                if (wFile)
+                {
+                  // was open successful
+                  if (counter == 0)
+                  {
+                    if ((str_pos = lineStr.find(delimiter_comma)) != std::string::npos)
+                    {
+                      if (str_pos < 3)
+                      {
+                        lineStr.substr(str_pos);
+                      }
+                    }
+                  }
+                  // line ready for save
+                  ++counter;
+                  fputs(lineStr.c_str(), wFile);
+                  fputs("\n", wFile);
+                  if (counter % 25 == 0)
+                  {
+                    // a little sleep for the other processes
+                    vTaskDelay(pdMS_TO_TICKS(5));
+                  }
+                }
+              }
+            }
+          }
+          // next line...
+          c_line = fgets(&buffer[0], 128, rFile);
+        }
+        if (wFile)
+          fclose(wFile);
+        wFile = nullptr;
+        fclose(rFile);
+        rFile = nullptr;
+      }
+    }
+    else
+    {
+      ESP_LOGI(FsCheckObject::tag, "file <%s> not exist, abort...", fileName.c_str());
+      return;
+    }
+    // delete orig, rename tempfile
+    if (_lock)
+    {
+      if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
+      {
+        ESP_LOGI(FsCheckObject::tag, "remove old and copy new file for <%s>...", fileName.c_str());
+        if (remove(fileName.c_str()) == 0)
+        {
+          if (rename("myfile.dat", "newfile.dat") != 0)
+          {
+            ESP_LOGI(FsCheckObject::tag, "remove old and copy new file for <%s> successful.", fileName.c_str());
+          }
+          else
+          {
+            ESP_LOGE(FsCheckObject::tag, "rename file for <%s> failed, ABORT...", fileName.c_str());
+          }
+        }
+        else
+        {
+          ESP_LOGE(FsCheckObject::tag, "remove old file for <%s> failed, ABORT...", fileName.c_str());
+        }
+        xSemaphoreGive(StatusObject::fileSem);
+      }
+      else
+      {
+        ESP_LOGE(FsCheckObject::tag, "can't obtain semaphore for filesystem check...");
       }
     }
   }
 
   /**
    * check if data depricated...
+   *  { "timestamp":"1670079220", "id":"13654914070250903080", "temp":"22.937500", "humidy":"-100.000000" }
+   * ,{ "timestamp":"1670079220", "id":"2918332558598846760", "temp":"23.125000", "humidy":"-100.000000" }
+   * ,{ "timestamp":"1670079220", "id":"4071254063206621992", "temp":"23.125000", "humidy":"-100.000000" }
+   * ,{ "timestamp":"1670079220", "id":"9907919180278756136", "temp":"23.125000", "humidy":"-100.000000" }
+   * ,{ "timestamp":"1670079220", "id":"0", "temp":"22.000000", "humidy":"62.000000" }
   */
   void FsCheckObject::computeFilesysCheck(uint32_t timestamp)
   {
-    // NOPE
+    // 30 days back
+    uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
+    std::string fileName(Prefs::WEB_MONTHLY_FILE);
+    FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
+    vTaskDelay(pdMS_TO_TICKS(250));
+    border_timestamp = timestamp - (7 * 24 * 60 * 60);
+    fileName = std::string(Prefs::WEB_WEEKLY_FILE);
+    FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
+    vTaskDelay(pdMS_TO_TICKS(250));
+    border_timestamp = timestamp - (24 * 60 * 60);
+    fileName = std::string(Prefs::WEB_DAYLY_FILE);
+    FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);
+    vTaskDelay(pdMS_TO_TICKS(250));
   }
 
   /**

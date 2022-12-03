@@ -15,11 +15,12 @@ namespace webserver
     static const char *tag;                      //! TAG for esp log
     static bool is_init;                         //! was object initialized
     static bool is_running;                      //! is save Task running?
-    static SemaphoreHandle_t fileSem;            // is access to files busy
     static WlanState wlanState;                  //! is wlan disconnected, connected etc....
     static MeasureState msgState;                //! which state ist the mesure
     static bool http_active;                     //! was an acces via http?
     static std::shared_ptr<env_dataset> dataset; //! set of mesures
+  public:
+    static SemaphoreHandle_t fileSem; // is access to files busy
 
   public:
     static void init();
