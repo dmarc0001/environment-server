@@ -374,7 +374,7 @@ namespace webserver
       uri = uri.substr(0, pos);
     }
 
-    if ((base_path.length() + uri.length()) > Prefs::FILEPATH_MAX_SIZE)
+    if ((base_path.length() + uri.length()) > Prefs::WEB_FILEPATH_MAX_SIZE)
     {
       /* Full path string won't fit into destination buffer */
       dest.clear();

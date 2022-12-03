@@ -3,3 +3,4 @@ read_files/
 sdkconfig.old
 spiffs-www.bin
 main/webServer.cpp
+read-spiffs-www.bin
