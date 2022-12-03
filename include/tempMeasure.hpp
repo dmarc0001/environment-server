@@ -6,7 +6,7 @@
 #include <led_strip.h>
 #include <esp_log.h>
 #include <esp_err.h>
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 
 namespace webserver
 {

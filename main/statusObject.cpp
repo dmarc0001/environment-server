@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <esp_log.h>
 #include <stdio.h>
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 #include "statusObject.hpp"
 
 namespace webserver
@@ -11,6 +11,8 @@ namespace webserver
   const char *StatusObject::tag{"StatusObject"};
   bool StatusObject::is_init{false};
   bool StatusObject::is_running{false};
+  SemaphoreHandle_t StatusObject::fileSem{nullptr};
+
   WlanState StatusObject::wlanState{WlanState::DISCONNECTED};
   MeasureState StatusObject::msgState{MeasureState::MEASURE_UNKNOWN};
   bool StatusObject::http_active{false};
@@ -22,8 +24,11 @@ namespace webserver
   void StatusObject::init()
   {
     ESP_LOGI(StatusObject::tag, "init status object...");
+    // semaphore for using file writing
+    vSemaphoreCreateBinary(StatusObject::fileSem);
     StatusObject::is_init = true;
     StatusObject::dataset->clear();
+    ESP_LOGI(StatusObject::tag, "init status object...OK, start task...");
     StatusObject::start();
   }
 
@@ -99,6 +104,8 @@ namespace webserver
     // TODO: check count of files, delete if an file is too old
     // do this all few hours
     //
+    ESP_LOGI(StatusObject::tag, "task started...");
+    xSemaphoreGive(StatusObject::fileSem);
     while (true)
     {
       vTaskDelay(pdMS_TO_TICKS(1000));
@@ -127,47 +134,71 @@ namespace webserver
         {
           exist_file = true;
         }
-        // open File mode append
-        fd = fopen(buffer_ptr, "a");
-        if (fd)
+        //
+        // try to obtain the semaphore
+        // wait max 1000 ms
+        //
+        if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
         {
-          // file is opened!
-          ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", buffer_ptr);
-          while (!StatusObject::dataset->empty())
+          // We were able to obtain the semaphore and can now access the
+          // shared resource.
+
+          // open File mode append
+          fd = fopen(buffer_ptr, "a");
+          if (fd)
           {
-            auto elem = StatusObject::dataset->front();
-            StatusObject::dataset->erase(StatusObject::dataset->begin());
-            auto timestamp = "{ \"timestamp\":\"" + std::to_string(elem.timestamp) + "\", ";
-            auto addr = "\"id\":\"" + std::to_string(elem.addr) + "\", ";
-            auto temp = "\"temp\":\"" + std::to_string(elem.temp) + "\", ";
-            auto humidy = "\"humidy\":\"" + std::to_string(elem.humidy) + "\" }\n";
-            if (exist_file)
+            // file is opened!
+            ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", buffer_ptr);
+            while (!StatusObject::dataset->empty())
             {
-              // exist the file, is there minimum on dataset,
-              // an i need a comma to write
-              fputs(",", fd);
+              auto elem = StatusObject::dataset->front();
+              StatusObject::dataset->erase(StatusObject::dataset->begin());
+              auto timestamp = "{ \"timestamp\":\"" + std::to_string(elem.timestamp) + "\", ";
+              auto addr = "\"id\":\"" + std::to_string(elem.addr) + "\", ";
+              auto temp = "\"temp\":\"" + std::to_string(elem.temp) + "\", ";
+              auto humidy = "\"humidy\":\"" + std::to_string(elem.humidy) + "\" }\n";
+              if (exist_file)
+              {
+                // exist the file, is there minimum on dataset,
+                // an i need a comma to write
+                fputs(",", fd);
+              }
+              else
+              {
+                // this is the first dataset, it's permitted
+                // wo write a comma on first entry
+                exist_file = true;
+              }
+              fputs(timestamp.c_str(), fd);
+              fputs(addr.c_str(), fd);
+              fputs(temp.c_str(), fd);
+              fputs(humidy.c_str(), fd);
             }
-            else
-            {
-              // this is the first dataset, it's permitted
-              // wo write a comma on first entry
-              exist_file = true;
-            }
-            fputs(timestamp.c_str(), fd);
-            fputs(addr.c_str(), fd);
-            fputs(temp.c_str(), fd);
-            fputs(humidy.c_str(), fd);
+            fclose(fd);
+            ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", buffer_ptr);
           }
-          fclose(fd);
-          ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", buffer_ptr);
+          else
+          {
+            while (!StatusObject::dataset->empty())
+            {
+              StatusObject::dataset->erase(StatusObject::dataset->begin());
+            }
+            ESP_LOGE(StatusObject::tag, "datafile <%s> can't open, data lost...", buffer_ptr);
+          }
+          // We have finished accessing the shared resource.  Release the
+          // semaphore.
+          xSemaphoreGive(StatusObject::fileSem);
         }
         else
         {
-          while (!StatusObject::dataset->empty())
+          if (StatusObject::dataset->size() > Prefs::MEASURE_MAX_DATASETS_IN_RAM)
           {
-            StatusObject::dataset->erase(StatusObject::dataset->begin());
+            while (!StatusObject::dataset->empty())
+            {
+              StatusObject::dataset->erase(StatusObject::dataset->begin());
+            }
+            ESP_LOGE(StatusObject::tag, "datafile <%s> can't write, data lost...", buffer_ptr);
           }
-          ESP_LOGI(StatusObject::tag, "datafile <%s> can't open, data lost...", buffer_ptr);
         }
       }
     }
@@ -188,5 +219,4 @@ namespace webserver
       xTaskCreate(StatusObject::saveTask, "data-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
     }
   }
-
 }

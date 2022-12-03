@@ -32,11 +32,12 @@ namespace Prefs
   constexpr gpio_num_t DHT_SENSOR_GPIO = GPIO_NUM_18;             //! port for sensor humidy and temperature
   constexpr gpio_num_t TEMPERATURE_SENSOR_GPIO = GPIO_NUM_4;      //! port fpr ds18b20 temperature sensor(es)
   constexpr uint8_t TEMPERATURE_SENSOR_MAX_COUNT = 4;             //! max sensor count to measure
-  constexpr int MEASURE_INTERVAL_SEC = 120;                       //! interval between two measures
-  constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 612;               //! scan for new sensors
-  // constexpr int MEASURE_INTERVAL_SEC = 20;         //! interval between two measures
-  // constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 62; //! scan for new sensors
-  constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4; //! how many failed mesures to critical display?
+  //constexpr int MEASURE_INTERVAL_SEC = 120;                       //! interval between two measures
+  //constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 612;               //! scan for new sensors
+  constexpr int MEASURE_INTERVAL_SEC = 20;         //! interval between two measures
+  constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 62; //! scan for new sensors
+  constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;    //! how many failed mesures to critical display?
+  constexpr int MEASURE_MAX_DATASETS_IN_RAM = 20;  //! how many unsaved datasets in RAM before critical error
 } // namespace Prefs
 
-#include "AppStructs.hpp"
+#include "appStructs.hpp"

@@ -1,7 +1,7 @@
 
 #include "tempMeasure.hpp"
 #include "statusObject.hpp"
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 
 namespace webserver
 {

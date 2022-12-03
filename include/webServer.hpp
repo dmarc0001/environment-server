@@ -1,12 +1,12 @@
 #include <string>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 #include <esp_vfs.h>
 #include <esp_http_server.h>
 #include <wifi_manager.h>
 #include <esp_sntp.h>
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 
 namespace webserver
 {
