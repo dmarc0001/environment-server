@@ -1,12 +1,12 @@
 #include <string>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 #include <esp_vfs.h>
 #include <esp_http_server.h>
 #include <wifi_manager.h>
 #include <esp_sntp.h>
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 
 namespace webserver
 {
@@ -36,7 +36,7 @@ namespace webserver
     static esp_err_t systemInfoGetHandler(httpd_req_t *);
     static esp_err_t rootGetHandler(httpd_req_t *);
     static esp_err_t restGetHandler(httpd_req_t *);
-    static esp_err_t setContentTypeFromFile(httpd_req_t *, const std::string &);
+    static esp_err_t setContentTypeFromFile(std::string &, httpd_req_t *, const std::string &);
   };
 
 }

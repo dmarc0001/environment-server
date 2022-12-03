@@ -21,7 +21,7 @@
 namespace webserver
 {
 
-  const char *WebServer::tag{"RestServer"}; //! tag fürs debug logging
+  const char *WebServer::tag{"webserver"}; //! tag fürs debug logging
   bool WebServer::is_spiffs_ready{false};
   bool WebServer::is_snmp_init{false};
 
@@ -38,7 +38,6 @@ namespace webserver
     /* register a callback as an example to how you can integrate your code with the wifi manager */
     wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &WebServer::callBackConnectionOk);
     wifi_manager_set_callback(WM_EVENT_STA_DISCONNECTED, &WebServer::callBackDisconnect);
-
     http_app_set_handler_hook(HTTP_GET, &WebServer::callbackGetHttpHandler);
   }
 
@@ -53,7 +52,7 @@ namespace webserver
 
   esp_err_t WebServer::spiffs_init()
   {
-    ESP_LOGI(WebServer::tag, "Initializing SPIFFS...");
+    ESP_LOGI(WebServer::tag, "initializing spiffs...");
 
     esp_vfs_spiffs_conf_t conf = {
         .base_path = Prefs::WEB_PATH,
@@ -68,31 +67,31 @@ namespace webserver
     {
       if (ret == ESP_FAIL)
       {
-        ESP_LOGE(WebServer::tag, "Failed to mount or format filesystem");
+        ESP_LOGE(WebServer::tag, "failed to mount or format filesystem");
       }
       else if (ret == ESP_ERR_NOT_FOUND)
       {
-        ESP_LOGE(WebServer::tag, "Failed to find SPIFFS partition");
+        ESP_LOGE(WebServer::tag, "failed to find spiffs partition");
       }
       else
       {
-        ESP_LOGE(WebServer::tag, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        ESP_LOGE(WebServer::tag, "failed to initialize spiffs (%s)", esp_err_to_name(ret));
       }
     }
     else
     {
       WebServer::is_spiffs_ready = true;
-      ESP_LOGI(WebServer::tag, "Initializing SPIFFS...OK");
+      ESP_LOGI(WebServer::tag, "initializing spiffs...OK");
     }
     size_t total = 0, used = 0;
     ret = esp_spiffs_info(nullptr, &total, &used);
     if (ret != ESP_OK)
     {
-      ESP_LOGE(WebServer::tag, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+      ESP_LOGE(WebServer::tag, "failed to get spiffs partition information (%s)", esp_err_to_name(ret));
     }
     else
     {
-      ESP_LOGI(WebServer::tag, "Partition size: total: %d, used: %d", total, used);
+      ESP_LOGI(WebServer::tag, "partition size: total: %d, used: %d", total, used);
     }
     return ret;
   }
@@ -100,6 +99,7 @@ namespace webserver
   void WebServer::callBackConnectionOk(void *pvParameter)
   {
     StatusObject::setWlanState(WlanState::CONNECTED);
+    http_app_set_handler_hook(HTTP_GET, &WebServer::callbackGetHttpHandler);
     if (!WebServer::is_snmp_init)
     {
       sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
@@ -119,17 +119,23 @@ namespace webserver
     char str_ip[16];
     esp_ip4addr_ntoa(&param->ip_info.ip, str_ip, IP4ADDR_STRLEN_MAX);
 
-    ESP_LOGI(WebServer::tag, "I have a connection and my IP is %s!", str_ip);
+    ESP_LOGI(WebServer::tag, "connection has set ip: %s!", str_ip);
   }
 
   void WebServer::callBackDisconnect(void *)
   {
     StatusObject::setWlanState(WlanState::DISCONNECTED);
+    http_app_set_handler_hook(HTTP_GET, nullptr);
   }
 
   esp_err_t WebServer::callbackGetHttpHandler(httpd_req_t *req)
   {
     std::string uri(req->uri);
+    //
+    // Aktion zum anzeigen der LED
+    //
+    StatusObject::setHttpActive(true);
+
     if ((uri.substr(0, 19)).compare("/api/v1/system/info") == 0)
     {
       WebServer::systemInfoGetHandler(req);
@@ -215,8 +221,8 @@ namespace webserver
       // so i not found file or hardcodet uri
       // make a failure message
       //
-      ESP_LOGE(WebServer::tag, "Failed to stat file : %s", filePath.c_str());
-      httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File does not exist");
+      ESP_LOGE(WebServer::tag, "failed to stat file : %s", filePath.c_str());
+      httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "file does not exist");
       return ESP_FAIL;
     }
     //
@@ -225,7 +231,7 @@ namespace webserver
     fd = fopen(filePath.c_str(), "r");
     if (!fd)
     {
-      ESP_LOGE(WebServer::tag, "Failed to read existing file : %s", filePath.c_str());
+      ESP_LOGE(WebServer::tag, "failed to read existing file : %s", filePath.c_str());
       /* Respond with 500 Internal Server Error */
       httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
       return ESP_FAIL;
@@ -233,25 +239,52 @@ namespace webserver
     //
     // content-type from file find and set
     //
-    ESP_LOGI(WebServer::tag, "Sending file : <%s> (%ld bytes)...", filePath.c_str(), file_stat.st_size);
+    ESP_LOGI(WebServer::tag, "sending file : <%s> (%ld bytes)...", filePath.c_str(), file_stat.st_size);
     // set content type of file
-    setContentTypeFromFile(req, filePath);
+    std::string content{"text"};
+    setContentTypeFromFile(content, req, filePath);
     //
-    // deliver the file chunk-whise
+    // deliver the file chunk-whise if too big for buffsize
     // create smart buffer
     //
-    if (file_stat.st_size < Prefs::WEB_SCRATCH_BUFSIZE)
+    if (file_stat.st_size + 6 < Prefs::WEB_SCRATCH_BUFSIZE)
     {
       // one piece
-      std::unique_ptr<char> deliverBuf(new char[file_stat.st_size]);
-      // read in buffer
-      fread(deliverBuf.get(), 1, file_stat.st_size, fd);
-      httpd_resp_sendstr(req, deliverBuf.get());
+      if (content.compare("json") == 0)
+      {
+        //
+        // "{" and "}" for correct json file
+        //
+        std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
+        char *buffptr = deliverBuf.get();
+        *(buffptr++) = '[';
+        *(buffptr++) = '\n';
+        buffptr += fread(deliverBuf.get(), 1, file_stat.st_size, fd);
+        *(buffptr++) = ']';
+        *(buffptr++) = '\n';
+        *(buffptr++) = '\0';
+        httpd_resp_sendstr(req, deliverBuf.get());
+      }
+      else
+      {
+        std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
+        char *buffptr = deliverBuf.get();
+        // read in buffer
+        buffptr += fread(deliverBuf.get(), 1, file_stat.st_size, fd);
+        *(buffptr++) = '\0';
+        httpd_resp_sendstr(req, deliverBuf.get());
+      }
+      ESP_LOGI(WebServer::tag, "file sending complete");
     }
+    else
     {
       // send chunked
       std::unique_ptr<char> deliverBuf(new char[Prefs::WEB_SCRATCH_BUFSIZE]);
       // Retrieve the pointer to scratch buffer for temporary storage
+      if (content.compare("json") == 0)
+      {
+        httpd_resp_send_chunk(req, "[\n", 2);
+      }
       char *chunk = deliverBuf.get();
       size_t chunksize;
       do
@@ -272,24 +305,28 @@ namespace webserver
           {
             // is something wrong?
             fclose(fd);
-            ESP_LOGE(WebServer::tag, "File sending failed!");
+            ESP_LOGE(WebServer::tag, "file sending failed!");
             // Abort sending file
             httpd_resp_sendstr_chunk(req, nullptr);
             // Respond with 500 Internal Server Error
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "failed to send file");
             return ESP_FAIL;
           }
         }
         // Keep looping till the whole file is sent
       } while (chunksize != 0);
       // send signal "sending done!"
+      if (content.compare("json") == 0)
+      {
+        httpd_resp_send_chunk(req, "\n]\n", 3);
+      }
       httpd_resp_sendstr_chunk(req, nullptr);
     }
     //
     // Close file after sending complete
     //
     fclose(fd);
-    ESP_LOGI(WebServer::tag, "File sending complete");
+    ESP_LOGI(WebServer::tag, "chunk file sending complete");
     return ESP_OK;
   }
 
@@ -353,28 +390,49 @@ namespace webserver
   }
 
   /* Set HTTP response content type according to file extension */
-  esp_err_t WebServer::setContentTypeFromFile(httpd_req_t *req, const std::string &filename)
+  esp_err_t WebServer::setContentTypeFromFile(std::string &type, httpd_req_t *req, const std::string &filename)
   {
     if (filename.rfind(".pdf") != std::string::npos)
     {
+      type = "pdf";
       return httpd_resp_set_type(req, "application/pdf");
     }
     if (filename.rfind(".html") != std::string::npos)
     {
+      type = "html";
       return httpd_resp_set_type(req, "text/html");
     }
     if (filename.rfind(".jpeg") != std::string::npos)
     {
+      type = "jpeg";
       return httpd_resp_set_type(req, "image/jpeg");
     }
     if (filename.rfind(".ico") != std::string::npos)
     {
+      type = "ico";
       return httpd_resp_set_type(req, "image/x-icon");
     }
+    if (filename.rfind(".json") != std::string::npos)
+    {
+      type = "json";
+      return httpd_resp_set_type(req, "application/json");
+    }
+    if (filename.rfind(".js") != std::string::npos)
+    {
+      type = "js";
+      return httpd_resp_set_type(req, "text/javascript");
+    }
+    if (filename.rfind(".css") != std::string::npos)
+    {
+      type = "css";
+      return httpd_resp_set_type(req, "text/css");
+    }
+
     //
     // This is a limited set only
     // For any other type always set as plain text
     //
+    type = "text";
     return httpd_resp_set_type(req, "text/plain");
   }
 
@@ -385,14 +443,14 @@ namespace webserver
     switch (state)
     {
     case SNTP_SYNC_STATUS_COMPLETED:
-      ESP_LOGI(WebServer::tag, "Notification: time status sync competed!");
+      ESP_LOGI(WebServer::tag, "notification: time status sync competed!");
       if (StatusObject::getWlanState() == WlanState::CONNECTED)
       {
         StatusObject::setWlanState(WlanState::TIMESYNCED);
       }
       break;
     default:
-      ESP_LOGI(WebServer::tag, "Notification: time status not synced!");
+      ESP_LOGI(WebServer::tag, "notification: time status not synced!");
       if (StatusObject::getWlanState() == WlanState::TIMESYNCED)
       {
         StatusObject::setWlanState(WlanState::CONNECTED);

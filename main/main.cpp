@@ -1,23 +1,21 @@
 #include <string.h>
 #include <cstring>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
-#include "esp_system.h"
-#include "esp_wifi.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
+#include <esp_system.h>
+#include <esp_wifi.h>
 #include <esp_netif.h>
-#include "esp_event.h"
-#include "esp_log.h"
-#include "nvs_flash.h"
-
-#include "lwip/err.h"
-#include "lwip/sys.h"
-
+#include <esp_event.h>
+#include <esp_log.h>
+#include <nvs_flash.h>
+#include <lwip/err.h>
+#include <lwip/sys.h>
 #include "main.hpp"
 #include "ledStripe.hpp"
 #include "webServer.hpp"
 #include "tempMeasure.hpp"
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
 

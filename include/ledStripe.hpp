@@ -1,10 +1,10 @@
 #pragma once
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 #include <driver/rmt.h>
 
-#include "AppPreferences.hpp"
+#include "appPreferences.hpp"
 
 namespace webserver
 {
