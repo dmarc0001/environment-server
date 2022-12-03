@@ -61,6 +61,11 @@ div.workarea {
     text-align: center;
 }
 
+div.stat {
+    color: red;
+    background-color: rgb(255, 200, 0);
+}
+
 canvas.measure {
     /*border: thin solid red;*/
     width: 100%;

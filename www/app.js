@@ -1,5 +1,6 @@
 //
 // globale variablen für die charts
+// TODO: wenn file-not.found gui ändern
 //
 var t_chart = undefined;
 var h_chart = undefined;
@@ -329,6 +330,7 @@ function getTempFromController() {
             t_chart.data = t_data_obj;
             // t_chart.options = t_chart_options;
             t_chart.update();
+            elem = document.getElementById("stat").innerHTML = "";
           },
           1500);
 
@@ -374,6 +376,7 @@ function getTempFromController() {
             //
             h_chart.data = h_data_obj;
             h_chart.update();
+            elem = document.getElementById("stat").innerHTML = "";
           },
           4500);
     } else {
@@ -384,6 +387,9 @@ function getTempFromController() {
       h_chart.update();
       t_chart.data = h_data_obj;
       t_chart.update();
+      // TODO: Fehlernachricht anzeigen
+      elem = document.getElementById("stat").innerHTML =
+          "Messdaten nicht gefunden";
     }
     //
     // END if datatransfer done
