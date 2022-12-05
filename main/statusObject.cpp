@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <esp_log.h>
 #include <stdio.h>
+#include <cJSON.h>
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
 
@@ -120,10 +121,28 @@ namespace webserver
         bool exist_file{false};
         FILE *fd = nullptr;
 
+        ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
+        cJSON *setArray = cJSON_CreateArray();
+        while (!StatusObject::dataset->empty())
+        {
+          // create one object
+          cJSON *setObj = cJSON_CreateObject();
+          // read one dataset
+          auto elem = StatusObject::dataset->front();
+          StatusObject::dataset->erase(StatusObject::dataset->begin());
+          // make items for object
+          cJSON_AddItemToObject(setObj, "timestamp", cJSON_CreateString(std::to_string(elem.timestamp).c_str()));
+          cJSON_AddItemToObject(setObj, "id", cJSON_CreateString(std::to_string(elem.addr).c_str()));
+          cJSON_AddItemToObject(setObj, "temp", cJSON_CreateString(std::to_string(elem.temp).c_str()));
+          cJSON_AddItemToObject(setObj, "humidy", cJSON_CreateString(std::to_string(elem.humidy).c_str()));
+          // object to array
+          cJSON_AddItemToArray(setArray, setObj);
+        }
         if (stat(daylyFileName.c_str(), &file_stat) == 0)
         {
           exist_file = true;
         }
+        // file is opened!
         //
         // try to obtain the semaphore
         // wait max 1000 ms
@@ -137,33 +156,20 @@ namespace webserver
           fd = fopen(daylyFileName.c_str(), "a");
           if (fd)
           {
-            // file is opened!
-            ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
-            while (!StatusObject::dataset->empty())
+            if (exist_file)
             {
-              auto elem = StatusObject::dataset->front();
-              StatusObject::dataset->erase(StatusObject::dataset->begin());
-              auto timestamp = "{ \"timestamp\":\"" + std::to_string(elem.timestamp) + "\", ";
-              auto addr = "\"id\":\"" + std::to_string(elem.addr) + "\", ";
-              auto temp = "\"temp\":\"" + std::to_string(elem.temp) + "\", ";
-              auto humidy = "\"humidy\":\"" + std::to_string(elem.humidy) + "\" }\n";
-              if (exist_file)
-              {
-                // exist the file, is there minimum on dataset,
-                // an i need a comma to write
-                fputs(",", fd);
-              }
-              else
-              {
-                // this is the first dataset, it's permitted
-                // wo write a comma on first entry
-                exist_file = true;
-              }
-              fputs(timestamp.c_str(), fd);
-              fputs(addr.c_str(), fd);
-              fputs(temp.c_str(), fd);
-              fputs(humidy.c_str(), fd);
+              // exist the file, is there minimum on dataset,
+              // an i need a comma to write
+              fputs(",", fd);
             }
+            else
+            {
+              // this is the first dataset, it's permitted
+              // wo write a comma on first entry
+              exist_file = true;
+            }
+            fputs(cJSON_Print(setArray), fd);
+            cJSON_Delete(setArray);
             fclose(fd);
             ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
           }
