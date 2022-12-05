@@ -188,11 +188,11 @@ function getTempFromController() {
       const yTemp02 = new Array();
       const yTemp03 = new Array();
       const yHumidy01 = new Array();
-      const ids = new Array()
-          //
-          // round one, id searching
-          //
-          var id_idx = 0;
+      const ids = new Array();
+      //
+      // round one, id searching
+      //
+      var id_idx = 0;
       var id;
       for (let i in json) {
         id = json[i].id;

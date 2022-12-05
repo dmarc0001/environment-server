@@ -443,7 +443,7 @@ namespace webserver
     switch (state)
     {
     case SNTP_SYNC_STATUS_COMPLETED:
-      ESP_LOGI(WebServer::tag, "notification: time status sync competed!");
+      ESP_LOGI(WebServer::tag, "notification: time status sync completed!");
       if (StatusObject::getWlanState() == WlanState::CONNECTED)
       {
         StatusObject::setWlanState(WlanState::TIMESYNCED);

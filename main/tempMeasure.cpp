@@ -85,6 +85,17 @@ namespace webserver
         StatusObject::setMeasureState(MeasureState::MEASURE_ACTION);
         // next mesure time set
         nextMeasureTime = nowTime + measure_interval;
+        if (StatusObject::getWlanState() != WlanState::TIMESYNCED)
+        {
+          ESP_LOGW(TempMeasure::tag, "time not sync, no save mesure values!");
+          StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
+          ++warning_rounds_count;
+          if (warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT)
+          {
+            StatusObject::setMeasureState(MeasureState::MEASURE_CRIT);
+          }
+          continue;
+        }
         ESP_LOGI(TempMeasure::tag, "Measuring...");
         timeval val;
         gettimeofday(&val, nullptr);
@@ -116,7 +127,7 @@ namespace webserver
                      temp_c);
           }
           dataset->push_back(current);
-          vTaskDelay(pdMS_TO_TICKS(125));
+          vTaskDelay(pdMS_TO_TICKS(50));
         }
         env_measure_t current_dht;
         current_dht.addr = 0;
@@ -140,29 +151,7 @@ namespace webserver
           StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
         }
         vTaskDelay(pdMS_TO_TICKS(50));
-        if (StatusObject::getWlanState() == WlanState::TIMESYNCED)
-        {
-          //
-          // send to status object
-          //
-          StatusObject::setMeasures(dataset);
-        }
-        else
-        {
-          ESP_LOGW(TempMeasure::tag, "time not sync, no save mesure values!");
-          StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
-        }
-        //
-        // count warning rounds
-        //
-        if (StatusObject::getMeasureState() == MeasureState::MEASURE_WARN)
-        {
-          ++warning_rounds_count;
-          if (warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT)
-          {
-            StatusObject::setMeasureState(MeasureState::MEASURE_CRIT);
-          }
-        }
+        StatusObject::setMeasures(dataset);
       }
       vTaskDelay(pdMS_TO_TICKS(500));
     }

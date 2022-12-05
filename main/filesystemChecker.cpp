@@ -48,7 +48,6 @@ namespace webserver
     //
     // construct filename for marker for last check
     //
-    struct stat file_stat;
     std::string fileName(Prefs::WEB_PATH);
     fileName += "/last_fscheck.dat";
     // at first, do nothing, let oher things at first
@@ -69,42 +68,14 @@ namespace webserver
       uint32_t lastTimestamp{0UL};
       gettimeofday(&val, nullptr);
       uint32_t timestamp = val.tv_sec;
-      if (stat(fileName.c_str(), &file_stat) != 0)
+      if (!FsCheckObject::checkExistStatFile(fileName, timestamp))
       {
-        timestamp = FsCheckObject::getMidnight(timestamp);
-        // File not exist, set midnight (GMT) as first marker
-        ESP_LOGI(FsCheckObject::tag, "create marker file <%s>...", fileName.c_str());
-        auto fd = fopen(fileName.c_str(), "w");
-        if (fd)
-        {
-          auto wval = std::to_string(timestamp);
-          fputs(wval.c_str(), fd);
-          fclose(fd);
-        }
-        else
-        {
-          ESP_LOGE(FsCheckObject::tag, "can't create marker file <%s>...", fileName.c_str());
-        }
-        // next iteration
         continue;
       }
       //
       // file exist
       //
-      ESP_LOGI(FsCheckObject::tag, "marker file <%s> open...", fileName.c_str());
-      auto fd = fopen(fileName.c_str(), "r");
-      if (fd)
-      {
-        char buffer[128];
-        auto line = fgets(&buffer[0], 128, fd);
-        if (strlen(line) > 0)
-        {
-          ESP_LOGI(FsCheckObject::tag, "marker file <%s> contains <%s>...", fileName.c_str(), line);
-          std::string tmstmp{line};
-          lastTimestamp = std::stoi(tmstmp);
-        }
-        fclose(fd);
-      }
+      lastTimestamp = FsCheckObject::getLastTimestamp(fileName);
       //
       // is the last timestamp older than the difference from prefs?
       //
@@ -121,22 +92,75 @@ namespace webserver
         ESP_LOGI(FsCheckObject::tag, "update marker file <%s>...", fileName.c_str());
         gettimeofday(&val, nullptr);
         timestamp = val.tv_sec;
-        auto fd = fopen(fileName.c_str(), "w");
-        if (fd)
-        {
-          auto wval = std::to_string(timestamp);
-          fputs(wval.c_str(), fd);
-          fclose(fd);
-        }
-        else
-        {
-          ESP_LOGE(FsCheckObject::tag, "can't create marker file <%s>...", fileName.c_str());
-        }
+        FsCheckObject::updateStatFile(fileName, timestamp);
         // next iteration in a few munutes
         vTaskDelay(pdMS_TO_TICKS(Prefs::FILESYS_CHECK_TEST_INTERVAL * 1000U));
         continue;
       }
     }
+  }
+
+  uint32_t FsCheckObject::getLastTimestamp(std::string fileName)
+  {
+    ESP_LOGI(FsCheckObject::tag, "marker file <%s> open...", fileName.c_str());
+    auto fd = fopen(fileName.c_str(), "r");
+    uint32_t lastTimestamp{0UL};
+    //
+    if (fd)
+    {
+      char buffer[128];
+      auto line = fgets(&buffer[0], 128, fd);
+      if (strlen(line) > 0)
+      {
+        ESP_LOGI(FsCheckObject::tag, "marker file <%s> contains <%s>...", fileName.c_str(), line);
+        std::string tmstmp{line};
+        lastTimestamp = std::stoi(tmstmp);
+      }
+      fclose(fd);
+    }
+    return lastTimestamp;
+  }
+
+  bool FsCheckObject::updateStatFile(std::string fileName, uint32_t timestamp)
+  {
+    auto fd = fopen(fileName.c_str(), "w");
+    if (fd)
+    {
+      auto wval = std::to_string(timestamp);
+      fputs(wval.c_str(), fd);
+      fclose(fd);
+      return true;
+    }
+    else
+    {
+      ESP_LOGE(FsCheckObject::tag, "can't create marker file <%s>...", fileName.c_str());
+      return false;
+    }
+  }
+
+  bool FsCheckObject::checkExistStatFile(std::string fileName, uint32_t timestamp)
+  {
+    struct stat file_stat;
+
+    if (stat(fileName.c_str(), &file_stat) != 0)
+    {
+      timestamp = FsCheckObject::getMidnight(timestamp);
+      // File not exist, set midnight (GMT) as first marker
+      ESP_LOGI(FsCheckObject::tag, "create marker file <%s>...", fileName.c_str());
+      auto fd = fopen(fileName.c_str(), "w");
+      if (fd)
+      {
+        auto wval = std::to_string(timestamp);
+        fputs(wval.c_str(), fd);
+        fclose(fd);
+      }
+      else
+      {
+        ESP_LOGE(FsCheckObject::tag, "can't create marker file <%s>...", fileName.c_str());
+      }
+      return false;
+    }
+    return true;
   }
 
   void FsCheckObject::computeFileWithLimit(std::string fileName, uint32_t timestamp, bool _lock = false)
@@ -222,6 +246,7 @@ namespace webserver
             }
           }
           // next line...
+          vTaskDelay(pdMS_TO_TICKS(10));
           c_line = fgets(&buffer[0], 128, rFile);
         }
         if (wFile)
