@@ -12,20 +12,19 @@ namespace webserver
   class StatusObject
   {
   private:
-    static const char *tag;                      //! TAG for esp log
-    static bool is_init;                         //! was object initialized
-    static bool is_running;                      //! is save Task running?
-    static WlanState wlanState;                  //! is wlan disconnected, connected etc....
-    static MeasureState msgState;                //! which state ist the mesure
-    static bool http_active;                     //! was an acces via http?
-    static std::shared_ptr<env_dataset> dataset; //! set of mesures
+    static const char *tag;       //! TAG for esp log
+    static bool is_init;          //! was object initialized
+    static bool is_running;       //! is save Task running?
+    static WlanState wlanState;   //! is wlan disconnected, connected etc....
+    static MeasureState msgState; //! which state ist the mesure
+    static bool http_active;      //! was an acces via http?
   public:
-    static SemaphoreHandle_t fileSem; // is access to files busy
+    static std::shared_ptr<env_dataset> dataset; //! set of mesures
+    static SemaphoreHandle_t fileSem;            // is access to files busy
 
   public:
     static void init();
     static void start();
-    static void setMeasures(std::shared_ptr<env_dataset>);
     static void setWlanState(WlanState);
     static void setMeasureState(MeasureState);
     static MeasureState getMeasureState();

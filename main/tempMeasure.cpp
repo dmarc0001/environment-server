@@ -41,6 +41,7 @@ namespace webserver
       static int64_t nextSensorsScanTime{600000LL};
       static int64_t nextMeasureTime{2400000LL};
       int64_t nowTime = esp_timer_get_time();
+
       //############################################################
       // if enough time ist over, rescann ds18x20 devices
       // if count of sensors changes
@@ -99,44 +100,46 @@ namespace webserver
         ESP_LOGI(TempMeasure::tag, "Measuring...");
         timeval val;
         gettimeofday(&val, nullptr);
+        // dataset create, set timestamp for this dataset
+        // create a new dataset for this round of measure
+        env_measure_t current_measure;
+        current_measure.timestamp = val.tv_sec;
         //
         // all addrs
         // plus 1 for dht11
-        std::shared_ptr<env_dataset> dataset = std::shared_ptr<env_dataset>(new env_dataset());
         for (int addr_idx = 0; addr_idx < sensor_count; ++addr_idx)
         {
-          env_measure_t current;
-          current.addr = addrs[addr_idx];
-          current.timestamp = val.tv_sec;
-          current.humidy = -100.0;
-          res = ds18x20_measure_and_read(Prefs::SENSOR_TEMPERATURE_GPIO, current.addr, &current.temp);
+          // one measure
+          env_dataset_t sensor_data;
+          sensor_data.addr = addrs[addr_idx];
+          sensor_data.humidy = -100.0;
+          res = ds18x20_measure_and_read(Prefs::SENSOR_TEMPERATURE_GPIO, sensor_data.addr, &(sensor_data.temp));
           if (res != ESP_OK)
           {
             ESP_LOGE(TempMeasure::tag, "Sensors (ds10x20) read error %d (%s)", res, esp_err_to_name(res));
             StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
-            current.temp = -100.0;
+            sensor_data.temp = -100.0;
             vTaskDelay(pdMS_TO_TICKS(250));
             continue;
           }
           else
           {
-            float temp_c = current.temp;
+            float temp_c = sensor_data.temp;
             ESP_LOGI(TempMeasure::tag, "Sensor %08" PRIx32 "%08" PRIx32 " (%s) reports %.3f°C",
-                     (uint32_t)(current.addr >> 32), (uint32_t)current.addr,
-                     (current.addr & 0xff) == DS18B20_FAMILY_ID ? "DS18B20" : "DS18S20",
+                     (uint32_t)(sensor_data.addr >> 32), (uint32_t)sensor_data.addr,
+                     (sensor_data.addr & 0xff) == DS18B20_FAMILY_ID ? "DS18B20" : "DS18S20",
                      temp_c);
           }
-          dataset->push_back(current);
+          current_measure.dataset.push_back(sensor_data);
           vTaskDelay(pdMS_TO_TICKS(50));
         }
-        env_measure_t current_dht;
-        current_dht.addr = 0;
-        current_dht.timestamp = val.tv_sec;
-        res = dht_read_float_data(Prefs::SENSOR_DHT_SENSOR_TYPE, Prefs::SENSOR_DHT_GPIO, &current_dht.humidy, &current_dht.temp);
+        env_dataset_t h_sensor_data;
+        h_sensor_data.addr = 0;
+        res = dht_read_float_data(Prefs::SENSOR_DHT_SENSOR_TYPE, Prefs::SENSOR_DHT_GPIO, &h_sensor_data.humidy, &h_sensor_data.temp);
         if (res == ESP_OK)
         {
-          dataset->push_back(current_dht);
-          ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC", current_dht.humidy, current_dht.temp);
+          current_measure.dataset.push_back(h_sensor_data);
+          ESP_LOGI(TempMeasure::tag, "Humidity: %.1f%% Temp: %.1fC", h_sensor_data.humidy, h_sensor_data.temp);
           if (StatusObject::getMeasureState() == MeasureState::MEASURE_ACTION)
           {
             // nur wenn keine Warnungen gesetzt wurden
@@ -150,8 +153,9 @@ namespace webserver
           ESP_LOGW(TempMeasure::tag, "Could not read data from dht11 sensor");
           StatusObject::setMeasureState(MeasureState::MEASURE_WARN);
         }
+        ESP_LOGD(TempMeasure::tag, "Dataset to queue send...");
+        StatusObject::dataset->push_back(current_measure);
         vTaskDelay(pdMS_TO_TICKS(50));
-        StatusObject::setMeasures(dataset);
       }
       vTaskDelay(pdMS_TO_TICKS(500));
     }
@@ -168,6 +172,7 @@ namespace webserver
     }
     else
     {
+      StatusObject::init();
       xTaskCreate(TempMeasure::measureTask, "temp-measure", configMINIMAL_STACK_SIZE * 4, NULL, 5, NULL);
     }
   }

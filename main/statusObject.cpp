@@ -9,7 +9,7 @@
 
 namespace webserver
 {
-  const char *StatusObject::tag{"StatusObject"};
+  const char *StatusObject::tag{"status_object"};
   bool StatusObject::is_init{false};
   bool StatusObject::is_running{false};
   SemaphoreHandle_t StatusObject::fileSem{nullptr};
@@ -31,21 +31,6 @@ namespace webserver
     StatusObject::dataset->clear();
     ESP_LOGI(StatusObject::tag, "init status object...OK, start task...");
     StatusObject::start();
-  }
-
-  /**
-   * Dataset copy into queue to write into file
-  */
-  void StatusObject::setMeasures(std::shared_ptr<env_dataset> dataset)
-  {
-    if (!StatusObject::is_init)
-      init();
-    //
-    // do save that the vector not will overload, memory is not infinite
-    //
-    std::for_each(dataset->begin(), dataset->end(), [](const env_measure_t n) {
-      StatusObject::dataset->push_back(n);
-    });
   }
 
   /**
@@ -121,79 +106,82 @@ namespace webserver
         bool exist_file{false};
         FILE *fd = nullptr;
 
-        ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
-        cJSON *setArray = cJSON_CreateArray();
-        while (!StatusObject::dataset->empty())
-        {
-          // create one object
-          cJSON *setObj = cJSON_CreateObject();
-          // read one dataset
-          auto elem = StatusObject::dataset->front();
-          StatusObject::dataset->erase(StatusObject::dataset->begin());
-          // make items for object
-          cJSON_AddItemToObject(setObj, "timestamp", cJSON_CreateString(std::to_string(elem.timestamp).c_str()));
-          cJSON_AddItemToObject(setObj, "id", cJSON_CreateString(std::to_string(elem.addr).c_str()));
-          cJSON_AddItemToObject(setObj, "temp", cJSON_CreateString(std::to_string(elem.temp).c_str()));
-          cJSON_AddItemToObject(setObj, "humidy", cJSON_CreateString(std::to_string(elem.humidy).c_str()));
-          // object to array
-          cJSON_AddItemToArray(setArray, setObj);
-        }
+        ESP_LOGI(StatusObject::tag, "data for save exist...");
+        // is file exist
         if (stat(daylyFileName.c_str(), &file_stat) == 0)
         {
           exist_file = true;
         }
-        // file is opened!
-        //
-        // try to obtain the semaphore
-        // wait max 1000 ms
-        //
-        if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
-        {
-          // We were able to obtain the semaphore and can now access the
-          // shared resource.
 
-          // open File mode append
-          fd = fopen(daylyFileName.c_str(), "a");
-          if (fd)
+        while (!StatusObject::dataset->empty())
+        {
+          // read one dataset
+          auto elem = StatusObject::dataset->front();
+          StatusObject::dataset->erase(StatusObject::dataset->begin());
+          // create one object for one dataset
+          cJSON *dataSetObj = cJSON_CreateObject();
+          // make timestamp objekt item
+          cJSON_AddItemToObject(dataSetObj, "timestamp", cJSON_CreateString(std::to_string(elem.timestamp).c_str()));
+          // make array of measures
+          auto m_dataset = elem.dataset;
+          cJSON *mArray = cJSON_CreateArray();
+          while (!m_dataset.empty())
           {
-            if (exist_file)
+            // fill messure array
+            auto m_elem = m_dataset.front();
+            m_dataset.erase(m_dataset.begin());
+            cJSON *mObj = cJSON_CreateObject();
+            cJSON_AddItemToObject(mObj, "id", cJSON_CreateString(std::to_string(m_elem.addr).c_str()));
+            cJSON_AddItemToObject(mObj, "temp", cJSON_CreateString(std::to_string(m_elem.temp).c_str()));
+            cJSON_AddItemToObject(mObj, "humidy", cJSON_CreateString(std::to_string(m_elem.humidy).c_str()));
+            // measure object to array
+            cJSON_AddItemToArray(mArray, mObj);
+          }
+          // array as item to object
+          cJSON_AddItemToObject(dataSetObj, "data", mArray);
+          // dataSetObj complete
+          // try to write to file
+          // wait max 1000 ms
+          //
+          if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
+          {
+            // We were able to obtain the semaphore and can now access the
+            // shared resource.
+            // open File mode append
+            fd = fopen(daylyFileName.c_str(), "a");
+            if (fd)
             {
-              // exist the file, is there minimum on dataset,
-              // an i need a comma to write
-              fputs(",", fd);
+              ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
+              if (exist_file)
+              {
+                // exist the file, is there minimum on dataset,
+                // an i need a comma to write
+                fputs(",", fd);
+              }
+              else
+              {
+                // this is the first dataset, it's permitted
+                // wo write a comma on first entry
+                exist_file = true;
+              }
+              fputs(cJSON_PrintUnformatted(dataSetObj), fd);
+              //fputs(cJSON_Print(dataSetObj), fd);
+              fputs("\n", fd);
+              cJSON_Delete(dataSetObj);
+              fclose(fd);
+              ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
             }
             else
             {
-              // this is the first dataset, it's permitted
-              // wo write a comma on first entry
-              exist_file = true;
+              while (!StatusObject::dataset->empty())
+              {
+                StatusObject::dataset->erase(StatusObject::dataset->begin());
+              }
+              ESP_LOGE(StatusObject::tag, "datafile <%s> can't open, data lost...", daylyFileName.c_str());
             }
-            fputs(cJSON_Print(setArray), fd);
-            cJSON_Delete(setArray);
-            fclose(fd);
-            ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
-          }
-          else
-          {
-            while (!StatusObject::dataset->empty())
-            {
-              StatusObject::dataset->erase(StatusObject::dataset->begin());
-            }
-            ESP_LOGE(StatusObject::tag, "datafile <%s> can't open, data lost...", daylyFileName.c_str());
-          }
-          // We have finished accessing the shared resource.  Release the
-          // semaphore.
-          xSemaphoreGive(StatusObject::fileSem);
-        }
-        else
-        {
-          if (StatusObject::dataset->size() > Prefs::MEASURE_MAX_DATASETS_IN_RAM)
-          {
-            while (!StatusObject::dataset->empty())
-            {
-              StatusObject::dataset->erase(StatusObject::dataset->begin());
-            }
-            ESP_LOGE(StatusObject::tag, "datafile <%s> can't write, data lost...", daylyFileName.c_str());
+            // We have finished accessing the shared resource.  Release the
+            // semaphore.
+            xSemaphoreGive(StatusObject::fileSem);
           }
         }
       }
@@ -211,7 +199,6 @@ namespace webserver
     }
     else
     {
-      //xTaskCreate(static_cast<void (*)(void *)>(&(rest_webserver::TempMeasure::measureTask)), "ds18x20", configMINIMAL_STACK_SIZE * 4, NULL, 5, NULL);
       xTaskCreate(StatusObject::saveTask, "data-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
     }
   }

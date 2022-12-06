@@ -23,7 +23,7 @@ namespace webserver
     }
     else
     {
-      xTaskCreate(FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
+      //xTaskCreate(FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
     }
   }
 
