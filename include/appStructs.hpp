@@ -26,12 +26,17 @@ namespace webserver
     MEASURE_CRIT
   };
 
-  struct env_measure_t
+  struct env_dataset_t
   {
-    uint32_t timestamp;
     ds18x20_addr_t addr;
     float temp;
     float humidy;
+  };
+
+  struct env_measure_t
+  {
+    uint32_t timestamp;
+    std::vector<env_dataset_t> dataset;
   };
 
   using env_dataset = std::vector<env_measure_t>;

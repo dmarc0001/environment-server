@@ -15,20 +15,25 @@
 
 <body onload="init_page()" id="current_temp_area">
   <h1>Temperaturen</h1>
-  <div class="complete">
+  <div class="complete" id="complete">
     <div class="workarea">
-      <label>
+      <label id="temp_label">
         Temperatur
       </label>
-      <canvas id="temp_chart" style="width:100%;min-height:550px; max-height:600px;"></canvas>
+      <canvas class="measure" id="temp_chart"></canvas>
       <br />
-      <label>
+      <label id="humudy_label">
         Feuchtigkeit
       </label>
-      <canvas id="humidy_chart" style="width:100%;min-height:550px;max-height:660px;"></canvas>
+      <canvas class="measure" id="humidy_chart"></canvas>
+      <br />
+      <div class="stat" id="stat">
+      </div>
+      <br />
+      <a id="twenty_four_hours">24 Stunden</a>
+      <a id="seven_days">7 Tage</a>
+      <a id="thirty_days">30 Tage</a>
     </div>
-  </div>
-  <div id="stat">
   </div>
 </body>
 

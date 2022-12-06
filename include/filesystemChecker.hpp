@@ -18,10 +18,16 @@ namespace webserver
     static bool is_running; //! is save Task running?
 
   public:
-    static void init();
-    static void start();
+    static void start(); //! start the task if is not running
 
   private:
-    static void filesystemTask(void *);
+    static void init();                                            //! init vars etc
+    static void filesystemTask(void *);                            //! the ininite task
+    static bool checkExistStatFile(std::string, uint32_t);         //! is an status file exist
+    static bool updateStatFile(std::string, uint32_t);             //! update stat file for new timestamp
+    static uint32_t getLastTimestamp(std::string);                 //! get last timestamp from stat file
+    static void computeFileWithLimit(std::string, uint32_t, bool); //! chef file for borders in timestamp
+    static void computeFilesysCheck(uint32_t);                     //! compute the filesystem
+    static uint32_t getMidnight(uint32_t);                         //! give last midnight time in sec since 01.01.1970 (up to 2038)
   };
 }

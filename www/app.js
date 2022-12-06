@@ -1,8 +1,12 @@
 //
 // globale variablen für die charts
+// TODO: wenn file-not.found gui ändern
 //
 var t_chart = undefined;
 var h_chart = undefined;
+var inner_width = undefined;
+var min_em = 45;
+var data_url = 'today.json';
 
 //
 // options for Charts
@@ -24,7 +28,7 @@ var t_chart_options = {
     },
     y : {
       display : true,
-      title : {display : true, text : "°C", type : "linear"},
+      title : {display : true, text : "Temperatur °C", type : "linear"},
       min : 12.0,
       max : 35.0
     }
@@ -90,7 +94,7 @@ var h_chart_config = {
       fill : true,
       cubicInterpolationMode : 'monotone',
       pointStyle : 'circle',
-      pointRadius : 4,
+      pointRadius : 2,
       pointHoverRadius : 6,
       tension : 0.8
     } ]
@@ -99,6 +103,14 @@ var h_chart_config = {
 };
 
 function init_page() {
+  var el = document.getElementById('complete');
+  var style = window.getComputedStyle(el, null).getPropertyValue('font-size');
+  var fontSize = parseFloat(style);
+  // window width in em
+  inner_width = window.innerWidth / fontSize;
+
+  addEventHandlers();
+
   // set interval to recive data for chart
   setInterval(
       function() { getTempFromController(); }, 90000);
@@ -112,17 +124,56 @@ function init_page() {
   // humidy chart
   var h_chart_ctx = document.getElementById('humidy_chart').getContext("2d");
   h_chart = new Chart(h_chart_ctx, h_chart_config);
+  if (inner_width <= min_em) {
+    // value from css @media
+    // h_chart.options.scales.y.display = false;
+    t_chart.options.plugins.legend.display = false;
+    h_chart.options.plugins.legend.display = false;
+  } else {
+    t_chart.options.plugins.legend.display = true;
+    h_chart.options.plugins.legend.display = true;
+  }
+  t_chart.update();
+  h_chart.update();
+}
+
+function addEventHandlers() {
+  document.getElementById("twenty_four_hours")
+      .addEventListener(
+          "click", function() { showTimeSpan(0); });
+  document.getElementById("seven_days")
+      .addEventListener(
+          "click", function() { showTimeSpan(1); });
+  document.getElementById("thirty_days")
+      .addEventListener(
+          "click", function() { showTimeSpan(2); });
+}
+
+function showTimeSpan(_val) {
+  if (_val == 2) {
+    // 30 Tage
+    data_url = 'month.json';
+    console.debug("set timespan to 30 days...");
+  } else if (_val == 1) {
+    // 7 Tage
+    data_url = 'week.json';
+    console.debug("set timespan to 7 days...");
+  } else {
+    // 24 Stunden, defauklt
+    data_url = 'today.json';
+    console.debug("set timespan to 24 hours...");
+  }
+  console.debug("set timespan to <" + data_url + ">...");
+  getTempFromController();
 }
 
 function getTempFromController() {
   let yourDate = new Date();
   const offset = yourDate.getTimezoneOffset();
-  yourDate = new Date(yourDate.getTime() - (offset * 60 * 1000));
-  var datestring = yourDate.toISOString().split('T')[0];
-  var url = datestring + '-measure.json';
 
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
+  console.debug("http request <" + data_url + ">...");
+  xhr.open('GET', data_url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.onreadystatechange = function() {
     if (xhr.readyState == 4 && xhr.status == 200) {
@@ -137,11 +188,11 @@ function getTempFromController() {
       const yTemp02 = new Array();
       const yTemp03 = new Array();
       const yHumidy01 = new Array();
-      const ids = new Array()
-          //
-          // round one, id searching
-          //
-          var id_idx = 0;
+      const ids = new Array();
+      //
+      // round one, id searching
+      //
+      var id_idx = 0;
       var id;
       for (let i in json) {
         id = json[i].id;
@@ -254,21 +305,32 @@ function getTempFromController() {
               cubicInterpolationMode : 'default',
               pointStyle : 'line',
               tension : 0.4
-            }
+            };
 
-                           //
-                           // push data into datasets
-                           //
-                           t_data_obj.datasets.push(t_data00);
+            //
+            // push data into datasets
+            //
+            t_data_obj.datasets.push(t_data00);
             t_data_obj.datasets.push(t_data01);
             t_data_obj.datasets.push(t_data02);
             t_data_obj.datasets.push(t_data03);
-            //
+            if (inner_width <= min_em) {
+              // value from css @media
+              // t_chart.options.scales.y.display = false;
+              t_chart.options.plugins.legend.display = false;
+            } else {
+              // value from css @media
+              // t_chart.options.scales.y.display = true;
+              t_chart.options.plugins.legend.display = true;
+            }
+
             // assign dataset into chart object
             // and start update
-            //
+
             t_chart.data = t_data_obj;
+            // t_chart.options = t_chart_options;
             t_chart.update();
+            elem = document.getElementById("stat").innerHTML = "";
           },
           1500);
 
@@ -298,14 +360,36 @@ function getTempFromController() {
             // push data into datasets
             //
             h_data_obj.datasets.push(h_data00);
+            if (inner_width <= min_em) {
+              // value from css @media
+              // h_chart.options.scales.y.display = false;
+              h_chart.options.plugins.legend.display = false;
+            } else {
+              // value from css @media
+              // h_chart.options.scales.y.display = true;
+              h_chart.options.plugins.legend.display = true;
+            }
+
             //
             // assign dataset into chart object
             // and start update
             //
             h_chart.data = h_data_obj;
             h_chart.update();
+            elem = document.getElementById("stat").innerHTML = "";
           },
           4500);
+    } else {
+      const xAxis = new Array();
+      const t_data_obj = {labels : xAxis, datasets : []};
+      const h_data_obj = {labels : xAxis, datasets : []};
+      h_chart.data = h_data_obj;
+      h_chart.update();
+      t_chart.data = h_data_obj;
+      t_chart.update();
+      // TODO: Fehlernachricht anzeigen
+      elem = document.getElementById("stat").innerHTML =
+          "Messdaten nicht gefunden";
     }
     //
     // END if datatransfer done
