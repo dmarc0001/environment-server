@@ -139,6 +139,7 @@ namespace webserver
           }
           // array as item to object
           cJSON_AddItemToObject(dataSetObj, "data", mArray);
+          //taskYIELD();
           // dataSetObj complete
           // try to write to file
           // wait max 1000 ms
@@ -164,10 +165,12 @@ namespace webserver
                 // wo write a comma on first entry
                 exist_file = true;
               }
-              fputs(cJSON_PrintUnformatted(dataSetObj), fd);
+              char *jsonPrintString = cJSON_PrintUnformatted(dataSetObj);
+              fputs(jsonPrintString, fd);
               //fputs(cJSON_Print(dataSetObj), fd);
               fputs("\n", fd);
               cJSON_Delete(dataSetObj);
+              cJSON_free(jsonPrintString); // !!!!!!! memory leak
               fclose(fd);
               ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
             }
@@ -182,6 +185,11 @@ namespace webserver
             // We have finished accessing the shared resource.  Release the
             // semaphore.
             xSemaphoreGive(StatusObject::fileSem);
+            // static uint32_t oldh{0UL};
+            // uint32_t nowh = xPortGetFreeHeapSize();
+            // uint32_t diff = nowh - oldh;
+            // oldh = nowh;
+            // ESP_LOGW(StatusObject::tag, "HEAP: %d, diff %d", nowh, diff);
           }
         }
       }

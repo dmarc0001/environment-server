@@ -173,7 +173,7 @@ namespace webserver
     else
     {
       StatusObject::init();
-      xTaskCreate(TempMeasure::measureTask, "temp-measure", configMINIMAL_STACK_SIZE * 4, NULL, 5, NULL);
+      xTaskCreate(TempMeasure::measureTask, "temp-measure", configMINIMAL_STACK_SIZE * 4, NULL, 6, NULL);
     }
   }
 
