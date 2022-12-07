@@ -45,6 +45,8 @@ namespace webserver
     FsCheckObject::is_running = true;
     if (!FsCheckObject::is_init)
       init();
+    // for security, if init do nothing
+    StatusObject::init();
     //
     // construct filename for marker for last check
     //
