@@ -168,53 +168,47 @@ function showTimeSpan(_val) {
   getTempFromController();
 }
 
-function prepareJsonData(rawData)
-{
+function prepareJsonData(rawData) {
   let json = JSON.parse(rawData);
   let nowInSeconds = parseInt(new Date().getTime() / 1000);
   let timeInterval = 100000;
   const ids = new Array();
   const axes = Array();
-  axes[0] = Array(); // x-axis
-  axes[1] = Array(); // humidy-axis
+  axes[0] = Array();  // x-axis
+  axes[1] = Array();  // humidy-axis
   //
   // read the data, find id's
   //
-  let id_idx = 2;   // sensors starts by idx 2, id == ids[id]
+  let id_idx = 2;  // sensors starts by idx 2, id == ids[id]
   let id;
   let lastTimeStamp = parseInt(json[0].timestamp);
-  for( let datasetNumber in json )
-  {
-    // 
+  for (let datasetNumber in json) {
+    //
     let data = json[datasetNumber].data;
-    for( sensorNr in data )
-    {
+    for (sensorNr in data) {
       id = data[sensorNr].id;
-      if (ids[id] == undefined) 
-      {
+      if (ids[id] == undefined) {
         // new id found
         ids[id] = id_idx;
         console.debug("new sensor id <" + id + "> with index <" + id_idx +
                       ">...");
-        axes[id_idx] = Array(); // temp axis for sensor
+        axes[id_idx] = Array();  // temp axis for sensor
         id_idx += 1;
       }
     }
-    if( datasetNumber > 1 && datasetNumber < 10 )
-    {
+    if (datasetNumber > 1 && datasetNumber < 10) {
       //
       // find smallest interval for time
-      // this should be the interval of the controller 
+      // this should be the interval of the controller
       //
       let currentTimeStamp = parseInt(json[datasetNumber].timestamp);
-      if( (currentTimeStamp - lastTimeStamp) < timeInterval )
-      {
+      if ((currentTimeStamp - lastTimeStamp) < timeInterval) {
         timeInterval = (currentTimeStamp - lastTimeStamp);
       }
     }
   }
   console.debug("controllers interval is " + timeInterval + " secounds.");
-  console.debug("sensor id's: " + (id_idx - 2 )+ " sensors found!");
+  console.debug("sensor id's: " + (id_idx - 2) + " sensors found!");
   //
   // round two, collect data for id's
   //
@@ -222,44 +216,38 @@ function prepareJsonData(rawData)
   lastTimeStamp = parseInt(json[0].timestamp) - timeInterval;
   // offset for gaps
   let databaseOffset = 0;
-  for( let datasetNumber in json )
-  {
-    let currentNumber = parseInt(datasetNumber) + databaseOffset;   
+  for (let datasetNumber in json) {
+    let currentNumber = parseInt(datasetNumber) + databaseOffset;
     // every timestamped measuring object
-    let timestampVal = json[datasetNumber].timestamp;  // first timestamp in the file
-    let timestamp = parseInt(timestampVal); // as integer
-    let wasMinutes = formatTimestamp(nowInSeconds - timestamp); // was in the past wasMinutes minutes
+    let timestampVal =
+        json[datasetNumber].timestamp;       // first timestamp in the file
+    let timestamp = parseInt(timestampVal);  // as integer
+    let wasMinutes = formatTimestamp(
+        nowInSeconds - timestamp);  // was in the past wasMinutes minutes
     //
     // is ther an gap in the database?
     //
-    if( timestamp > (lastTimeStamp + timeInterval) )
-    {
+    if (timestamp > (lastTimeStamp + timeInterval + 20)) {
       // fill the gap
-      console.debug("fill gap in data dataset " +  datasetNumber + "...");
+      console.debug("fill gap in data dataset " + datasetNumber + "...");
       let curr_stamp = lastTimeStamp + timeInterval;
-      while( timestamp > curr_stamp )
-      {
-        // xAxis is axes[0] 
+      while (timestamp > curr_stamp) {
+        // xAxis is axes[0]
         wasMinutes = formatTimestamp(nowInSeconds - curr_stamp);
         axes[0][currentNumber] = wasMinutes;
         let data = json[datasetNumber].data;
-        for (let sensorNr in data)
-        {
+        for (let sensorNr in data) {
           let sensor = data[sensorNr];
           // humidy
-          if(sensor.id == 0)
-          {
+          if (sensor.id == 0) {
             // humidy sensor
             axes[1][currentNumber] = -100.0;
           }
           // sensor-id for temperature
           let idx = ids[sensor.id];
-          if( idx < 0 )
-          {
-            console.error( "sensor-id not found...");
-          }
-          else
-          {
+          if (idx < 0) {
+            console.error("sensor-id not found...");
+          } else {
             axes[idx][currentNumber] = -100.0;
           }
         }
@@ -267,70 +255,66 @@ function prepareJsonData(rawData)
         databaseOffset += 1;
         currentNumber = datasetNumber + databaseOffset;
       }
-      console.debug("fill gap in data dataset " +  datasetNumber + " offset now " + databaseOffset + "...");
+      console.debug("fill gap in data dataset " + datasetNumber +
+                    " offset now " + databaseOffset + "...");
     }
     // set to new value
     lastTimeStamp = timestamp;
     // no gap. all right
-    // xAxis is axes[0] 
+    // xAxis is axes[0]
     axes[0][currentNumber] = wasMinutes;
     // DEBUG:
-    //console.debug("read dataset " + currentNumber + " time diff: " + wasMinutes + "...");
+    // console.debug("read dataset " + currentNumber + " time diff: " +
+    // wasMinutes + "...");
     //
     let data = json[datasetNumber].data;
-    for (let sensorNr in data)
-    {
+    for (let sensorNr in data) {
       let sensor = data[sensorNr];
       //
       // for every sensor value
       //
       // humidy
-      if(sensor.id == 0)
-      {
+      if (sensor.id == 0) {
         // humidy sensor
         axes[1][currentNumber] = parseFloat(sensor.humidy);
       }
       // sensor-id for temperature
       let idx = ids[sensor.id];
-      if( idx < 0 )
-      {
-        console.error( "sensor-id not found...");
-      }
-      else
-      {
+      if (idx < 0) {
+        console.error("sensor-id not found...");
+      } else {
         axes[idx][currentNumber] = parseFloat(sensor.temp);
       }
       // DEBUG:
-      //console.debug("number: " + currentNumber + " time: " + wasMinutes + " sensor: " + sensor.id + " sensor-idx: " + idx + " temp: " + sensor.temp + " hum: " + sensor.humidy + "...");
-    } 
+      // console.debug("number: " + currentNumber + " time: " + wasMinutes + "
+      // sensor: " + sensor.id + " sensor-idx: " + idx + " temp: " + sensor.temp
+      // + " hum: " + sensor.humidy + "...");
+    }
   }
   //
   // datasets ready for update
   //
-  return(axes);
+  return (axes);
 }
 
-function makeTemperatureGraph(axes)
-{
-  // x-axis 
-  let xAxis = axes[0]; 
+function makeTemperatureGraph(axes) {
+  // x-axis
+  let xAxis = axes[0];
   const t_data_obj = {labels : xAxis, datasets : []};
 
   //
   // colors max 4 axis
   // array [border,background]
   const colors = [
-  ["rgba(255.0,0,0,1.0)","rgba(255.0,0,0,.2)"],
-  ["rgba(255.0,255.0,0,1.0)","rgba(255.0,255.0,0,.2)"],
-  ["rgba(0.0,120.255,0,.2)", "rgba(60.0,255.0,0,.2)"],
-  ["rgba(0.0,120.255,0,1.0)","rgba(0.0,120.255,0,.2)"]
+    [ "rgba(255.0,0,0,1.0)", "rgba(255.0,0,0,.2)" ],
+    [ "rgba(255.0,255.0,0,1.0)", "rgba(255.0,255.0,0,.2)" ],
+    [ "rgba(0.0,120.255,0,.2)", "rgba(60.0,255.0,0,.2)" ],
+    [ "rgba(0.0,120.255,0,1.0)", "rgba(0.0,120.255,0,.2)" ]
   ];
 
   // y-axes find....
-  for(let yIdx = 2; yIdx < 6; yIdx +=1 )
-  {
-    if(axes[yIdx] != undefined )
-    {
+  for (let yIdx = 2; yIdx < 6; yIdx += 1) {
+    if (axes[yIdx] != undefined) {
       console.debug("make data for axis index " + yIdx + "...");
       let c_yAxis = axes[yIdx];
       let c_label = "Sensor " + (yIdx - 2);
@@ -343,7 +327,7 @@ function makeTemperatureGraph(axes)
         cubicInterpolationMode : 'default',
         pointStyle : 'line',
         tension : 0.4
-      };      
+      };
       t_data_obj.datasets.push(t_data);
       if (inner_width <= min_em) {
         // value from css @media
@@ -361,10 +345,9 @@ function makeTemperatureGraph(axes)
   }
 }
 
-function makeHumidyGraph(axes)
-{
-  // x-axis 
-  let xAxis = axes[0]; 
+function makeHumidyGraph(axes) {
+  // x-axis
+  let xAxis = axes[0];
   const h_data_obj = {labels : xAxis, datasets : []};
 
   // dataset sensor 01
@@ -418,16 +401,16 @@ function getTempFromController() {
       //
       let axes = prepareJsonData(xhr.responseText);
       //
-      // temparature 
+      // temparature
       //
-      let t_timeout = setTimeout( function() { makeTemperatureGraph(axes);}, 1500 );
+      let t_timeout = setTimeout(
+          function() { makeTemperatureGraph(axes); }, 1500);
       //
       // humidy
       //
-      let h_timeout = setTimeout( function() { makeHumidyGraph(axes);}, 4500 );
-    } 
-    else 
-    {
+      let h_timeout = setTimeout(
+          function() { makeHumidyGraph(axes); }, 4500);
+    } else {
       const xAxis = new Array();
       const t_data_obj = {labels : xAxis, datasets : []};
       const h_data_obj = {labels : xAxis, datasets : []};
@@ -465,7 +448,7 @@ function formatTimestamp(unix_timestamp) {
   let seconds = "0" + r_sec % 60;
   // format this into human readable
   let formattedTime =
-      hours + ':' + minutes.slice(-2) + ':' + seconds.slice(-2);
-//      hours + ':' + minutes.slice(-2);  // + ':' + seconds.slice(-2);
+      hours + ':' + minutes.slice(-2);  // + ':' + seconds.slice(-2);
+  //      hours + ':' + minutes.slice(-2);  // + ':' + seconds.slice(-2);
   return formattedTime;
 }
