@@ -18,7 +18,7 @@ namespace Prefs
   constexpr const char *WEB_MONTHLY_FILE{"/spiffs/month.json"};        //! virtual path 30 day history
   constexpr const char *WEB_TEMP_FILE{"/spiffs/temporary.json"};       //! virtual path workerfile
   constexpr size_t WEB_FILEPATH_MAX_SIZE{64};                          //! max size of the filepath
-  constexpr uint32_t WEB_SCRATCH_BUFSIZE{1024};                        //! buffsize für http server answers
+  constexpr uint32_t WEB_SCRATCH_BUFSIZE{1440};                        //! buffsize für http server answers
   constexpr gpio_num_t LED_STRIPE_RMT_TX_GPIO = GPIO_NUM_5;            //! control pin GPIO für led control
   constexpr led_strip_type_t LED_STRIPE_TYPE = LED_STRIP_WS2812;       //! type of led stripe
   constexpr rmt_channel_t LED_STRIPE_RMT_CHANNEL = RMT_CHANNEL_3;      //! which remote control channel
@@ -37,10 +37,11 @@ namespace Prefs
   constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 612;                    //! scan for new sensors
   // constexpr int MEASURE_INTERVAL_SEC = 20;                     //! interval between two measures
   // constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 62;             //! scan for new sensors
-  constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;                //! how many failed mesures to critical display?
-  constexpr int MEASURE_MAX_DATASETS_IN_RAM = 20;              //! how many unsaved datasets in RAM before critical error
-  constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U; //! interval between two checks
-  constexpr uint32_t FILESYS_CHECK_TEST_INTERVAL = 30U * 60U;  //! interval between two checks for check
+  constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;   //! how many failed mesures to critical display?
+  constexpr int MEASURE_MAX_DATASETS_IN_RAM = 20; //! how many unsaved datasets in RAM before critical error
+  // constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U; //! interval between two checks
+  constexpr uint32_t FILESYS_CHECK_INTERVAL = 10U * 60U;      //! interval between two checks
+  constexpr uint32_t FILESYS_CHECK_TEST_INTERVAL = 30U * 60U; //! interval between two checks for check
 } // namespace Prefs
 
 #include "appStructs.hpp"

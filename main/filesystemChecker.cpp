@@ -8,6 +8,8 @@
 
 namespace webserver
 {
+  constexpr int L_BUFSIZE = 512;
+
   const char *FsCheckObject::tag{"fs_checker"};
   bool FsCheckObject::is_init{false};
   bool FsCheckObject::is_running{false};
@@ -23,7 +25,7 @@ namespace webserver
     }
     else
     {
-      //xTaskCreate(FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
+      xTaskCreate(FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL);
     }
   }
 
@@ -114,9 +116,9 @@ namespace webserver
       auto line = fgets(&buffer[0], 128, fd);
       if (strlen(line) > 0)
       {
-        ESP_LOGI(FsCheckObject::tag, "marker file <%s> contains <%s>...", fileName.c_str(), line);
         std::string tmstmp{line};
         lastTimestamp = std::stoi(tmstmp);
+        //ESP_LOGI(FsCheckObject::tag, "marker file <%s> contains <%s>...", fileName.c_str(), line);
       }
       fclose(fd);
     }
@@ -177,6 +179,7 @@ namespace webserver
     std::string tempFileName(Prefs::WEB_TEMP_FILE);
     ESP_LOGI(FsCheckObject::tag, "check the file <%s> for obsolete data...", fileName.c_str());
 
+    // ,{"timestamp":"1670411578","data":[{"id":"1365
     // if exist, of course
     if (stat(fileName.c_str(), &file_stat) == 0)
     {
@@ -193,32 +196,37 @@ namespace webserver
         // file is open for read
         //
         counter = 0;
-        char buffer[128];
-        auto c_line = fgets(&buffer[0], 128, rFile);
+        char buffer[L_BUFSIZE];
+        memset(&buffer[0], 0, L_BUFSIZE);
+        auto c_line = fgets(&buffer[0], L_BUFSIZE, rFile);
         while (c_line)
         {
+          // memory clear
           std::string lineStr{c_line};
-          ESP_LOGI(FsCheckObject::tag, "line <%s>...", c_line);
-          // search first double point
-          int dp_pos;
+          // ESP_LOGI(FsCheckObject::tag, "line <%s>...", c_line);
+          // search first double point (after "timestamp")
+          int dp_pos{0};
           if ((dp_pos = lineStr.find(delimiter_dp)) != std::string::npos)
           {
             // point to "\""
             ++dp_pos;
             // point to first character
             ++dp_pos;
-            int str_pos;
+            // search next "\""
+            int str_pos{0};
             if ((str_pos = lineStr.find(delimiter_str, dp_pos)) != std::string::npos)
             {
               // extract value of timestring
-              auto token = lineStr.substr(dp_pos, str_pos);
+              auto token = lineStr.substr(dp_pos, (str_pos - dp_pos));
+              ESP_LOGI(FsCheckObject::tag, "timestamp <%s> found...", token.c_str());
               auto timestamp_current = std::stoul(token);
               if (timestamp_current > border_timestamp)
               {
                 // the timestamp is inner of the allowed value
                 if (!wFile)
                 {
-                  // okay i hav to open a file
+                  // okay i have to open a file
+                  ESP_LOGI(FsCheckObject::tag, "open temporary file <%s>...", tempFileName.c_str());
                   wFile = fopen(tempFileName.c_str(), "w");
                 }
                 if (wFile)
@@ -237,7 +245,6 @@ namespace webserver
                   // line ready for save
                   ++counter;
                   fputs(lineStr.c_str(), wFile);
-                  fputs("\n", wFile);
                   if (counter % 25 == 0)
                   {
                     // a little sleep for the other processes
@@ -249,7 +256,8 @@ namespace webserver
           }
           // next line...
           vTaskDelay(pdMS_TO_TICKS(10));
-          c_line = fgets(&buffer[0], 128, rFile);
+          memset(&buffer[0], 0, L_BUFSIZE);
+          c_line = fgets(&buffer[0], L_BUFSIZE, rFile);
         }
         if (wFile)
           fclose(wFile);
@@ -271,13 +279,14 @@ namespace webserver
         ESP_LOGI(FsCheckObject::tag, "remove old and copy new file for <%s>...", fileName.c_str());
         if (remove(fileName.c_str()) == 0)
         {
-          if (rename("myfile.dat", "newfile.dat") != 0)
+          ESP_LOGI(FsCheckObject::tag, "removed <%s>, try to rename <%s>...", fileName.c_str(), tempFileName.c_str());
+          if (rename(tempFileName.c_str(), fileName.c_str()) == 0)
           {
             ESP_LOGI(FsCheckObject::tag, "remove old and copy new file for <%s> successful.", fileName.c_str());
           }
           else
           {
-            ESP_LOGE(FsCheckObject::tag, "rename file for <%s> failed, ABORT...", fileName.c_str());
+            ESP_LOGE(FsCheckObject::tag, "rename file <%s> to <%s> failed, ABORT...", tempFileName.c_str(), fileName.c_str());
           }
         }
         else
@@ -295,23 +304,22 @@ namespace webserver
 
   /**
    * check if data depricated...
-   *  { "timestamp":"1670079220", "id":"13654914070250903080", "temp":"22.937500", "humidy":"-100.000000" }
-   * ,{ "timestamp":"1670079220", "id":"2918332558598846760", "temp":"23.125000", "humidy":"-100.000000" }
-   * ,{ "timestamp":"1670079220", "id":"4071254063206621992", "temp":"23.125000", "humidy":"-100.000000" }
-   * ,{ "timestamp":"1670079220", "id":"9907919180278756136", "temp":"23.125000", "humidy":"-100.000000" }
-   * ,{ "timestamp":"1670079220", "id":"0", "temp":"22.000000", "humidy":"62.000000" }
+   * ,{"timestamp":"1670411578","data":[{"id":"13654914070250903080","temp":"22.687500","humidy":"-100.000000"},{"id":"2918332558598846760","temp":"22.875000","humidy":"-100.000000"},{"id":"4071254063206621992","temp":"22.937500","humidy":"-100.000000"},{"id":"9907919180278756136","temp":"22.875000","humidy":"-100.000000"},{"id":"0","temp":"23.000000","humidy":"49.000000"}]}
+   * ,{"timestamp":"1670411698","data":[{"id":"13654914070250903080","temp":"22.750000","humidy":"-100.000000"},{"id":"2918332558598846760","temp":"22.937500","humidy":"-100.000000"},{"id":"4071254063206621992","temp":"22.937500","humidy":"-100.000000"},{"id":"9907919180278756136","temp":"22.875000","humidy":"-100.000000"},{"id":"0","temp":"22.000000","humidy":"48.000000"}]}
+   * ,{"timestamp":"1670411819","data":[{"id":"13654914070250903080","temp":"22.750000","humidy":"-100.000000"},{"id":"2918332558598846760","temp":"22.937500","humidy":"-100.000000"},{"id":"4071254063206621992","temp":"22.937500","humidy":"-100.000000"},{"id":"9907919180278756136","temp":"22.875000","humidy":"-100.000000"},{"id":"0","temp":"22.000000","humidy":"48.000000"}]}
+   *  
   */
   void FsCheckObject::computeFilesysCheck(uint32_t timestamp)
   {
     // 30 days back
     uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
     std::string fileName(Prefs::WEB_MONTHLY_FILE);
-    FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
-    vTaskDelay(pdMS_TO_TICKS(250));
-    border_timestamp = timestamp - (7 * 24 * 60 * 60);
-    fileName = std::string(Prefs::WEB_WEEKLY_FILE);
-    FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
-    vTaskDelay(pdMS_TO_TICKS(250));
+    // FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
+    // vTaskDelay(pdMS_TO_TICKS(250));
+    // border_timestamp = timestamp - (7 * 24 * 60 * 60);
+    // fileName = std::string(Prefs::WEB_WEEKLY_FILE);
+    // FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
+    // vTaskDelay(pdMS_TO_TICKS(250));
     border_timestamp = timestamp - (24 * 60 * 60);
     fileName = std::string(Prefs::WEB_DAYLY_FILE);
     FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);

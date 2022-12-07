@@ -5,8 +5,9 @@
 let t_chart = undefined;
 let h_chart = undefined;
 let inner_width = undefined;
-let min_em = 45;
+let min_screen_em = 45;
 let data_url = 'today.json';
+let data_from_minutes_back = 24 * 60;
 
 //
 // options for Charts
@@ -103,21 +104,19 @@ let h_chart_config = {
   options : h_chart_options
 };
 
+/**** init the page and variables ****/
 function init_page() {
   let el = document.getElementById('complete');
   let style = window.getComputedStyle(el, null).getPropertyValue('font-size');
   let fontSize = parseFloat(style);
   // window width in em
   inner_width = window.innerWidth / fontSize;
-
+  // add handler for click on buttons
   addEventHandlers();
-
   // set interval to recive data for chart
-  setInterval(
-      function() { getTempFromController(); }, 90000);
+  setInterval( function() { getTempFromController(); }, 90000);
   // at first time init read values
   getTempFromController();
-
   // create charts
   // temperatur chart
   let t_chart_ctx = document.getElementById('temp_chart').getContext("2d");
@@ -125,7 +124,8 @@ function init_page() {
   // humidy chart
   let h_chart_ctx = document.getElementById('humidy_chart').getContext("2d");
   h_chart = new Chart(h_chart_ctx, h_chart_config);
-  if (inner_width <= min_em) {
+  // if the screen size to small, make lesser infos
+  if (inner_width <= min_screen_em) {
     // value from css @media
     // h_chart.options.scales.y.display = false;
     t_chart.options.plugins.legend.display = false;
@@ -134,40 +134,56 @@ function init_page() {
     t_chart.options.plugins.legend.display = true;
     h_chart.options.plugins.legend.display = true;
   }
+  // draw then charts with new propertys
   t_chart.update();
   h_chart.update();
 }
 
+/**** handler for click on button, native, dirthy, small ****/
 function addEventHandlers() {
-  document.getElementById("twenty_four_hours")
+  
+  document.getElementById("three_hours")
       .addEventListener(
           "click", function() { showTimeSpan(0); });
-  document.getElementById("seven_days")
+  document.getElementById("twenty_four_hours")
       .addEventListener(
           "click", function() { showTimeSpan(1); });
-  document.getElementById("thirty_days")
+  document.getElementById("seven_days")
       .addEventListener(
           "click", function() { showTimeSpan(2); });
+  document.getElementById("thirty_days")
+      .addEventListener(
+          "click", function() { showTimeSpan(3); });
 }
 
+/**** time span to show ****/
 function showTimeSpan(_val) {
-  if (_val == 2) {
+  if (_val == 3) {
     // 30 Tage
     data_url = 'month.json';
+    data_from_minutes_back = 30 * 24 * 60;
     console.debug("set timespan to 30 days...");
-  } else if (_val == 1) {
+  } else if (_val == 2) {
     // 7 Tage
+    data_from_minutes_back = 7 * 24 * 60;
     data_url = 'week.json';
     console.debug("set timespan to 7 days...");
-  } else {
-    // 24 Stunden, defauklt
+  } else if (_val == 1) {
+    // 1 Tage
+    data_from_minutes_back = 7 * 24 * 60;
     data_url = 'today.json';
     console.debug("set timespan to 24 hours...");
+  } else {
+    // 24 Stunden, default
+    data_from_minutes_back = 3 * 60;
+    data_url = 'today.json';
+    console.debug("set timespan to 3 hours...");
   }
   console.debug("set timespan to <" + data_url + ">...");
   getTempFromController();
 }
 
+/**** compute data, recived from controller ****/
 function prepareJsonData(rawData) {
   let json = JSON.parse(rawData);
   let nowInSeconds = parseInt(new Date().getTime() / 1000);
@@ -216,16 +232,27 @@ function prepareJsonData(rawData) {
   lastTimeStamp = parseInt(json[0].timestamp) - timeInterval;
   // offset for gaps
   let databaseOffset = 0;
+  const borderTimeSecounds = (data_from_minutes_back * 60);
   for (let datasetNumber in json) {
     let currentNumber = parseInt(datasetNumber) + databaseOffset;
     // every timestamped measuring object
-    let timestampVal =
-        json[datasetNumber].timestamp;       // first timestamp in the file
+    let timestampVal = json[datasetNumber].timestamp;       // first timestamp in the file
     let timestamp = parseInt(timestampVal);  // as integer
-    let wasMinutes = formatTimestamp(
-        nowInSeconds - timestamp);  // was in the past wasMinutes minutes
+    let wasMinutes = formatTimestamp(nowInSeconds - timestamp);  // was in the past wasMinutes minutes
     //
-    // is ther an gap in the database?
+    // is the data bevore the border?
+    //
+    if( (nowInSeconds - timestamp) > borderTimeSecounds  )
+    {
+      // yes? then ignore, offset correct
+      databaseOffset--;
+      // start of scale set
+      lastTimeStamp = parseInt(json[datasetNumber].timestamp);
+      continue;
+    }
+
+    //
+    // is they an gap in the database?
     //
     if (timestamp > (lastTimeStamp + timeInterval + 20)) {
       // fill the gap
@@ -252,7 +279,7 @@ function prepareJsonData(rawData) {
           }
         }
         curr_stamp += timeInterval;
-        databaseOffset += 1;
+        databaseOffset++;
         currentNumber = datasetNumber + databaseOffset;
       }
       console.debug("fill gap in data dataset " + datasetNumber +
@@ -297,6 +324,7 @@ function prepareJsonData(rawData) {
   return (axes);
 }
 
+/**** paint the temp graphs ****/
 function makeTemperatureGraph(axes) {
   // x-axis
   let xAxis = axes[0];
@@ -329,7 +357,7 @@ function makeTemperatureGraph(axes) {
         tension : 0.4
       };
       t_data_obj.datasets.push(t_data);
-      if (inner_width <= min_em) {
+      if (inner_width <= min_screen_em) {
         // value from css @media
         t_chart.options.plugins.legend.display = false;
       } else {
@@ -345,6 +373,7 @@ function makeTemperatureGraph(axes) {
   }
 }
 
+/**** paint the humidy graph ****/
 function makeHumidyGraph(axes) {
   // x-axis
   let xAxis = axes[0];
@@ -368,7 +397,7 @@ function makeHumidyGraph(axes) {
   // push data into datasets
   //
   h_data_obj.datasets.push(h_data00);
-  if (inner_width <= min_em) {
+  if (inner_width <= min_screen_em) {
     // value from css @media
     h_chart.options.plugins.legend.display = false;
   } else {
@@ -386,6 +415,7 @@ function makeHumidyGraph(axes) {
   elem = document.getElementById("stat").innerHTML = "";
 }
 
+/**** initiate reading from contoller and painting graphs ****/
 function getTempFromController() {
   let yourDate = new Date();
   const offset = yourDate.getTimezoneOffset();
@@ -437,6 +467,7 @@ function varToHex(rgb) {
   return hex;
 }
 
+/**** convert timestamps to human readable ****/
 function formatTimestamp(unix_timestamp) {
   // how many hours are this?
   let hours = Math.floor(unix_timestamp / (60 * 60));
@@ -447,8 +478,7 @@ function formatTimestamp(unix_timestamp) {
   // how many secounds are over
   let seconds = "0" + r_sec % 60;
   // format this into human readable
-  let formattedTime =
-      hours + ':' + minutes.slice(-2);  // + ':' + seconds.slice(-2);
+  let formattedTime = hours + ':' + minutes.slice(-2); 
   //      hours + ':' + minutes.slice(-2);  // + ':' + seconds.slice(-2);
   return formattedTime;
 }
