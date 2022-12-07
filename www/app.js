@@ -30,8 +30,9 @@ let t_chart_options = {
     y : {
       display : true,
       title : {display : true, text : "Temperatur °C", type : "linear"},
-      min : 12.0,
-      max : 35.0
+      min : 4.0,
+      max : 45.0,
+      suggestedMax : 35,
     }
   }
 };
@@ -114,7 +115,8 @@ function init_page() {
   // add handler for click on buttons
   addEventHandlers();
   // set interval to recive data for chart
-  setInterval( function() { getTempFromController(); }, 90000);
+  setInterval(
+      function() { getTempFromController(); }, 90000);
   // at first time init read values
   getTempFromController();
   // create charts
@@ -141,19 +143,20 @@ function init_page() {
 
 /**** handler for click on button, native, dirthy, small ****/
 function addEventHandlers() {
-  
   document.getElementById("three_hours")
       .addEventListener(
           "click", function() { showTimeSpan(0); });
   document.getElementById("twenty_four_hours")
       .addEventListener(
           "click", function() { showTimeSpan(1); });
+  /*
   document.getElementById("seven_days")
       .addEventListener(
           "click", function() { showTimeSpan(2); });
   document.getElementById("thirty_days")
       .addEventListener(
           "click", function() { showTimeSpan(3); });
+  */
 }
 
 /**** time span to show ****/
@@ -236,14 +239,15 @@ function prepareJsonData(rawData) {
   for (let datasetNumber in json) {
     let currentNumber = parseInt(datasetNumber) + databaseOffset;
     // every timestamped measuring object
-    let timestampVal = json[datasetNumber].timestamp;       // first timestamp in the file
+    let timestampVal =
+        json[datasetNumber].timestamp;       // first timestamp in the file
     let timestamp = parseInt(timestampVal);  // as integer
-    let wasMinutes = formatTimestamp(nowInSeconds - timestamp);  // was in the past wasMinutes minutes
+    let wasMinutes = formatTimestamp(
+        nowInSeconds - timestamp);  // was in the past wasMinutes minutes
     //
     // is the data bevore the border?
     //
-    if( (nowInSeconds - timestamp) > borderTimeSecounds  )
-    {
+    if ((nowInSeconds - timestamp) > borderTimeSecounds) {
       // yes? then ignore, offset correct
       databaseOffset--;
       // start of scale set
@@ -478,7 +482,7 @@ function formatTimestamp(unix_timestamp) {
   // how many secounds are over
   let seconds = "0" + r_sec % 60;
   // format this into human readable
-  let formattedTime = hours + ':' + minutes.slice(-2); 
+  let formattedTime = hours + ':' + minutes.slice(-2);
   //      hours + ':' + minutes.slice(-2);  // + ':' + seconds.slice(-2);
   return formattedTime;
 }

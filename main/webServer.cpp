@@ -253,16 +253,16 @@ namespace webserver
       if (content.compare("json") == 0)
       {
         //
-        // "{" and "}" for correct json file
+        // "[" and "]" for correct json file
         //
         std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
         char *buffptr = deliverBuf.get();
         *(buffptr++) = '[';
         *(buffptr++) = '\n';
-        buffptr += fread(deliverBuf.get(), 1, file_stat.st_size, fd);
+        buffptr += fread(buffptr, 1, file_stat.st_size, fd);
         *(buffptr++) = ']';
         *(buffptr++) = '\n';
-        *(buffptr++) = '\0';
+        *(buffptr++) = 0;
         httpd_resp_sendstr(req, deliverBuf.get());
       }
       else
@@ -283,7 +283,8 @@ namespace webserver
       // Retrieve the pointer to scratch buffer for temporary storage
       if (content.compare("json") == 0)
       {
-        httpd_resp_send_chunk(req, "[\n", 2);
+        const char *startPtr{"[\n"};
+        httpd_resp_send_chunk(req, startPtr, 2);
       }
       char *chunk = deliverBuf.get();
       size_t chunksize;
@@ -318,7 +319,8 @@ namespace webserver
       // send signal "sending done!"
       if (content.compare("json") == 0)
       {
-        httpd_resp_send_chunk(req, "\n]\n", 3);
+        const char *endPtr{"[\n]\n"};
+        httpd_resp_send_chunk(req, endPtr, 3);
       }
       httpd_resp_sendstr_chunk(req, nullptr);
     }

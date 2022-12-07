@@ -133,15 +133,26 @@ namespace webserver
             auto m_elem = m_dataset.front();
             m_dataset.erase(m_dataset.begin());
             cJSON *mObj = cJSON_CreateObject();
-            cJSON_AddItemToObject(mObj, "id", cJSON_CreateString(std::to_string(m_elem.addr).c_str()));
-            cJSON_AddItemToObject(mObj, "temp", cJSON_CreateString(std::to_string(m_elem.temp).c_str()));
-            cJSON_AddItemToObject(mObj, "humidy", cJSON_CreateString(std::to_string(m_elem.humidy).c_str()));
+            char buffer[16];
+            if (m_elem.addr > 0)
+            {
+              cJSON_AddItemToObject(mObj, "id", cJSON_CreateString(std::to_string(m_elem.addr).substr(1, 6).c_str()));
+            }
+            else
+            {
+              cJSON_AddItemToObject(mObj, "id", cJSON_CreateString("0"));
+            }
+            memset(&buffer[0], 0, 16);
+            sprintf(&buffer[0], "%3.1f", m_elem.temp);
+            cJSON_AddItemToObject(mObj, "temp", cJSON_CreateString(&buffer[0]));
+            memset(&buffer[0], 0, 16);
+            sprintf(&buffer[0], "%3.1f", m_elem.humidy);
+            cJSON_AddItemToObject(mObj, "humidy", cJSON_CreateString(&buffer[0]));
             // measure object to array
             cJSON_AddItemToArray(mArray, mObj);
           }
           // array as item to object
           cJSON_AddItemToObject(dataSetObj, "data", mArray);
-          //taskYIELD();
           // dataSetObj complete
           // try to write to file
           // wait max 1000 ms
@@ -169,11 +180,11 @@ namespace webserver
               }
               char *jsonPrintString = cJSON_PrintUnformatted(dataSetObj);
               fputs(jsonPrintString, fd);
-              //fputs(cJSON_Print(dataSetObj), fd);
+              fflush(fd);
               fputs("\n", fd);
+              fclose(fd);
               cJSON_Delete(dataSetObj);
               cJSON_free(jsonPrintString); // !!!!!!! memory leak
-              fclose(fd);
               ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
             }
             else

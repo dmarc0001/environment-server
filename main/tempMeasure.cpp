@@ -21,7 +21,7 @@ namespace webserver
     // DHT-11 init
     //
     ESP_LOGI(TempMeasure::tag, "init internal pullup for dht sensor...");
-    gpio_set_pull_mode(Prefs::SENSOR_DHT_GPIO, GPIO_PULLUP_ONLY);
+    //gpio_set_pull_mode(Prefs::SENSOR_DHT_GPIO, GPIO_PULLUP_ONLY);
     //
     // There is no special initialization required before using the ds18x20
     // routines.  However, we make sure that the internal pull-up resistor is
@@ -41,6 +41,19 @@ namespace webserver
       static int64_t nextSensorsScanTime{600000LL};
       static int64_t nextMeasureTime{2400000LL};
       int64_t nowTime = esp_timer_get_time();
+      static webserver::WlanState oldTimeServerState{WlanState::DISCONNECTED};
+      // check what does the state do
+      webserver::WlanState currentState = StatusObject::getWlanState();
+      if (oldTimeServerState != currentState)
+      {
+        // changed! Set new state
+        oldTimeServerState = currentState;
+        if (currentState == WlanState::TIMESYNCED)
+        {
+          // just time synced!
+          nextMeasureTime = nowTime + 100000LL;
+        }
+      }
 
       //############################################################
       // if enough time ist over, rescann ds18x20 devices

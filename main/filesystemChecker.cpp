@@ -60,7 +60,7 @@ namespace webserver
     while (true)
     {
       // wait for next garbage disposal
-      vTaskDelay(pdMS_TO_TICKS(13560));
+      vTaskDelay(pdMS_TO_TICKS(600301));
       if (StatusObject::getWlanState() != WlanState::TIMESYNCED)
       {
         //
@@ -97,8 +97,6 @@ namespace webserver
         gettimeofday(&val, nullptr);
         timestamp = val.tv_sec;
         FsCheckObject::updateStatFile(fileName, timestamp);
-        // next iteration in a few munutes
-        vTaskDelay(pdMS_TO_TICKS(Prefs::FILESYS_CHECK_TEST_INTERVAL * 1000U));
         continue;
       }
     }
@@ -106,7 +104,7 @@ namespace webserver
 
   uint32_t FsCheckObject::getLastTimestamp(std::string fileName)
   {
-    ESP_LOGI(FsCheckObject::tag, "marker file <%s> open...", fileName.c_str());
+    // ESP_LOGI(FsCheckObject::tag, "marker file <%s> open...", fileName.c_str());
     auto fd = fopen(fileName.c_str(), "r");
     uint32_t lastTimestamp{0UL};
     //
