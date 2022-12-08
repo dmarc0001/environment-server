@@ -20,6 +20,7 @@ namespace webserver
     static bool http_active;      //! was an acces via http?
     static int currentVoltage;    //! current voltage in mV
     static bool isBrownout;       //! is voltage too low
+    static bool isLowAcku;        //! is low acku
   public:
     static std::shared_ptr<env_dataset> dataset; //! set of mesures
     static SemaphoreHandle_t fileSem;            // is access to files busy
@@ -36,6 +37,7 @@ namespace webserver
     static bool getIsBrownout();
     static void setVoltage(int);
     static int getVoltage();
+    static bool getLowAcku();
 
   private:
     static void saveTask(void *);

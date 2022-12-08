@@ -43,6 +43,7 @@ namespace Prefs
   constexpr adc1_channel_t ACKU_MEASURE_CHANNEL = ADC1_CHANNEL_7;      //! AD pin for acku in LOLIN32
   constexpr int ACKU_BROWNOUT_VALUE = 2700;                            //! voltage when brownout => no SPIFFS writings!
   constexpr int ACKU_BROWNOUT_LOWEST = 1800;                           //! voltage when esp not running => invalid measure!
+  constexpr int ACKU_LOWER_VALUE = 3100;                               //! lower than this, LED minimum
   // constexpr int MEASURE_INTERVAL_SEC = 20;                     //! interval between two measures
   // constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 62;             //! scan for new sensors
 } // namespace Prefs

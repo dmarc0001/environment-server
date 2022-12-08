@@ -7,8 +7,10 @@ let h_chart = undefined;
 let inner_width = undefined;
 let min_screen_em = 45;
 let data_url = 'today.json';
-let current_url = '/api/v1/current';
+const current_url = '/api/v1/current';
 let data_from_minutes_back = 24 * 60;
+const brownout_curent = 2.720;
+const warning_current = 2.850;
 
 //
 // options for Charts
@@ -497,6 +499,17 @@ function getCurrentFromController() {
           let t_gauge = document.getElementById("temp_gauge");
           if( t_gauge )
           {
+            let l_current = parseFloat(json.current);
+            //t_gauge.style.color="rgb(97, 97, 106)";
+            t_gauge.style.color="";
+            if(l_current < warning_current )
+            {
+              t_gauge.style.color="rgb(217, 105, 15)";
+            }
+            if(l_current < brownout_curent )
+            {
+              t_gauge.style.color="rgb(255, 0, 0)";
+            }
             t_gauge.innerHTML = "controller " + json.current + " V";
           }
         }

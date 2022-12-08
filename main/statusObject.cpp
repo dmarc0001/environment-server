@@ -14,6 +14,7 @@ namespace webserver
   bool StatusObject::is_running{false};
   int StatusObject::currentVoltage{3300}; //! current voltage in mV
   bool StatusObject::isBrownout{false};   //! is voltage too low
+  bool StatusObject::isLowAcku{false};    //! is low acku
   SemaphoreHandle_t StatusObject::fileSem{nullptr};
 
   WlanState StatusObject::wlanState{WlanState::DISCONNECTED};
@@ -234,11 +235,21 @@ namespace webserver
     if (_val >= Prefs::ACKU_BROWNOUT_VALUE)
     {
       StatusObject::isBrownout = false;
+      StatusObject::isLowAcku = false;
       return;
+    }
+    if (_val > Prefs::ACKU_LOWER_VALUE)
+    {
+      StatusObject::isLowAcku = false;
+    }
+    else
+    {
+      StatusObject::isLowAcku = true;
     }
     if (_val < Prefs::ACKU_BROWNOUT_LOWEST)
     {
-      StatusObject::isBrownout = false;
+      StatusObject::isBrownout = true;
+      StatusObject::isLowAcku = false;
       return;
     }
     StatusObject::isBrownout = true;
@@ -248,6 +259,11 @@ namespace webserver
   int StatusObject::getVoltage()
   {
     return StatusObject::currentVoltage;
+  }
+
+  bool StatusObject::getLowAcku()
+  {
+    return StatusObject::isLowAcku;
   }
 
   /**

@@ -26,7 +26,6 @@ static const char *version{MY_APP_VERSION};
 void app_main(void)
 {
     ESP_LOGI("VERSION", "\n\n");
-    ESP_LOGI("VERSION", "%s", version);
     ESP_LOGI("VERSION", "%s\n\n", version);
     vTaskDelay(pdMS_TO_TICKS(3500));
     //Initialize NVS

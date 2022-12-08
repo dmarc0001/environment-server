@@ -13,8 +13,8 @@ namespace webserver
   rgb_t LedStripe::curr_color[Prefs::LED_STRIPE_COUNT]{};
   const rgb_t LedStripe::wlan_discon_colr{.r = 0x32, .g = 0x32, .b = 0x00};
   const rgb_t LedStripe::wlan_search_colr{.r = 0x66, .g = 0x41, .b = 0x06};
-  const rgb_t LedStripe::wlan_connect_colr{.r = 0x02, .g = 0x04, .b = 0x01};
-  const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x01, .g = 0x04, .b = 0x01};
+  const rgb_t LedStripe::wlan_connect_colr{.r = 0x02, .g = 0x02, .b = 0x00};
+  const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x00, .g = 0x02, .b = 0x00};
   const rgb_t LedStripe::wlan_fail_col{.r = 0xa0, .g = 0x0, .b = 0x0};
   const rgb_t LedStripe::measure_unknown_colr{.r = 0x80, .g = 0x80, .b = 0x00};
   const rgb_t LedStripe::measure_action_colr{.r = 0x70, .g = 0x50, .b = 0x00};
@@ -104,7 +104,11 @@ namespace webserver
             LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
             break;
           case WlanState::TIMESYNCED:
-            LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
+            // led off when low acku
+            if (StatusObject::getLowAcku())
+              LedStripe::setLed(LED_WLAN, false);
+            else
+              LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
             break;
           default:
           case WlanState::FAILED:
@@ -132,7 +136,11 @@ namespace webserver
             LedStripe::setLed(LED_MEASURE, LedStripe::measure_action_colr);
             break;
           case MeasureState::MEASURE_NOMINAL:
-            LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
+            // led off when low acku
+            if (StatusObject::getLowAcku())
+              LedStripe::setLed(LED_MEASURE, false);
+            else
+              LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
             break;
           case MeasureState::MEASURE_WARN:
             LedStripe::setLed(LED_MEASURE, LedStripe::measure_warn_colr);

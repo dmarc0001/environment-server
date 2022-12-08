@@ -76,6 +76,7 @@ canvas.measure {
 span.t_gauge {
     font-style: italic;
     font-weight: normal;
+    font-size: x-small;
     float: right;
     color: rgb(97, 97, 106);
 }
@@ -120,6 +121,12 @@ span.t_gauge {
         min-height: 15em;
         max-height: 25em;
     }
+
+    span.t_gauge {
+        font-weight: lighter;
+        font-size: x-small;
+    }
+
 
 
 }
