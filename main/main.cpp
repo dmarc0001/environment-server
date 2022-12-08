@@ -16,6 +16,7 @@
 #include "webServer.hpp"
 #include "tempMeasure.hpp"
 #include "filesystemChecker.hpp"
+#include "ackuVoltage.hpp"
 #include "appPreferences.hpp"
 
 static const char *TAG = "wifi station";
@@ -39,6 +40,7 @@ void app_main(void)
     webserver::TempMeasure::start();
     webserver::LedStripe::start();
     webserver::FsCheckObject::start();
+    webserver::AckuVoltage::start();
     ESP_LOGI(TAG, "service Tasks start...OK");
     //
     // i'm boring

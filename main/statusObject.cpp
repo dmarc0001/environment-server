@@ -12,6 +12,8 @@ namespace webserver
   const char *StatusObject::tag{"status_object"};
   bool StatusObject::is_init{false};
   bool StatusObject::is_running{false};
+  int StatusObject::currentVoltage{3300}; //! current voltage in mV
+  bool StatusObject::isBrownout{false};   //! is voltage too low
   SemaphoreHandle_t StatusObject::fileSem{nullptr};
 
   WlanState StatusObject::wlanState{WlanState::DISCONNECTED};
@@ -94,7 +96,7 @@ namespace webserver
     xSemaphoreGive(StatusObject::fileSem);
     while (true)
     {
-      vTaskDelay(pdMS_TO_TICKS(1000));
+      vTaskDelay(pdMS_TO_TICKS(1403));
       if (!StatusObject::dataset->empty())
       {
         //
@@ -106,6 +108,10 @@ namespace webserver
         bool exist_file{false};
         FILE *fd = nullptr;
 
+        if (StatusObject::getIsBrownout())
+        {
+          ESP_LOGW(StatusObject::tag, "can't write data, voltage to low!");
+        }
         ESP_LOGI(StatusObject::tag, "data for save exist...");
         // is file exist
         if (stat(daylyFileName.c_str(), &file_stat) == 0)
@@ -207,6 +213,34 @@ namespace webserver
         }
       }
     }
+  }
+
+  /**
+   * is voltage too low for flash write ?
+  */
+  bool StatusObject::getIsBrownout()
+  {
+    return StatusObject::isBrownout;
+  }
+
+  /**
+   * do consider voltage for the system
+  */
+  void StatusObject::setVoltage(int _val)
+  {
+    StatusObject::currentVoltage = _val;
+    if (_val >= Prefs::ACKU_BROWNOUT_VALUE)
+    {
+      StatusObject::isBrownout = false;
+      return;
+    }
+    if (_val < Prefs::ACKU_BROWNOUT_LOWEST)
+    {
+      StatusObject::isBrownout = false;
+      return;
+    }
+    StatusObject::isBrownout = true;
+    return;
   }
 
   /**

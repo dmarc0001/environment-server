@@ -98,7 +98,18 @@ namespace webserver
       {
         StatusObject::setMeasureState(MeasureState::MEASURE_ACTION);
         // next mesure time set
+        // first check if voltage is okay
+        if (StatusObject::getIsBrownout())
+        {
+          ESP_LOGW(TempMeasure::tag, "can't write data, voltage to low!");
+          StatusObject::setMeasureState(MeasureState::MEASURE_CRIT);
+          vTaskDelay(pdMS_TO_TICKS(5000));
+          nextMeasureTime = nowTime + measure_interval;
+          continue;
+        }
+        // next time to measure
         nextMeasureTime = nowTime + measure_interval;
+        // chcek if time synced
         if (StatusObject::getWlanState() != WlanState::TIMESYNCED)
         {
           ESP_LOGW(TempMeasure::tag, "time not sync, no save mesure values!");

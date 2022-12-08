@@ -18,6 +18,8 @@ namespace webserver
     static WlanState wlanState;   //! is wlan disconnected, connected etc....
     static MeasureState msgState; //! which state ist the mesure
     static bool http_active;      //! was an acces via http?
+    static int currentVoltage;    //! current voltage in mV
+    static bool isBrownout;       //! is voltage too low
   public:
     static std::shared_ptr<env_dataset> dataset; //! set of mesures
     static SemaphoreHandle_t fileSem;            // is access to files busy
@@ -31,6 +33,8 @@ namespace webserver
     static WlanState getWlanState();
     static void setHttpActive(bool);
     static bool getHttpActive();
+    static bool getIsBrownout();
+    static void setVoltage(int);
 
   private:
     static void saveTask(void *);
