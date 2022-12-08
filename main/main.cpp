@@ -18,11 +18,17 @@
 #include "filesystemChecker.hpp"
 #include "ackuVoltage.hpp"
 #include "appPreferences.hpp"
+#include "version.hpp"
 
-static const char *TAG = "wifi station";
+static const char *TAG{"wifi station"};
+static const char *version{MY_APP_VERSION};
 
 void app_main(void)
 {
+    ESP_LOGI("VERSION", "\n\n");
+    ESP_LOGI("VERSION", "%s", version);
+    ESP_LOGI("VERSION", "%s\n\n", version);
+    vTaskDelay(pdMS_TO_TICKS(3500));
     //Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)

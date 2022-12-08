@@ -10,7 +10,8 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 list( APPEND EXTRA_COMPONENT_DIRS /usr/local/esp-extra-components/components )
 
-project(rest-server
-        VERSION 0.0.2
+project(environment-server
+        VERSION 0.5.1
         DESCRIPTION "environment server"
         LANGUAGE CXX )
+
