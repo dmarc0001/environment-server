@@ -111,6 +111,8 @@ namespace webserver
         if (StatusObject::getIsBrownout())
         {
           ESP_LOGW(StatusObject::tag, "can't write data, voltage to low!");
+          vTaskDelay(pdMS_TO_TICKS(15000));
+          continue;
         }
         ESP_LOGI(StatusObject::tag, "data for save exist...");
         // is file exist
