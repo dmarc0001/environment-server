@@ -35,6 +35,7 @@ namespace webserver
     static bool getHttpActive();
     static bool getIsBrownout();
     static void setVoltage(int);
+    static int getVoltage();
 
   private:
     static void saveTask(void *);

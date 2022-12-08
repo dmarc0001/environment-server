@@ -140,9 +140,9 @@ namespace webserver
     {
       WebServer::systemInfoGetHandler(req);
     }
-    else if ((uri.substr(0, 9)).compare("/rest/v1/") == 0)
+    else if ((uri.substr(0, 15)).compare("/api/v1/current") == 0)
     {
-      WebServer::restGetHandler(req);
+      WebServer::restCurrentHandler(req);
     }
     else
     {
@@ -155,15 +155,18 @@ namespace webserver
     return ESP_OK;
   }
 
-  esp_err_t WebServer::restGetHandler(httpd_req_t *req)
+  /**
+   * ask for current (controller)
+  */
+  esp_err_t WebServer::restCurrentHandler(httpd_req_t *req)
   {
     httpd_resp_set_status(req, "200 OK");
     httpd_resp_set_type(req, "application/json");
     cJSON *root = cJSON_CreateObject();
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    cJSON_AddStringToObject(root, "current", IDF_VER);
-    cJSON_AddNumberToObject(root, "temp", 99.9);
+    char buffer[16];
+    float cValue = StatusObject::getVoltage() / 1000.0F;
+    sprintf(&buffer[0], "%1.3f", cValue);
+    cJSON_AddStringToObject(root, "current", &buffer[0]);
     const char *tmp_info = cJSON_Print(root);
     httpd_resp_sendstr(req, tmp_info);
     free((void *)tmp_info);

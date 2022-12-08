@@ -7,6 +7,7 @@ let h_chart = undefined;
 let inner_width = undefined;
 let min_screen_em = 45;
 let data_url = 'today.json';
+let current_url = '/api/v1/current';
 let data_from_minutes_back = 24 * 60;
 
 //
@@ -117,8 +118,11 @@ function init_page() {
   // set interval to recive data for chart
   setInterval(
       function() { getTempFromController(); }, 90000);
-  // at first time init read values
+  setInterval(
+      function() { getCurrentFromController(); }, 180000);
+      // at first time init read values
   getTempFromController();
+  getCurrentFromController();
   // create charts
   // temperatur chart
   let t_chart_ctx = document.getElementById('temp_chart').getContext("2d");
@@ -190,7 +194,7 @@ function showTimeSpan(_val) {
 function prepareJsonData(rawData) {
   let json = JSON.parse(rawData);
   let nowInSeconds = parseInt(new Date().getTime() / 1000);
-  let timeInterval = 100000;
+  let timeInterval = 600;
   const ids = new Array();
   const axes = Array();
   axes[0] = Array();  // x-axis
@@ -200,7 +204,15 @@ function prepareJsonData(rawData) {
   //
   let id_idx = 2;  // sensors starts by idx 2, id == ids[id]
   let id;
-  let lastTimeStamp = parseInt(json[0].timestamp);
+  let lastTimeStamp = 0;
+  if( json[0] )
+  {
+    lastTimeStamp = parseInt(json[0].timestamp);
+  }
+  else if ( json[1] )
+  {
+    lastTimeStamp = parseInt(json[1].timestamp);
+  }
   for (let datasetNumber in json) {
     //
     let data = json[datasetNumber].data;
@@ -232,7 +244,10 @@ function prepareJsonData(rawData) {
   // round two, collect data for id's
   //
   // prepare time-gap-control
-  lastTimeStamp = parseInt(json[0].timestamp) - timeInterval;
+  if(json[0])
+  {
+    lastTimeStamp = parseInt(json[0].timestamp) - timeInterval;
+  }
   // offset for gaps
   let databaseOffset = 0;
   const borderTimeSecounds = (data_from_minutes_back * 60);
@@ -459,6 +474,34 @@ function getTempFromController() {
     //
     // END if datatransfer done
     //
+  };
+  xhr.send();
+}
+
+function getCurrentFromController() {
+  let xhr = new XMLHttpRequest();
+  console.debug("http request <" + current_url + ">...");
+  xhr.open('GET', current_url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4 && xhr.status == 200) {
+      //
+      // START if datatransfer done
+      //
+      let json = JSON.parse(xhr.responseText);
+      if(json)
+      {
+        if( json.current )
+        {
+          console.debug("controller current value is " + json.current + " V...")
+          let t_gauge = document.getElementById("temp_gauge");
+          if( t_gauge )
+          {
+            t_gauge.innerHTML = "controller " + json.current + " V";
+          }
+        }
+      } 
+    }
   };
   xhr.send();
 }

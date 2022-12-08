@@ -35,7 +35,7 @@ namespace webserver
     static esp_err_t indexHtmlGetHandler(httpd_req_t *);
     static esp_err_t systemInfoGetHandler(httpd_req_t *);
     static esp_err_t rootGetHandler(httpd_req_t *);
-    static esp_err_t restGetHandler(httpd_req_t *);
+    static esp_err_t restCurrentHandler(httpd_req_t *);
     static esp_err_t setContentTypeFromFile(std::string &, httpd_req_t *, const std::string &);
   };
 

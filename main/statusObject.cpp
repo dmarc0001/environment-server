@@ -245,6 +245,11 @@ namespace webserver
     return;
   }
 
+  int StatusObject::getVoltage()
+  {
+    return StatusObject::currentVoltage;
+  }
+
   /**
    * start (if not running yet) the data writer task
   */
