@@ -319,7 +319,7 @@ namespace webserver
       // send signal "sending done!"
       if (content.compare("json") == 0)
       {
-        const char *endPtr{"[\n]\n"};
+        const char *endPtr{"\n]\n"};
         httpd_resp_send_chunk(req, endPtr, 3);
       }
       httpd_resp_sendstr_chunk(req, nullptr);
