@@ -132,17 +132,29 @@ namespace webserver
   {
     std::string uri(req->uri);
     //
-    // Aktion zum anzeigen der LED
+    // action for show led signals
     //
     StatusObject::setHttpActive(true);
 
-    if ((uri.substr(0, 19)).compare("/api/v1/system/info") == 0)
+    //
+    //  check if api access
+    //
+    if ((uri.substr(0, 8)).compare("/api/v1/") == 0)
     {
-      WebServer::systemInfoGetHandler(req);
-    }
-    else if ((uri.substr(0, 15)).compare("/api/v1/current") == 0)
-    {
-      WebServer::restCurrentHandler(req);
+      // yes, api call
+      uri = uri.substr(8);
+      if (uri.compare("system/info") == 0)
+      {
+        WebServer::apiSystemInfoGetHandler(req);
+      }
+      else if (uri.compare("current") == 0)
+      {
+        WebServer::apiRestHandlerCurrent(req);
+      }
+      else if (uri.compare("interval") == 0)
+      {
+        WebServer::apiRestHandlerInterval(req);
+      }
     }
     else
     {
@@ -156,21 +168,43 @@ namespace webserver
   }
 
   /**
+   * aslk for interval
+  */
+  esp_err_t WebServer::apiRestHandlerInterval(httpd_req_t *req)
+  {
+    ESP_LOGI(WebServer::tag, "request interval...");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_type(req, "application/json");
+    cJSON *root = cJSON_CreateObject();
+    char buffer[8];
+    sprintf(&buffer[0], "%04d", Prefs::MEASURE_INTERVAL_SEC);
+    cJSON_AddStringToObject(root, "interval", &buffer[0]);
+    char *int_info = cJSON_PrintUnformatted(root); //cJSON_Print(root);
+    httpd_resp_sendstr(req, int_info);
+    cJSON_Delete(root);
+    cJSON_free(int_info);
+    ESP_LOGI(WebServer::tag, "request interval <%04d>...", Prefs::MEASURE_INTERVAL_SEC);
+    return ESP_OK;
+  }
+
+  /**
    * ask for current (controller)
   */
-  esp_err_t WebServer::restCurrentHandler(httpd_req_t *req)
+  esp_err_t WebServer::apiRestHandlerCurrent(httpd_req_t *req)
   {
+    ESP_LOGI(WebServer::tag, "request current...");
     httpd_resp_set_status(req, "200 OK");
     httpd_resp_set_type(req, "application/json");
     cJSON *root = cJSON_CreateObject();
     char buffer[16];
-    float cValue = StatusObject::getVoltage() / 1000.0F;
+    float cValue{static_cast<float>(StatusObject::getVoltage()) / 1000.0F};
     sprintf(&buffer[0], "%1.3f", cValue);
     cJSON_AddStringToObject(root, "current", &buffer[0]);
-    const char *tmp_info = cJSON_Print(root);
+    char *tmp_info = cJSON_PrintUnformatted(root); //cJSON_Print(root);
     httpd_resp_sendstr(req, tmp_info);
-    free((void *)tmp_info);
     cJSON_Delete(root);
+    cJSON_free(tmp_info);
+    ESP_LOGI(WebServer::tag, "request current <%f> done...", cValue);
     return ESP_OK;
   }
 
@@ -336,7 +370,7 @@ namespace webserver
   }
 
   /* Simple handler for getting system handler */
-  esp_err_t WebServer::systemInfoGetHandler(httpd_req_t *req)
+  esp_err_t WebServer::apiSystemInfoGetHandler(httpd_req_t *req)
   {
     httpd_resp_set_status(req, "200 OK");
     httpd_resp_set_type(req, "application/json");

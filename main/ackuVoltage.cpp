@@ -60,6 +60,10 @@ namespace webserver
     {
       cali_enable = true;
       ESP_LOGI(AckuVoltage::tag, "calibre adc...");
+      // 0 dB attenuation (ADC_ATTEN_DB_0) gives full-scale voltage 1.1 V
+      // 2.5 dB attenuation (ADC_ATTEN_DB_2_5) gives full-scale voltage 1.5 V
+      // 6 dB attenuation (ADC_ATTEN_DB_6) gives full-scale voltage 2.2 V
+      // 11 dB attenuation (ADC_ATTEN_DB_11) gives full-scale voltage 3.9 V (see note below)
       esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ACKU_ADC_WIDTH, 0, &adc1_chars);
       ESP_LOGI(AckuVoltage::tag, "calibre adc successful...");
     }
@@ -79,13 +83,18 @@ namespace webserver
       if (cali_enable)
       {
         voltage = esp_adc_cal_raw_to_voltage(adc_raw, &AckuVoltage::adc1_chars);
-        ESP_LOGD(AckuVoltage::tag, "cali data: %d mV", voltage);
+        ESP_LOGI(AckuVoltage::tag, "acku current: %d mV", voltage);
         StatusObject::setVoltage(voltage);
+      }
+      else
+      {
+        StatusObject::setVoltage(0);
       }
       //
       // sleep for a while, acku needs som time for changing
       //
-      vTaskDelay(pdMS_TO_TICKS(20013));
+      //vTaskDelay(pdMS_TO_TICKS(10003));
+      vTaskDelay(pdMS_TO_TICKS(45013));
     }
   }
 

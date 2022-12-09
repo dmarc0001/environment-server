@@ -193,7 +193,7 @@ namespace webserver
               fputs("\n", fd);
               fclose(fd);
               cJSON_Delete(dataSetObj);
-              cJSON_free(jsonPrintString); // !!!!!!! memory leak
+              cJSON_free(jsonPrintString); // !!!!!!! memory leak if not
               ESP_LOGI(StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str());
             }
             else
