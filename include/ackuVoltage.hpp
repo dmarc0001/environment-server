@@ -20,9 +20,6 @@
 #define ADC_CALI_SCHEME ESP_ADC_CAL_VAL_EFUSE_TP_FIT
 #endif
 
-constexpr adc_bits_width_t ACKU_ADC_WIDTH = ADC_WIDTH_BIT_12;
-//constexpr adc_bits_width_t ACKU_ADC_WIDTH = static_cast<adc_bits_width_t>(ADC_WIDTH_MAX - 1);
-
 namespace webserver
 {
   class AckuVoltage

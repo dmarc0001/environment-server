@@ -42,9 +42,7 @@ namespace webserver
   void AckuVoltage::ackuTask(void *)
   {
     AckuVoltage::is_running = true;
-    static int adc_raw;
-    uint32_t voltage = 0;
-    esp_err_t ret{ESP_OK};
+
     bool cali_enable = AckuVoltage::adcCalibrationInit();
 
     ret = esp_adc_cal_check_efuse(ADC_CALI_SCHEME);
@@ -78,12 +76,13 @@ namespace webserver
     vTaskDelay(pdMS_TO_TICKS(234));
     while (true)
     {
-      adc_raw = adc1_get_raw(ACKU_MEASURE_CHANNEL);
-      ESP_LOGD(AckuVoltage::tag, "raw  data: %d", adc_raw);
+      uint32_t voltage{0};
+      int adc_raw = adc1_get_raw(ACKU_MEASURE_CHANNEL);
+      //ESP_LOGD(AckuVoltage::tag, "raw  data: %d", adc_raw);
       if (cali_enable)
       {
         voltage = esp_adc_cal_raw_to_voltage(adc_raw, &AckuVoltage::adc1_chars);
-        ESP_LOGI(AckuVoltage::tag, "acku current: %d mV", voltage);
+        ESP_LOGE(AckuVoltage::tag, "acku current: %d mV (raw: %d)", voltage, adc_raw);
         StatusObject::setVoltage(voltage);
       }
       else
@@ -93,8 +92,8 @@ namespace webserver
       //
       // sleep for a while, acku needs som time for changing
       //
-      //vTaskDelay(pdMS_TO_TICKS(10003));
-      vTaskDelay(pdMS_TO_TICKS(45013));
+      vTaskDelay(pdMS_TO_TICKS(1003));
+      //vTaskDelay(pdMS_TO_TICKS(45013));
     }
   }
 
@@ -104,11 +103,14 @@ namespace webserver
   */
   bool AckuVoltage::adcCalibrationInit()
   {
+    using namespace Prefs;
     esp_err_t ret;
     bool cali_enable = false;
 
     ESP_LOGI(AckuVoltage::tag, "init adc calibration...");
     ret = esp_adc_cal_check_efuse(ADC_CALI_SCHEME);
+    adc1_config_width(ACKU_ADC_WIDTH);
+    adc1_config_channel_atten(ACKU_MEASURE_CHANNEL, ACKU_ATTENT);
     if (ret == ESP_ERR_NOT_SUPPORTED)
     {
       ESP_LOGW(AckuVoltage::tag, "Calibration scheme not supported, skip software calibration");
@@ -120,7 +122,7 @@ namespace webserver
     else if (ret == ESP_OK)
     {
       cali_enable = true;
-      esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ACKU_ADC_WIDTH, 0, &AckuVoltage::adc1_chars);
+      esp_adc_cal_characterize(ADC_UNIT_1, ACKU_ATTENT, ACKU_ADC_WIDTH, 0, &AckuVoltage::adc1_chars);
       ESP_LOGI(AckuVoltage::tag, "init adc calibration successful...");
     }
     else
