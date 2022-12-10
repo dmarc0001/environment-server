@@ -76,8 +76,8 @@ namespace webserver
       //
       // sleep for a while, acku needs som time for changing
       //
-      vTaskDelay(pdMS_TO_TICKS(1003));
-      //vTaskDelay(pdMS_TO_TICKS(45013));
+      //vTaskDelay(pdMS_TO_TICKS(1003));
+      vTaskDelay(pdMS_TO_TICKS(35013));
     }
   }
 
