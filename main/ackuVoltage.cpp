@@ -66,7 +66,7 @@ namespace webserver
           voltage += measures[i];
         }
         voltage = static_cast<uint32_t>(floor(voltage / 8.0));
-        ESP_LOGE(AckuVoltage::tag, "acku current: %d mV (raw: %d)", voltage, adc_raw);
+        ESP_LOGD(AckuVoltage::tag, "acku current: %d mV (raw: %d)", voltage, adc_raw);
         StatusObject::setVoltage(voltage);
       }
       else
