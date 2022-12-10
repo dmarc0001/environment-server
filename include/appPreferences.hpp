@@ -15,10 +15,10 @@ namespace Prefs
   constexpr const char *TIMEZONE{"CET-1"};                             //! my own timezone
   constexpr const char *MDNS_INSTANCE{"esp rest server"};              //! instance nama of mdns process
   constexpr const char *WEB_PATH{"/spiffs"};                           //! virtual path wegserver
-  constexpr const char *WEB_DAYLY_FILE{"/spiffs/today.json"};          //! virtual path today's file
-  constexpr const char *WEB_WEEKLY_FILE{"/spiffs/week.json"};          //! virtual path 7 day-history file
-  constexpr const char *WEB_MONTHLY_FILE{"/spiffs/month.json"};        //! virtual path 30 day history
-  constexpr const char *WEB_TEMP_FILE{"/spiffs/temporary.json"};       //! virtual path workerfile
+  constexpr const char *WEB_DAYLY_FILE{"/spiffs/today.jdata"};         //! virtual path today's file
+  constexpr const char *WEB_WEEKLY_FILE{"/spiffs/week.jdata"};         //! virtual path 7 day-history file
+  constexpr const char *WEB_MONTHLY_FILE{"/spiffs/month.jdata"};       //! virtual path 30 day history
+  constexpr const char *WEB_TEMP_FILE{"/spiffs/temporary.jdata"};      //! virtual path workerfile
   constexpr size_t WEB_FILEPATH_MAX_SIZE{64};                          //! max size of the filepath
   constexpr uint32_t WEB_SCRATCH_BUFSIZE{1440};                        //! buffsize für http server answers
   constexpr gpio_num_t LED_STRIPE_RMT_TX_GPIO = GPIO_NUM_4;            //! control pin GPIO für led control

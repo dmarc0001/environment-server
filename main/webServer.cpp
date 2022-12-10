@@ -1,5 +1,7 @@
 #include <string>
 #include <memory>
+#include <utility>
+#include <string.h>
 #include <sys/param.h>
 #include <esp_vfs.h>
 #include <esp_wifi.h>
@@ -143,9 +145,22 @@ namespace webserver
     {
       // yes, api call
       uri = uri.substr(8);
-      if (uri.compare("system/info") == 0)
+
+      // const month_url = '/api/v1/month';
+      // const week_url = '/api/v1/week';
+      // const today_url = '/api/v1/today';
+
+      if (uri.compare("today") == 0)
       {
-        WebServer::apiSystemInfoGetHandler(req);
+        WebServer::apiRestHandlerToday(req);
+      }
+      else if (uri.compare("week") == 0)
+      {
+        WebServer::apiRestHandlerWeek(req);
+      }
+      else if (uri.compare("month") == 0)
+      {
+        WebServer::apiRestHandlerMonth(req);
       }
       else if (uri.compare("current") == 0)
       {
@@ -154,6 +169,10 @@ namespace webserver
       else if (uri.compare("interval") == 0)
       {
         WebServer::apiRestHandlerInterval(req);
+      }
+      else if (uri.compare("system/info") == 0)
+      {
+        WebServer::apiSystemInfoGetHandler(req);
       }
     }
     else
@@ -168,7 +187,34 @@ namespace webserver
   }
 
   /**
-   * aslk for interval
+   * send JSON file for today
+  */
+  esp_err_t WebServer::apiRestHandlerToday(httpd_req_t *req)
+  {
+    std::string filePath(Prefs::WEB_DAYLY_FILE);
+    return WebServer::deliverFileToHttpd(filePath, req);
+  }
+
+  /**
+   * send JSON file for week
+  */
+  esp_err_t WebServer::apiRestHandlerWeek(httpd_req_t *req)
+  {
+    std::string filePath(Prefs::WEB_WEEKLY_FILE);
+    return WebServer::deliverFileToHttpd(filePath, req);
+  }
+
+  /**
+   * send JSON file for month
+  */
+  esp_err_t WebServer::apiRestHandlerMonth(httpd_req_t *req)
+  {
+    std::string filePath(Prefs::WEB_MONTHLY_FILE);
+    return WebServer::deliverFileToHttpd(filePath, req);
+  }
+
+  /**
+   * ask for interval
   */
   esp_err_t WebServer::apiRestHandlerInterval(httpd_req_t *req)
   {
@@ -217,15 +263,6 @@ namespace webserver
     std::string filePath;
     std::string uri(req->uri);
 
-    FILE *fd = nullptr;
-    struct stat file_stat;
-
-    if (!is_spiffs_ready)
-    {
-      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "SPIFFS not ready!");
-      return ESP_FAIL;
-    }
-
     // max pathlen check
     esp_err_t ret = getPathFromUri(filePath, basePath, uri);
     if (ret != ESP_OK)
@@ -236,7 +273,28 @@ namespace webserver
       return ESP_FAIL;
     }
     //
-    // check if filename not exits
+    // send the file via httpd
+    //
+    return WebServer::deliverFileToHttpd(filePath, req);
+  }
+
+  /**
+   * deliver file from spiff to httpd
+  */
+  esp_err_t WebServer::deliverFileToHttpd(std::string &filePath, httpd_req_t *req)
+  {
+    struct stat file_stat;
+    std::string uri(req->uri);
+    //
+    // at first: is SPIFFS ready?
+    //
+    if (!is_spiffs_ready)
+    {
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "SPIFFS not ready!");
+      return ESP_FAIL;
+    }
+    //
+    // next check if filename not exits
     // its hardcodet path ?
     // do this after file check, so i can overwrite this
     // behavior if an file is exist
@@ -263,14 +321,16 @@ namespace webserver
       return ESP_FAIL;
     }
     //
-    // try to open file, readonly of course
+    // then open the destination file
     //
-    fd = fopen(filePath.c_str(), "r");
+    auto fd = fopen(filePath.c_str(), "r");
     if (!fd)
     {
       ESP_LOGE(WebServer::tag, "failed to read existing file : %s", filePath.c_str());
       /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+      std::string errMsg("Failed to read existing file: ");
+      errMsg.append(filePath);
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errMsg.c_str());
       return ESP_FAIL;
     }
     //
@@ -281,36 +341,68 @@ namespace webserver
     std::string content{"text"};
     setContentTypeFromFile(content, req, filePath);
     //
+    // special my own pseudo-json-type
+    //
+    if (content.compare("jdata") == 0)
+    {
+      // JSON Array opener
+      const char *startPtr{"[\n"};
+      httpd_resp_send_chunk(req, startPtr, 2);
+      size_t currentChunkSize{0};
+      do
+      {
+        std::unique_ptr<char> currentBuf(new char[Prefs::WEB_SCRATCH_BUFSIZE]);
+        char *currentBufferPtr = currentBuf.get();
+        // try to read the next chunk
+        char *currentReadetBufferPtr = fgets(currentBufferPtr, Prefs::WEB_SCRATCH_BUFSIZE - 2, fd);
+        if (currentReadetBufferPtr)
+        {
+          // readed a line...
+          // was there a line before?
+          if (currentChunkSize > 0)
+          {
+            // last round was a line
+            std::string myLine(",");
+            myLine.append(currentBufferPtr);
+            currentChunkSize = myLine.size();
+            httpd_resp_send_chunk(req, myLine.c_str(), currentChunkSize);
+          }
+          else
+          {
+            // this is the first line
+            std::string myLine(currentBufferPtr);
+            currentChunkSize = myLine.size();
+            httpd_resp_send_chunk(req, myLine.c_str(), currentChunkSize);
+          }
+        }
+        else
+        {
+          // not a line read, EOF
+          currentChunkSize = 0;
+        }
+      } while (currentChunkSize > 0);
+      // JSON Array closener
+      const char *endPtr{"]\n"};
+      httpd_resp_send_chunk(req, endPtr, 2);
+      // end of transmussion
+      httpd_resp_sendstr_chunk(req, nullptr);
+      fclose(fd);
+      ESP_LOGI(WebServer::tag, "chunk file sending complete");
+      return ESP_OK;
+    }
+    //
     // deliver the file chunk-whise if too big for buffsize
     // create smart buffer
     //
     if (file_stat.st_size + 6 < Prefs::WEB_SCRATCH_BUFSIZE)
     {
       // one piece
-      if (content.compare("json") == 0)
-      {
-        //
-        // "[" and "]" for correct json file
-        //
-        std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
-        char *buffptr = deliverBuf.get();
-        *(buffptr++) = '[';
-        *(buffptr++) = '\n';
-        buffptr += fread(buffptr, 1, file_stat.st_size, fd);
-        *(buffptr++) = ']';
-        *(buffptr++) = '\n';
-        *(buffptr++) = 0;
-        httpd_resp_sendstr(req, deliverBuf.get());
-      }
-      else
-      {
-        std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
-        char *buffptr = deliverBuf.get();
-        // read in buffer
-        buffptr += fread(deliverBuf.get(), 1, file_stat.st_size, fd);
-        *(buffptr++) = '\0';
-        httpd_resp_sendstr(req, deliverBuf.get());
-      }
+      std::unique_ptr<char> deliverBuf(new char[file_stat.st_size + 6]);
+      char *buffptr = deliverBuf.get();
+      // read in buffer
+      buffptr += fread(deliverBuf.get(), 1, file_stat.st_size, fd);
+      *(buffptr++) = '\0';
+      httpd_resp_sendstr(req, deliverBuf.get());
       ESP_LOGI(WebServer::tag, "file sending complete");
     }
     else
@@ -318,11 +410,6 @@ namespace webserver
       // send chunked
       std::unique_ptr<char> deliverBuf(new char[Prefs::WEB_SCRATCH_BUFSIZE]);
       // Retrieve the pointer to scratch buffer for temporary storage
-      if (content.compare("json") == 0)
-      {
-        const char *startPtr{"[\n"};
-        httpd_resp_send_chunk(req, startPtr, 2);
-      }
       char *chunk = deliverBuf.get();
       size_t chunksize;
       do
@@ -354,11 +441,6 @@ namespace webserver
         // Keep looping till the whole file is sent
       } while (chunksize != 0);
       // send signal "sending done!"
-      if (content.compare("json") == 0)
-      {
-        const char *endPtr{"\n]\n"};
-        httpd_resp_send_chunk(req, endPtr, 3);
-      }
       httpd_resp_sendstr_chunk(req, nullptr);
     }
     //
@@ -454,6 +536,12 @@ namespace webserver
     if (filename.rfind(".json") != std::string::npos)
     {
       type = "json";
+      return httpd_resp_set_type(req, "application/json");
+    }
+    if (filename.rfind(".jdata") != std::string::npos)
+    {
+      // my own marker for my "raw" fileformat
+      type = "jdata";
       return httpd_resp_set_type(req, "application/json");
     }
     if (filename.rfind(".js") != std::string::npos)

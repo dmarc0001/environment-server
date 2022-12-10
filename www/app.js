@@ -2,15 +2,20 @@
 // globale variablen für die charts
 // TODO: wenn file-not.found gui ändern
 //
+const month_url = '/api/v1/month';
+const week_url = '/api/v1/week';
+const today_url = '/api/v1/today';
+const current_url = '/api/v1/current';
+const interval_url = '/api/v1/interval';
+const brownout_curent = 2.720;
+const warning_current = 2.850;
+const min_screen_em = 45;
+let data_url = today_url;
+let data_from_minutes_back = 24 * 60;
+let timeInterval = 0;
 let t_chart = undefined;
 let h_chart = undefined;
 let inner_width = undefined;
-let min_screen_em = 45;
-let data_url = 'today.json';
-const current_url = '/api/v1/current';
-let data_from_minutes_back = 24 * 60;
-const brownout_curent = 2.720;
-const warning_current = 2.850;
 
 //
 // options for Charts
@@ -109,20 +114,35 @@ let h_chart_config = {
 };
 
 /**** init the page and variables ****/
-function init_page() {
+async function init_page() {
   let el = document.getElementById('complete');
   let style = window.getComputedStyle(el, null).getPropertyValue('font-size');
   let fontSize = parseFloat(style);
   // window width in em
   inner_width = window.innerWidth / fontSize;
+  // get intevall from controller
+  getIntervalFromController();
   // add handler for click on buttons
   addEventHandlers();
+  let counter = 0;
+  // while counter done or data_intercal is set
+  while (timeInterval == 0 && counter < 50) {
+    await new Promise(r => setTimeout(r, 200));
+    counter++;
+  }
+  if (timeInterval == 0) {
+    setErrorMessage("Kann intervall nicht vom controller lesen!")
+        console.error("data interval timeout!");
+  } else {
+    setErrorMessage("");
+    console.debug("data interval: " + timeInterval);
+  }
   // set interval to recive data for chart
   setInterval(
       function() { getTempFromController(); }, 90000);
   setInterval(
       function() { getCurrentFromController(); }, 180000);
-      // at first time init read values
+  // at first time init read values
   getTempFromController();
   getCurrentFromController();
   // create charts
@@ -169,23 +189,23 @@ function addEventHandlers() {
 function showTimeSpan(_val) {
   if (_val == 3) {
     // 30 Tage
-    data_url = 'month.json';
+    data_url = month_url;
     data_from_minutes_back = 30 * 24 * 60;
     console.debug("set timespan to 30 days...");
   } else if (_val == 2) {
     // 7 Tage
     data_from_minutes_back = 7 * 24 * 60;
-    data_url = 'week.json';
+    data_url = week_url;
     console.debug("set timespan to 7 days...");
   } else if (_val == 1) {
     // 1 Tage
     data_from_minutes_back = 7 * 24 * 60;
-    data_url = 'today.json';
+    data_url = today_url;
     console.debug("set timespan to 24 hours...");
   } else {
     // 24 Stunden, default
     data_from_minutes_back = 3 * 60;
-    data_url = 'today.json';
+    data_url = today_url;
     console.debug("set timespan to 3 hours...");
   }
   console.debug("set timespan to <" + data_url + ">...");
@@ -194,9 +214,16 @@ function showTimeSpan(_val) {
 
 /**** compute data, recived from controller ****/
 function prepareJsonData(rawData) {
-  let json = JSON.parse(rawData);
-  let nowInSeconds = parseInt(new Date().getTime() / 1000);
-  let timeInterval = 600;
+  let json = undefined;
+  let nowInSeconds = undefined;
+  try {
+    json = JSON.parse(rawData);
+    nowInSeconds = parseInt(new Date().getTime() / 1000);
+  } catch (error) {
+    setErrorMessage("Messdaten fehlerfahft von Controller gesendert!");
+    console.error(error);
+    return undefined;
+  }
   const ids = new Array();
   const axes = Array();
   axes[0] = Array();  // x-axis
@@ -207,12 +234,9 @@ function prepareJsonData(rawData) {
   let id_idx = 2;  // sensors starts by idx 2, id == ids[id]
   let id;
   let lastTimeStamp = 0;
-  if( json[0] )
-  {
+  if (json[0]) {
     lastTimeStamp = parseInt(json[0].timestamp);
-  }
-  else if ( json[1] )
-  {
+  } else if (json[1]) {
     lastTimeStamp = parseInt(json[1].timestamp);
   }
   for (let datasetNumber in json) {
@@ -229,25 +253,13 @@ function prepareJsonData(rawData) {
         id_idx += 1;
       }
     }
-    if (datasetNumber > 1 && datasetNumber < 10) {
-      //
-      // find smallest interval for time
-      // this should be the interval of the controller
-      //
-      let currentTimeStamp = parseInt(json[datasetNumber].timestamp);
-      if ((currentTimeStamp - lastTimeStamp) < timeInterval) {
-        timeInterval = (currentTimeStamp - lastTimeStamp);
-      }
-    }
   }
-  console.debug("controllers interval is " + timeInterval + " secounds.");
   console.debug("sensor id's: " + (id_idx - 2) + " sensors found!");
   //
   // round two, collect data for id's
   //
   // prepare time-gap-control
-  if(json[0])
-  {
+  if (json[0]) {
     lastTimeStamp = parseInt(json[0].timestamp) - timeInterval;
   }
   // offset for gaps
@@ -271,13 +283,12 @@ function prepareJsonData(rawData) {
       lastTimeStamp = parseInt(json[datasetNumber].timestamp);
       continue;
     }
-
     //
     // is they an gap in the database?
     //
     if (timestamp > (lastTimeStamp + timeInterval + 20)) {
       // fill the gap
-      console.debug("fill gap in data dataset " + datasetNumber + "...");
+      console.debug("fill gap in data dataset number " + datasetNumber + "...");
       let curr_stamp = lastTimeStamp + timeInterval;
       while (timestamp > curr_stamp) {
         // xAxis is axes[0]
@@ -303,7 +314,7 @@ function prepareJsonData(rawData) {
         databaseOffset++;
         currentNumber = datasetNumber + databaseOffset;
       }
-      console.debug("fill gap in data dataset " + datasetNumber +
+      console.debug("fill gap in data dataset numbrer " + datasetNumber +
                     " offset now " + databaseOffset + "...");
     }
     // set to new value
@@ -333,10 +344,6 @@ function prepareJsonData(rawData) {
       } else {
         axes[idx][currentNumber] = parseFloat(sensor.temp);
       }
-      // DEBUG:
-      // console.debug("number: " + currentNumber + " time: " + wasMinutes + "
-      // sensor: " + sensor.id + " sensor-idx: " + idx + " temp: " + sensor.temp
-      // + " hum: " + sensor.humidy + "...");
     }
   }
   //
@@ -389,7 +396,8 @@ function makeTemperatureGraph(axes) {
       t_chart.data = t_data_obj;
       // t_chart.options = t_chart_options;
       t_chart.update();
-      elem = document.getElementById("stat").innerHTML = "";
+      // error message delete if exist
+      setErrorMessage("");
     }
   }
 }
@@ -433,45 +441,49 @@ function makeHumidyGraph(axes) {
   //
   h_chart.data = h_data_obj;
   h_chart.update();
-  elem = document.getElementById("stat").innerHTML = "";
+  setErrorMessage("");
 }
 
 /**** initiate reading from contoller and painting graphs ****/
 function getTempFromController() {
+  setErrorMessage("lade Daten...");
   let yourDate = new Date();
   const offset = yourDate.getTimezoneOffset();
-
   let xhr = new XMLHttpRequest();
   console.debug("http request <" + data_url + ">...");
   xhr.open('GET', data_url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  let axes = undefined;
   xhr.onreadystatechange = function() {
     if (xhr.readyState == 4 && xhr.status == 200) {
       //
       // START if datatransfer done
       //
-      let axes = prepareJsonData(xhr.responseText);
-      //
-      // temparature
-      //
-      let t_timeout = setTimeout(
-          function() { makeTemperatureGraph(axes); }, 1500);
-      //
-      // humidy
-      //
-      let h_timeout = setTimeout(
-          function() { makeHumidyGraph(axes); }, 4500);
-    } else {
-      const xAxis = new Array();
-      const t_data_obj = {labels : xAxis, datasets : []};
-      const h_data_obj = {labels : xAxis, datasets : []};
-      h_chart.data = h_data_obj;
-      h_chart.update();
-      t_chart.data = h_data_obj;
-      t_chart.update();
-      // TODO: Fehlernachricht anzeigen
-      elem = document.getElementById("stat").innerHTML =
-          "Messdaten nicht gefunden";
+      axes = prepareJsonData(xhr.responseText);
+      if (axes) {
+        setErrorMessage("");
+        //
+        // temperature
+        //
+        let t_timeout = setTimeout(
+            function() { makeTemperatureGraph(axes); }, 1500);
+        //
+        // humidy
+        //
+        let h_timeout = setTimeout(
+            function() { makeHumidyGraph(axes); }, 4500);
+      } else {
+        console.error("axes not load!");
+	const xAxis = new Array();
+        const t_data_obj = {labels : xAxis, datasets : []};
+        const h_data_obj = {labels : xAxis, datasets : []};
+        h_chart.data = h_data_obj;
+        h_chart.update();
+        t_chart.data = h_data_obj;
+        t_chart.update();
+        // TODO: Fehlernachricht anzeigen
+        setErrorMessage("Messdaten nicht geladen");
+      }
     }
     //
     // END if datatransfer done
@@ -491,29 +503,52 @@ function getCurrentFromController() {
       // START if datatransfer done
       //
       let json = JSON.parse(xhr.responseText);
-      if(json)
-      {
-        if( json.current )
-        {
+      if (json) {
+        if (json.current) {
           console.debug("controller current value is " + json.current + " V...")
-          let t_gauge = document.getElementById("temp_gauge");
-          if( t_gauge )
-          {
+              let t_gauge = document.getElementById("temp_gauge");
+          if (t_gauge) {
             let l_current = parseFloat(json.current);
-            //t_gauge.style.color="rgb(97, 97, 106)";
-            t_gauge.style.color="";
-            if(l_current < warning_current )
-            {
-              t_gauge.style.color="rgb(217, 105, 15)";
+            // t_gauge.style.color="rgb(97, 97, 106)";
+            t_gauge.style.color = "";
+            if (l_current < warning_current) {
+              t_gauge.style.color = "rgb(217, 105, 15)";
             }
-            if(l_current < brownout_curent )
-            {
-              t_gauge.style.color="rgb(255, 0, 0)";
+            if (l_current < brownout_curent) {
+              t_gauge.style.color = "rgb(255, 0, 0)";
             }
             t_gauge.innerHTML = "controller " + json.current + " V";
           }
         }
-      } 
+      }
+    }
+  };
+  xhr.send();
+}
+
+function getIntervalFromController() {
+  let xhr = new XMLHttpRequest();
+  console.debug("http request <" + interval_url + ">...");
+  xhr.open('GET', interval_url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4 && xhr.status == 200) {
+      //
+      // START if datatransfer done
+      //
+      try {
+        let json = JSON.parse(xhr.responseText);
+        if (json) {
+          if (json.interval) {
+            timeInterval = parseInt(json.interval);
+            console.debug("controller interval value is " + timeInterval +
+                          " sec...")
+          }
+        }
+      } catch (error) {
+        timeInterval = 600;
+        console.error(error);
+      }
     }
   };
   xhr.send();
@@ -525,6 +560,17 @@ function varToHex(rgb) {
     hex = "0" + hex;
   }
   return hex;
+}
+
+/**
+ * Error message set or undset
+ * @param {*} _msg message or ""
+ */
+function setErrorMessage(_msg) {
+  elem = document.getElementById("stat");
+  if (elem) {
+    elem.innerHTML = _msg;
+  }
 }
 
 /**** convert timestamps to human readable ****/

@@ -104,9 +104,9 @@ namespace webserver
         // there are data, try to save in file(s)
         // one for every day
         //
-        struct stat file_stat;
+        // struct stat file_stat;
         std::string daylyFileName(Prefs::WEB_DAYLY_FILE);
-        bool exist_file{false};
+        //bool exist_file{false};
         FILE *fd = nullptr;
 
         if (StatusObject::getIsBrownout())
@@ -117,12 +117,12 @@ namespace webserver
         }
         ESP_LOGI(StatusObject::tag, "data for save exist...");
         // is file exist
-        if (stat(daylyFileName.c_str(), &file_stat) == 0)
-        {
-          exist_file = true;
-        }
-        else
-          ESP_LOGI(StatusObject::tag, "file save does not exist...");
+        // if (stat(daylyFileName.c_str(), &file_stat) == 0)
+        // {
+        //   exist_file = true;
+        // }
+        // else
+        //   ESP_LOGI(StatusObject::tag, "file save does not exist...");
 
         while (!StatusObject::dataset->empty())
         {
@@ -175,18 +175,18 @@ namespace webserver
             if (fd)
             {
               ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
-              if (exist_file)
-              {
-                // exist the file, is there minimum on dataset,
-                // an i need a comma to write
-                fputs(",", fd);
-              }
-              else
-              {
-                // this is the first dataset, it's permitted
-                // wo write a comma on first entry
-                exist_file = true;
-              }
+              // if (exist_file)
+              // {
+              //   // exist the file, is there minimum on dataset,
+              //   // an i need a comma to write
+              //   fputs(",", fd);
+              // }
+              // else
+              // {
+              //   // this is the first dataset, it's permitted
+              //   // wo write a comma on first entry
+              //   exist_file = true;
+              // }
               char *jsonPrintString = cJSON_PrintUnformatted(dataSetObj);
               fputs(jsonPrintString, fd);
               fflush(fd);

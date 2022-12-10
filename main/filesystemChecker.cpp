@@ -178,7 +178,7 @@ namespace webserver
     int counter{0};
     std::string delimiter_dp = ":";
     std::string delimiter_str = "\"";
-    std::string delimiter_comma = ",";
+    // std::string delimiter_comma = ",";
     std::string tempFileName(Prefs::WEB_TEMP_FILE);
     ESP_LOGI(FsCheckObject::tag, "check the file <%s> for obsolete data...", fileName.c_str());
 
@@ -221,7 +221,7 @@ namespace webserver
               // extract value of timestring
               auto token = lineStr.substr(dp_pos, (str_pos - dp_pos));
               ESP_LOGI(FsCheckObject::tag, "timestamp <%s> found...", token.c_str());
-              // confert to number unsigned long
+              // convert to number unsigned long
               auto timestamp_current = std::stoul(token);
               if (timestamp_current > border_timestamp)
               {
@@ -235,16 +235,16 @@ namespace webserver
                 if (wFile)
                 {
                   // was open successful
-                  if (counter == 0)
-                  {
-                    if ((str_pos = lineStr.find(delimiter_comma)) != std::string::npos)
-                    {
-                      if (str_pos < 3)
-                      {
-                        lineStr.substr(str_pos);
-                      }
-                    }
-                  }
+                  // if (counter == 0)
+                  // {
+                  //   if ((str_pos = lineStr.find(delimiter_comma)) != std::string::npos)
+                  //   {
+                  //     if (str_pos < 3)
+                  //     {
+                  //       lineStr.substr(str_pos);
+                  //     }
+                  //   }
+                  // }
                   // line ready for save
                   ++counter;
                   fputs(lineStr.c_str(), wFile);
