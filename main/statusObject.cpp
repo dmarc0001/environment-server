@@ -232,27 +232,44 @@ namespace webserver
   void StatusObject::setVoltage(int _val)
   {
     StatusObject::currentVoltage = _val;
-    if (_val >= Prefs::ACKU_BROWNOUT_VALUE)
+    //
+    // acku full, power on
+    //
+    if (_val >= Prefs::ACKU_LOWER_VALUE)
     {
+      // all fine
       StatusObject::isBrownout = false;
       StatusObject::isLowAcku = false;
       return;
     }
-    if (_val > Prefs::ACKU_LOWER_VALUE)
-    {
-      StatusObject::isLowAcku = false;
-    }
-    else
-    {
-      StatusObject::isLowAcku = true;
-    }
+    //
+    // value to small
+    //
     if (_val < Prefs::ACKU_BROWNOUT_LOWEST)
     {
-      StatusObject::isBrownout = true;
+      // while this current, controller is NOT running
+      // ==> this value is an failure
+      StatusObject::isBrownout = false;
       StatusObject::isLowAcku = false;
       return;
     }
-    StatusObject::isBrownout = true;
+    //
+    // else, the value can be the truth....
+    // but small
+    //
+    if (_val >= Prefs::ACKU_LOWER_VALUE)
+    {
+      // is acku to low for flash writing
+      StatusObject::isLowAcku = true;
+      StatusObject::isBrownout = false;
+    }
+    if (_val < Prefs::ACKU_BROWNOUT_VALUE)
+    {
+      // controller will shutdown, no write to FLUSH!!!!
+      StatusObject::isBrownout = true;
+      StatusObject::isLowAcku = true;
+      return;
+    }
     return;
   }
 

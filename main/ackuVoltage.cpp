@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -42,46 +43,29 @@ namespace webserver
   void AckuVoltage::ackuTask(void *)
   {
     AckuVoltage::is_running = true;
-
     bool cali_enable = AckuVoltage::adcCalibrationInit();
+    uint32_t measures[8]{3100UL, 3100UL, 3100UL, 3100UL, 3100UL, 3100UL, 3100UL, 3100UL};
+    uint8_t idx = 0;
 
-    ret = esp_adc_cal_check_efuse(ADC_CALI_SCHEME);
-    if (ret == ESP_ERR_NOT_SUPPORTED)
-    {
-      ESP_LOGW(AckuVoltage::tag, "calibration scheme not supported, skip software calibration");
-    }
-    else if (ret == ESP_ERR_INVALID_VERSION)
-    {
-      ESP_LOGW(AckuVoltage::tag, "eFuse not burnt, skip software calibration");
-    }
-    else if (ret == ESP_OK)
-    {
-      cali_enable = true;
-      ESP_LOGI(AckuVoltage::tag, "calibre adc...");
-      // 0 dB attenuation (ADC_ATTEN_DB_0) gives full-scale voltage 1.1 V
-      // 2.5 dB attenuation (ADC_ATTEN_DB_2_5) gives full-scale voltage 1.5 V
-      // 6 dB attenuation (ADC_ATTEN_DB_6) gives full-scale voltage 2.2 V
-      // 11 dB attenuation (ADC_ATTEN_DB_11) gives full-scale voltage 3.9 V (see note below)
-      esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ACKU_ADC_WIDTH, 0, &adc1_chars);
-      ESP_LOGI(AckuVoltage::tag, "calibre adc successful...");
-    }
-    else
-    {
-      ESP_LOGE(AckuVoltage::tag, "Invalid arg");
-    }
-    //
-    // calibration done... (or failed)
-    // infinity loop
-    //
     vTaskDelay(pdMS_TO_TICKS(234));
+    // infinity loop
     while (true)
     {
-      uint32_t voltage{0};
+      uint32_t voltage{0UL};
       int adc_raw = adc1_get_raw(ACKU_MEASURE_CHANNEL);
       //ESP_LOGD(AckuVoltage::tag, "raw  data: %d", adc_raw);
       if (cali_enable)
       {
-        voltage = esp_adc_cal_raw_to_voltage(adc_raw, &AckuVoltage::adc1_chars);
+        //
+        // the measure is on R-Bridge a 100k, the value is the
+        // half of the current value
+        //
+        measures[idx] = 2 * esp_adc_cal_raw_to_voltage(adc_raw, &AckuVoltage::adc1_chars);
+        for (uint8_t i = 0; i < 8; ++i)
+        {
+          voltage += measures[i];
+        }
+        voltage = static_cast<uint32_t>(floor(voltage / 8.0));
         ESP_LOGE(AckuVoltage::tag, "acku current: %d mV (raw: %d)", voltage, adc_raw);
         StatusObject::setVoltage(voltage);
       }
