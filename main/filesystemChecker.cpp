@@ -69,6 +69,13 @@ namespace webserver
         //
         continue;
       }
+      if (StatusObject::getIsBrownout())
+      {
+        //
+        // no current, do not write the flash!!!!
+        //
+        continue;
+      }
       timeval val;
       uint32_t lastTimestamp{0UL};
       gettimeofday(&val, nullptr);
@@ -234,17 +241,6 @@ namespace webserver
                 }
                 if (wFile)
                 {
-                  // was open successful
-                  // if (counter == 0)
-                  // {
-                  //   if ((str_pos = lineStr.find(delimiter_comma)) != std::string::npos)
-                  //   {
-                  //     if (str_pos < 3)
-                  //     {
-                  //       lineStr.substr(str_pos);
-                  //     }
-                  //   }
-                  // }
                   // line ready for save
                   ++counter;
                   fputs(lineStr.c_str(), wFile);
