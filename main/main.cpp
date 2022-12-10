@@ -25,6 +25,9 @@ static const char *version{MY_APP_VERSION};
 
 void app_main(void)
 {
+    //
+    // tll me the version....
+    //
     ESP_LOGI("VERSION", "\n\n");
     ESP_LOGI("VERSION", "%s\n\n", version);
     vTaskDelay(pdMS_TO_TICKS(3500));
@@ -36,6 +39,7 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+    // set my timezone, i deal with timestamps
     setenv("TZ", Prefs::TIMEZONE, 1);
     tzset();
     ESP_LOGI(TAG, "wifi/webserver init...");
