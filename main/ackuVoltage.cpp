@@ -71,7 +71,7 @@ namespace webserver
           voltage += measures[i];
         }
         voltage = static_cast<uint32_t>(floor(voltage / CURRENT_SMOOTH_COUNT));
-        ESP_LOGI(AckuVoltage::tag, "acku smooth: %d mV (measured %d raw: %d)", voltage, measures[idx], adc_raw);
+        ESP_LOGD(AckuVoltage::tag, "acku smooth: %d mV (measured %d raw: %d)", voltage, measures[idx], adc_raw);
         StatusObject::setVoltage(voltage);
         ++idx;
         if (idx >= CURRENT_SMOOTH_COUNT)
