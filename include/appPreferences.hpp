@@ -19,6 +19,11 @@ namespace Prefs
   constexpr const char *WEB_WEEKLY_FILE{"/spiffs/week.jdata"};         //! virtual path 7 day-history file
   constexpr const char *WEB_MONTHLY_FILE{"/spiffs/month.jdata"};       //! virtual path 30 day history
   constexpr const char *WEB_TEMP_FILE{"/spiffs/temporary.jdata"};      //! virtual path workerfile
+  constexpr const char *JSON_TIMESTAMP_NAME{"ti"};                     //! timestamp name in json
+  constexpr const char *JSON_TEMPERATURE_NAME{"te"};                   //! temperature name in json
+  constexpr const char *JSON_HUMIDY_NAME{"hu"};                        //! humidy name in json
+  constexpr const char *JSON_SENSOR_ID_NAME{"id"};                     //! sensor id name in json
+  constexpr const char *JSON_DATAOBJECT_NAME{"da"};                    //! dataobject name in json for dataset per timestamp
   constexpr size_t WEB_FILEPATH_MAX_SIZE{64};                          //! max size of the filepath
   constexpr uint32_t WEB_SCRATCH_BUFSIZE{1440};                        //! buffsize für http server answers
   constexpr gpio_num_t LED_STRIPE_RMT_TX_GPIO = GPIO_NUM_4;            //! control pin GPIO für led control

@@ -132,7 +132,8 @@ namespace webserver
           // create one object for one dataset
           cJSON *dataSetObj = cJSON_CreateObject();
           // make timestamp objekt item
-          cJSON_AddItemToObject(dataSetObj, "timestamp", cJSON_CreateString(std::to_string(elem.timestamp).c_str()));
+
+          cJSON_AddItemToObject(dataSetObj, Prefs::JSON_TIMESTAMP_NAME, cJSON_CreateString(std::to_string(elem.timestamp).c_str()));
           // make array of measures
           auto m_dataset = elem.dataset;
           cJSON *mArray = cJSON_CreateArray();
@@ -145,23 +146,23 @@ namespace webserver
             char buffer[16];
             if (m_elem.addr > 0)
             {
-              cJSON_AddItemToObject(mObj, "id", cJSON_CreateString(std::to_string(m_elem.addr).substr(1, 6).c_str()));
+              cJSON_AddItemToObject(mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString(std::to_string(m_elem.addr).substr(1, 6).c_str()));
             }
             else
             {
-              cJSON_AddItemToObject(mObj, "id", cJSON_CreateString("0"));
+              cJSON_AddItemToObject(mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString("0"));
             }
             memset(&buffer[0], 0, 16);
             sprintf(&buffer[0], "%3.1f", m_elem.temp);
-            cJSON_AddItemToObject(mObj, "temp", cJSON_CreateString(&buffer[0]));
+            cJSON_AddItemToObject(mObj, Prefs::JSON_TEMPERATURE_NAME, cJSON_CreateString(&buffer[0]));
             memset(&buffer[0], 0, 16);
             sprintf(&buffer[0], "%3.1f", m_elem.humidy);
-            cJSON_AddItemToObject(mObj, "humidy", cJSON_CreateString(&buffer[0]));
+            cJSON_AddItemToObject(mObj, Prefs::JSON_HUMIDY_NAME, cJSON_CreateString(&buffer[0]));
             // measure object to array
             cJSON_AddItemToArray(mArray, mObj);
           }
           // array as item to object
-          cJSON_AddItemToObject(dataSetObj, "data", mArray);
+          cJSON_AddItemToObject(dataSetObj, Prefs::JSON_DATAOBJECT_NAME, mArray);
           // dataSetObj complete
           // try to write to file
           // wait max 1000 ms

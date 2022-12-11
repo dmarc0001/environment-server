@@ -235,13 +235,13 @@ function prepareJsonData(rawData) {
   let id;
   let lastTimeStamp = 0;
   if (json[0]) {
-    lastTimeStamp = parseInt(json[0].timestamp);
+    lastTimeStamp = parseInt(json[0].ti);
   } else if (json[1]) {
-    lastTimeStamp = parseInt(json[1].timestamp);
+    lastTimeStamp = parseInt(json[1].ti);
   }
   for (let datasetNumber in json) {
     //
-    let data = json[datasetNumber].data;
+    let data = json[datasetNumber].da;
     for (sensorNr in data) {
       id = data[sensorNr].id;
       if (ids[id] == undefined) {
@@ -260,7 +260,7 @@ function prepareJsonData(rawData) {
   //
   // prepare time-gap-control
   if (json[0]) {
-    lastTimeStamp = parseInt(json[0].timestamp) - timeInterval;
+    lastTimeStamp = parseInt(json[0].ti) - timeInterval;
   }
   // offset for gaps
   let databaseOffset = 0;
@@ -269,7 +269,7 @@ function prepareJsonData(rawData) {
     let currentNumber = parseInt(datasetNumber) + databaseOffset;
     // every timestamped measuring object
     let timestampVal =
-        json[datasetNumber].timestamp;       // first timestamp in the file
+        json[datasetNumber].ti;       // first timestamp in the file
     let timestamp = parseInt(timestampVal);  // as integer
     let wasMinutes = formatTimestamp(
         nowInSeconds - timestamp);  // was in the past wasMinutes minutes
@@ -280,7 +280,7 @@ function prepareJsonData(rawData) {
       // yes? then ignore, offset correct
       databaseOffset--;
       // start of scale set
-      lastTimeStamp = parseInt(json[datasetNumber].timestamp);
+      lastTimeStamp = parseInt(json[datasetNumber].ti);
       continue;
     }
     //
@@ -294,7 +294,7 @@ function prepareJsonData(rawData) {
         // xAxis is axes[0]
         wasMinutes = formatTimestamp(nowInSeconds - curr_stamp);
         axes[0][currentNumber] = wasMinutes;
-        let data = json[datasetNumber].data;
+        let data = json[datasetNumber].da;
         for (let sensorNr in data) {
           let sensor = data[sensorNr];
           // humidy
@@ -326,7 +326,7 @@ function prepareJsonData(rawData) {
     // console.debug("read dataset " + currentNumber + " time diff: " +
     // wasMinutes + "...");
     //
-    let data = json[datasetNumber].data;
+    let data = json[datasetNumber].da;
     for (let sensorNr in data) {
       let sensor = data[sensorNr];
       //
@@ -335,14 +335,14 @@ function prepareJsonData(rawData) {
       // humidy
       if (sensor.id == 0) {
         // humidy sensor
-        axes[1][currentNumber] = parseFloat(sensor.humidy);
+        axes[1][currentNumber] = parseFloat(sensor.hu);
       }
       // sensor-id for temperature
       let idx = ids[sensor.id];
       if (idx < 0) {
         console.error("sensor-id not found...");
       } else {
-        axes[idx][currentNumber] = parseFloat(sensor.temp);
+        axes[idx][currentNumber] = parseFloat(sensor.te);
       }
     }
   }

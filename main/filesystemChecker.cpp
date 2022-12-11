@@ -214,7 +214,7 @@ namespace webserver
         {
           // convert line to String für edit reasons
           std::string lineStr{c_line};
-          // search first double point (after "timestamp")
+          // search first double point (after JSON_TIMESTAMP_NAME)
           int dp_pos{0};
           if ((dp_pos = lineStr.find(delimiter_dp)) != std::string::npos)
           {
