@@ -56,6 +56,8 @@ namespace webserver
     // infinity loop
     while (true)
     {
+      adc_power_acquire();
+      vTaskDelay(pdMS_TO_TICKS(1));
       uint32_t voltage{0U};
       int adc_raw = adc1_get_raw(ACKU_MEASURE_CHANNEL);
       //ESP_LOGD(AckuVoltage::tag, "raw  data: %d", adc_raw);
@@ -83,6 +85,7 @@ namespace webserver
       {
         StatusObject::setVoltage(0);
       }
+      adc_power_release();
       //
       // sleep for a while, acku needs som time for changing
       //
@@ -102,6 +105,8 @@ namespace webserver
     bool cali_enable = false;
 
     ESP_LOGI(AckuVoltage::tag, "init adc calibration...");
+    adc_power_acquire();
+    vTaskDelay(pdMS_TO_TICKS(1));
     ret = esp_adc_cal_check_efuse(ADC_CALI_SCHEME);
     adc1_config_width(ACKU_ADC_WIDTH);
     adc1_config_channel_atten(ACKU_MEASURE_CHANNEL, ACKU_ATTENT);
@@ -123,6 +128,7 @@ namespace webserver
     {
       ESP_LOGE(AckuVoltage::tag, "Invalid arg");
     }
+    adc_power_release();
     return cali_enable;
   }
 
