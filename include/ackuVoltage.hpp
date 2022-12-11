@@ -20,7 +20,7 @@
 #define ADC_CALI_SCHEME ESP_ADC_CAL_VAL_EFUSE_TP_FIT
 #endif
 
-constexpr uint8_t CURRENT_SMOOTH_COUNT = 5;
+constexpr uint32_t CURRENT_SMOOTH_COUNT = 5U;
 
 namespace webserver
 {

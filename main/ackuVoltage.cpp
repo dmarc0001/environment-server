@@ -43,20 +43,20 @@ namespace webserver
   void AckuVoltage::ackuTask(void *)
   {
     AckuVoltage::is_running = true;
+    static uint32_t measures[CURRENT_SMOOTH_COUNT];
     bool cali_enable = AckuVoltage::adcCalibrationInit();
-    uint32_t measures[CURRENT_SMOOTH_COUNT];
-    uint8_t idx = 0;
+    uint32_t idx = 0;
 
     // fill array with defaults
-    for (auto i = 0; i < CURRENT_SMOOTH_COUNT; ++i)
+    for (auto i = 0; i < CURRENT_SMOOTH_COUNT; i++)
     {
-      measures[CURRENT_SMOOTH_COUNT] = 3100UL;
+      measures[i] = ACKU_LOWER_VALUE;
     }
     vTaskDelay(pdMS_TO_TICKS(234));
     // infinity loop
     while (true)
     {
-      uint32_t voltage{0UL};
+      uint32_t voltage{0U};
       int adc_raw = adc1_get_raw(ACKU_MEASURE_CHANNEL);
       //ESP_LOGD(AckuVoltage::tag, "raw  data: %d", adc_raw);
       if (cali_enable)
@@ -66,17 +66,17 @@ namespace webserver
         // half of the current value
         //
         measures[idx] = 2 * esp_adc_cal_raw_to_voltage(adc_raw, &AckuVoltage::adc1_chars);
-        for (uint8_t i = 0; i < CURRENT_SMOOTH_COUNT; ++i)
+        for (auto i = 0; i < CURRENT_SMOOTH_COUNT; i++)
         {
           voltage += measures[i];
         }
-        voltage = static_cast<uint32_t>(floor(voltage / 8.0));
-        ESP_LOGD(AckuVoltage::tag, "acku current: %d mV (raw: %d)", voltage, adc_raw);
+        voltage = static_cast<uint32_t>(floor(voltage / CURRENT_SMOOTH_COUNT));
+        ESP_LOGI(AckuVoltage::tag, "acku smooth: %d mV (measured %d raw: %d)", voltage, measures[idx], adc_raw);
         StatusObject::setVoltage(voltage);
         ++idx;
         if (idx >= CURRENT_SMOOTH_COUNT)
         {
-          idx = 0;
+          idx = 0U;
         }
       }
       else
