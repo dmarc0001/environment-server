@@ -20,6 +20,8 @@
 #define ADC_CALI_SCHEME ESP_ADC_CAL_VAL_EFUSE_TP_FIT
 #endif
 
+constexpr uint8_t CURRENT_SMOOTH_COUNT = 5;
+
 namespace webserver
 {
   class AckuVoltage

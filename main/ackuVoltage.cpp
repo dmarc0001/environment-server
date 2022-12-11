@@ -44,9 +44,14 @@ namespace webserver
   {
     AckuVoltage::is_running = true;
     bool cali_enable = AckuVoltage::adcCalibrationInit();
-    uint32_t measures[8]{3100UL, 3100UL, 3100UL, 3100UL, 3100UL, 3100UL, 3100UL, 3100UL};
+    uint32_t measures[CURRENT_SMOOTH_COUNT];
     uint8_t idx = 0;
 
+    // fill array with defaults
+    for (auto i = 0; i < CURRENT_SMOOTH_COUNT; ++i)
+    {
+      measures[CURRENT_SMOOTH_COUNT] = 3100UL;
+    }
     vTaskDelay(pdMS_TO_TICKS(234));
     // infinity loop
     while (true)
@@ -61,13 +66,18 @@ namespace webserver
         // half of the current value
         //
         measures[idx] = 2 * esp_adc_cal_raw_to_voltage(adc_raw, &AckuVoltage::adc1_chars);
-        for (uint8_t i = 0; i < 8; ++i)
+        for (uint8_t i = 0; i < CURRENT_SMOOTH_COUNT; ++i)
         {
           voltage += measures[i];
         }
         voltage = static_cast<uint32_t>(floor(voltage / 8.0));
         ESP_LOGD(AckuVoltage::tag, "acku current: %d mV (raw: %d)", voltage, adc_raw);
         StatusObject::setVoltage(voltage);
+        ++idx;
+        if (idx >= CURRENT_SMOOTH_COUNT)
+        {
+          idx = 0;
+        }
       }
       else
       {
@@ -77,7 +87,7 @@ namespace webserver
       // sleep for a while, acku needs som time for changing
       //
       //vTaskDelay(pdMS_TO_TICKS(1003));
-      vTaskDelay(pdMS_TO_TICKS(35013));
+      vTaskDelay(pdMS_TO_TICKS(13013));
     }
   }
 
