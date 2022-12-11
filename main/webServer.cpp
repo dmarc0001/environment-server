@@ -20,6 +20,8 @@
 
 //extern httpd_handle_t httpd_handle;
 
+// response->addHeader( "Content-Encoding", "gzip" );
+
 namespace webserver
 {
 
@@ -543,6 +545,12 @@ namespace webserver
       // my own marker for my "raw" fileformat
       type = "jdata";
       return httpd_resp_set_type(req, "application/json");
+    }
+    if (filename.rfind("js.gz") != std::string::npos)
+    {
+      type = "js.gz";
+      httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+      return httpd_resp_set_type(req, "text/javascript");
     }
     if (filename.rfind(".js") != std::string::npos)
     {
