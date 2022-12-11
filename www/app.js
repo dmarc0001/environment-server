@@ -517,7 +517,7 @@ function getCurrentFromController() {
             if (l_current < brownout_curent) {
               t_gauge.style.color = "rgb(255, 0, 0)";
             }
-            t_gauge.innerHTML = "controller " + json.current + " V";
+            t_gauge.innerHTML = "Acku " + json.current + " V";
           }
         }
       }
