@@ -132,7 +132,6 @@ namespace webserver
           // create one object for one dataset
           cJSON *dataSetObj = cJSON_CreateObject();
           // make timestamp objekt item
-
           cJSON_AddItemToObject(dataSetObj, Prefs::JSON_TIMESTAMP_NAME, cJSON_CreateString(std::to_string(elem.timestamp).c_str()));
           // make array of measures
           auto m_dataset = elem.dataset;

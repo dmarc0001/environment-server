@@ -3,22 +3,21 @@
 # hole messdaten aktuell
 
 THOST=192.168.1.43
-TODAY_DAT=today.data
 
-if [ -e today.jdata ] ; then
-  rm -f today.jdata
-fi
+DATAFILES="acku.jdata last_fscheck.dat temporary.jdata today.jdata"
 
-if [ -e temporary.jdata ] ; then
-  rm -f temporary.jdata
-fi
+for DFILE in $DATAFILES ; 
+do
+  echo "check $DFILE..."
+  if [ -e $DFILE ] ; then
+    rm -f $DFILE
+  fi
+done
 
-if [ -e last_fscheck.dat ] ; then
-  rm -f last_fscheck.dat
-fi
 
 wget http://$THOST/today.jdata
 wget http://$THOST/temporary.jdata
 wget http://$THOST/last_fscheck.dat
+wget http://$THOST/acku.jdata
 
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <cJSON.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -87,10 +88,46 @@ namespace webserver
       }
       adc_power_release();
       //
+      // write a acku log file
+      //
+      if (!StatusObject::getIsBrownout() && (StatusObject::getWlanState() == WlanState::TIMESYNCED))
+      {
+        // write acku value to logfile
+        std::string fileName(Prefs::ACKU_LOG_FILE);
+        ESP_LOGD(AckuVoltage::tag, "acku value to file <%s>)", fileName.c_str());
+        //
+        // if filesystemchecker want to write, prevent this
+        // read is walways possible
+        //
+        if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
+        {
+          auto aFile = fopen(fileName.c_str(), "a");
+          if (aFile)
+          {
+            timeval val;
+            gettimeofday(&val, nullptr);
+            auto timestamp = val.tv_sec;
+            // write value to file with timestamp
+            cJSON *dataSetObj = cJSON_CreateObject();
+            // make timestamp objekt item
+            cJSON_AddItemToObject(dataSetObj, Prefs::JSON_TIMESTAMP_NAME, cJSON_CreateString(std::to_string(timestamp).c_str()));
+            cJSON_AddItemToObject(dataSetObj, Prefs::JSON_ACKU_CURRENT_NAME, cJSON_CreateString(std::to_string(voltage).c_str()));
+            char *jsonPrintString = cJSON_PrintUnformatted(dataSetObj);
+            fputs(jsonPrintString, aFile);
+            fflush(aFile);
+            fputs("\n", aFile);
+            fclose(aFile);
+            cJSON_Delete(dataSetObj);
+            cJSON_free(jsonPrintString); // !!!!!!! memory leak if not
+          }
+          xSemaphoreGive(StatusObject::fileSem);
+        }
+      }
+      //
       // sleep for a while, acku needs som time for changing
       //
       //vTaskDelay(pdMS_TO_TICKS(1003));
-      vTaskDelay(pdMS_TO_TICKS(13013));
+      vTaskDelay(pdMS_TO_TICKS(45013));
     }
   }
 
@@ -131,5 +168,4 @@ namespace webserver
     adc_power_release();
     return cali_enable;
   }
-
 }

@@ -349,6 +349,9 @@ namespace webserver
     fileName = std::string(Prefs::WEB_DAYLY_FILE);
     FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);
     vTaskDelay(pdMS_TO_TICKS(250));
+    fileName = std::string(Prefs::ACKU_LOG_FILE);
+    FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);
+    vTaskDelay(pdMS_TO_TICKS(250));
   }
 
   /**
