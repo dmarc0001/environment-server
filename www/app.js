@@ -16,6 +16,7 @@ let timeInterval = 0;
 let t_chart = undefined;
 let h_chart = undefined;
 let inner_width = undefined;
+let data_in_use = false;
 
 //
 // options for Charts
@@ -199,7 +200,7 @@ function showTimeSpan(_val) {
     console.debug("set timespan to 7 days...");
   } else if (_val == 1) {
     // 1 Tage
-    data_from_minutes_back = 7 * 24 * 60;
+    data_from_minutes_back = 1 * 24 * 60;
     data_url = today_url;
     console.debug("set timespan to 24 hours...");
   } else {
@@ -220,10 +221,16 @@ function prepareJsonData(rawData) {
     json = JSON.parse(rawData);
     nowInSeconds = parseInt(new Date().getTime() / 1000);
   } catch (error) {
-    setErrorMessage("Messdaten fehlerfahft von Controller gesendert!");
+    setErrorMessage("Messdaten fehlerhaft von Controller gesendert!");
     console.error(error);
     return undefined;
   }
+  if( data_in_use )
+  {
+    console.warn("data preparation already in use. wait....");
+    return undefined;
+  }
+  data_in_use = true;
   const ids = new Array();
   const axes = Array();
   axes[0] = Array();  // x-axis
@@ -262,63 +269,67 @@ function prepareJsonData(rawData) {
   if (json[0]) {
     lastTimeStamp = parseInt(json[0].ti) - timeInterval;
   }
-  // offset for gaps
+  // offset to datasetNumber for gaps
   let databaseOffset = 0;
+  // from which earlyest time i will read data
   const borderTimeSecounds = (data_from_minutes_back * 60);
   for (let datasetNumber in json) {
     let currentNumber = parseInt(datasetNumber) + databaseOffset;
     // every timestamped measuring object
     let timestampVal =
         json[datasetNumber].ti;       // first timestamp in the file
-    let timestamp = parseInt(timestampVal);  // as integer
+    let fileTimestamp = parseInt(timestampVal);  // as integer
     let wasMinutes = formatTimestamp(
-        nowInSeconds - timestamp);  // was in the past wasMinutes minutes
+        nowInSeconds - fileTimestamp);  // was in the past wasMinutes minutes
     //
-    // is the data bevore the border?
+    // is the data before the border?
     //
-    if ((nowInSeconds - timestamp) > borderTimeSecounds) {
+    if ((nowInSeconds - fileTimestamp) > borderTimeSecounds) {
       // yes? then ignore, offset correct
+      // sum should be 0 without gaps
       databaseOffset--;
       // start of scale set
       lastTimeStamp = parseInt(json[datasetNumber].ti);
       continue;
     }
     //
-    // is they an gap in the database?
+    // is there an gap in the database?
+    // means ist the offset to last dataset too large?
     //
-    if (timestamp > (lastTimeStamp + timeInterval + 20)) {
+    let setsCount=0;
+    //if (fileTimestamp > (lastTimeStamp + timeInterval + 10)) 
+    while (fileTimestamp > (lastTimeStamp + timeInterval + 10)) 
+    {
+      setsCount++;
       // fill the gap
       console.debug("fill gap in data dataset number " + datasetNumber + "...");
-      let curr_stamp = lastTimeStamp + timeInterval;
-      while (timestamp > curr_stamp) {
-        // xAxis is axes[0]
-        wasMinutes = formatTimestamp(nowInSeconds - curr_stamp);
-        axes[0][currentNumber] = wasMinutes;
-        let data = json[datasetNumber].da;
-        for (let sensorNr in data) {
-          let sensor = data[sensorNr];
-          // humidy
-          if (sensor.id == 0) {
-            // humidy sensor
-            axes[1][currentNumber] = -100.0;
-          }
-          // sensor-id for temperature
-          let idx = ids[sensor.id];
-          if (idx < 0) {
-            console.error("sensor-id not found...");
-          } else {
-            axes[idx][currentNumber] = -100.0;
-          }
+      lastTimeStamp += timeInterval;
+      // xAxis is axes[0]
+      wasMinutes = formatTimestamp(nowInSeconds - lastTimeStamp);
+      axes[0][currentNumber] = wasMinutes;
+      let data = json[datasetNumber].da;
+      for (let sensorNr in data) {
+        let sensor = data[sensorNr];
+        // humidy
+        if (sensor.id == 0) {
+          // humidy sensor
+          axes[1][currentNumber] = -100.0;
         }
-        curr_stamp += timeInterval;
-        databaseOffset++;
-        currentNumber = datasetNumber + databaseOffset;
+        // sensor-id for temperature
+        let idx = ids[sensor.id];
+        if (idx < 0) {
+          console.error("sensor-id not found...");
+        } else {
+          axes[idx][currentNumber] = -100.0;
+        }
       }
+      databaseOffset++;
+      currentNumber = datasetNumber + databaseOffset;
       console.debug("fill gap in data dataset numbrer " + datasetNumber +
                     " offset now " + databaseOffset + "...");
     }
     // set to new value
-    lastTimeStamp = timestamp;
+    lastTimeStamp = fileTimestamp;
     // no gap. all right
     // xAxis is axes[0]
     axes[0][currentNumber] = wasMinutes;
@@ -346,6 +357,7 @@ function prepareJsonData(rawData) {
       }
     }
   }
+  data_in_use = false;
   //
   // datasets ready for update
   //
@@ -466,15 +478,15 @@ function getTempFromController() {
         // temperature
         //
         let t_timeout = setTimeout(
-            function() { makeTemperatureGraph(axes); }, 1500);
+            function() { makeTemperatureGraph(axes); }, 500);
         //
         // humidy
         //
         let h_timeout = setTimeout(
-            function() { makeHumidyGraph(axes); }, 4500);
+            function() { makeHumidyGraph(axes); }, 3500);
       } else {
         console.error("axes not load!");
-	const xAxis = new Array();
+	      const xAxis = new Array();
         const t_data_obj = {labels : xAxis, datasets : []};
         const h_data_obj = {labels : xAxis, datasets : []};
         h_chart.data = h_data_obj;
