@@ -15,6 +15,7 @@
 #include <esp_http_server.h>
 #include <http_app.h>
 #include <wifi_manager.h>
+#include "version.hpp"
 #include "statusObject.hpp"
 #include "webServer.hpp"
 
@@ -175,6 +176,10 @@ namespace webserver
       else if (uri.compare("system/info") == 0)
       {
         WebServer::apiSystemInfoGetHandler(req);
+      }
+      else if (uri.compare("system/version") == 0)
+      {
+        WebServer::apiVersionInfoGetHandler(req);
       }
     }
     else
@@ -463,6 +468,22 @@ namespace webserver
     esp_chip_info(&chip_info);
     cJSON_AddStringToObject(root, "version", IDF_VER);
     cJSON_AddNumberToObject(root, "cores", chip_info.cores);
+    const char *sys_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, sys_info);
+    free((void *)sys_info);
+    cJSON_Delete(root);
+    return ESP_OK;
+  }
+
+  /**
+   * ask for software vesion
+  */
+  erp_err_t WebServber::apiVersionInfoGetHandler(httpd_req_t *rew)
+  {
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_type(req, "application/json");
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "version", MY_APP_VERSION);
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
     free((void *)sys_info);
