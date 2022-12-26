@@ -6,6 +6,7 @@ const week_url = '/api/v1/week';
 const today_url = '/api/v1/today';
 const current_url = '/api/v1/current';
 const interval_url = '/api/v1/interval';
+const soft_version_url = '/api/v1/system/version';
 const brownout_curent = 2.720;
 const warning_current = 2.850;
 const min_screen_em = 45;
@@ -148,6 +149,9 @@ function init_page()
   h_chart.update();
   // get measure intevall from controller
   getIntervalFromController();
+  // get version from controller
+  setTimeout(
+      function() { getSoftwareVersionFromController(); }, 500 );
   // wait for settung interval
   // if interval setting make furter actions
   let waitForInterval = setInterval(
@@ -177,6 +181,11 @@ function init_page()
         }
       },
       500 );
+  let vers_elem = document.getElementById( 'version-div' );
+  if ( vers_elem )
+  {
+    vers_elem.hidden = true;
+  }
 }
 
 /**** handler for click on button, native, dirthy, small ****/
@@ -268,6 +277,46 @@ function getCurrentFromController()
               t_gauge.style.color = "rgb(255, 0, 0)";
             }
             t_gauge.innerHTML = "Acku " + json.current + " V";
+          }
+        }
+      }
+    }
+  };
+  xhr.send();
+}
+
+/**** read software version from controller ****/
+function getSoftwareVersionFromController()
+{
+  let xhr = new XMLHttpRequest();
+  console.debug( "http request <" + soft_version_url + ">..." );
+  xhr.open( 'GET', soft_version_url, true );
+  xhr.setRequestHeader( 'Content-Type', 'application/json' );
+  xhr.onreadystatechange = function()
+  {
+    if ( xhr.readyState == 4 && xhr.status == 200 )
+    {
+      //
+      // START if datatransfer done
+      //
+      let json = JSON.parse( xhr.responseText );
+      if ( json )
+      {
+        if ( json.version )
+        {
+          console.debug( "controller software version is <" + json.version + ">" );
+          let version_div_elem = document.getElementById( "version-div" );
+          if ( version_div_elem )
+          {
+            console.debug( "set inner html..." );
+            version_div_elem.innerHTML = "Controller Version: " + json.version;
+            version_div_elem.hidden = false;
+            setTimeout(
+                function() {
+                  console.debug( "hide version info..." );
+                  version_div_elem.hidden = true;
+                },
+                9000 );
           }
         }
       }

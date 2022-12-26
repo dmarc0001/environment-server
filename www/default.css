@@ -66,6 +66,13 @@ div.stat {
     background-color: rgb(255, 200, 0);
 }
 
+div.version-div {
+    margin-top: 2.5em;
+    color: darkgreen;
+    font-size: larger;
+    text-align: center;
+}
+
 canvas.measure {
     /*border: thin solid red;*/
     width: 100%;
