@@ -39,7 +39,7 @@ namespace webserver
     static esp_err_t apiRestHandlerWeek(httpd_req_t *);
     static esp_err_t apiRestHandlerMonth(httpd_req_t *);
     static esp_err_t apiSystemInfoGetHandler(httpd_req_t *);
-    static erp_err_t apiVersionInfoGetHandler(httpd_req_t *);
+    static esp_err_t apiVersionInfoGetHandler(httpd_req_t *);
     static esp_err_t apiRestHandlerCurrent(httpd_req_t *);
     static esp_err_t apiRestHandlerInterval(httpd_req_t *);
     static esp_err_t setContentTypeFromFile(std::string &, httpd_req_t *, const std::string &);
