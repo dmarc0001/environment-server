@@ -28,7 +28,7 @@ void app_main(void)
     //
     // tll me the version....
     //
-    ESP_LOGI("VERSION", "\n\n");
+    ESP_LOGI("", "\n\n");
     ESP_LOGI("VERSION", "%s\n\n", version);
     vTaskDelay(pdMS_TO_TICKS(3500));
     //Initialize NVS

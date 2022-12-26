@@ -33,6 +33,7 @@ namespace webserver
 
   private:
     static void ledTask(void *);
+    static int64_t wlanStateLoop(bool *);
     static esp_err_t setLed(uint8_t, bool);
     static esp_err_t setLed(uint8_t, uint8_t, uint8_t, uint8_t);
     static esp_err_t setLed(uint8_t, rgb_t);

@@ -8,33 +8,40 @@
 
 namespace webserver
 {
+  constexpr int64_t WLANlongActionDist = 4000000LL;
+  constexpr int64_t WLANshortActionDist = 40000LL;
+  constexpr int64_t MeasureActionFlashDist = 40000LL;
+  constexpr int64_t MeasureActionDist = 1000000LL;
+  constexpr int64_t HTTPActionFlashDist = 45000LL;
+  constexpr int64_t HTTPActionDarkDist = 60000LL;
+
   const char *LedStripe::tag{"hardware"};
   led_strip_t LedStripe::strip{};
   rgb_t LedStripe::curr_color[Prefs::LED_STRIPE_COUNT]{};
-  const rgb_t LedStripe::wlan_discon_colr{.r = 0x32, .g = 0x32, .b = 0x00};
-  const rgb_t LedStripe::wlan_search_colr{.r = 0x66, .g = 0x41, .b = 0x06};
-  const rgb_t LedStripe::wlan_connect_colr{.r = 0x02, .g = 0x02, .b = 0x00};
-  const rgb_t LedStripe::wlan_connect_and_sync_colr{.r = 0x00, .g = 0x02, .b = 0x00};
-  const rgb_t LedStripe::wlan_fail_col{.r = 0xa0, .g = 0x0, .b = 0x0};
-  const rgb_t LedStripe::measure_unknown_colr{.r = 0x80, .g = 0x80, .b = 0x00};
-  const rgb_t LedStripe::measure_action_colr{.r = 0x70, .g = 0x50, .b = 0x00};
+
+  const rgb_t LedStripe::wlan_discon_colr{rgb_from_code(0x00323200)};
+  const rgb_t LedStripe::wlan_search_colr{rgb_from_code(0x00664106)};
+  const rgb_t LedStripe::wlan_connect_colr{rgb_from_code(0x00020200)};
+  const rgb_t LedStripe::wlan_connect_and_sync_colr{rgb_from_code(0x00000800)};
+  const rgb_t LedStripe::wlan_fail_col{rgb_from_code(0x000a0000)};
+  const rgb_t LedStripe::measure_unknown_colr{rgb_from_code(0x00808000)};
+  const rgb_t LedStripe::measure_action_colr{rgb_from_code(0x00705000)};
   const rgb_t LedStripe::measure_nominal_colr{LedStripe::wlan_connect_and_sync_colr};
-  const rgb_t LedStripe::measure_warn_colr{.r = 0xff, .g = 0x40, .b = 0x00};
-  const rgb_t LedStripe::measure_err_colr{.r = 0x80, .g = 0x00, .b = 0x00};
-  const rgb_t LedStripe::measure_crit_colr{.r = 0xff, .g = 0x10, .b = 0x10};
-  const rgb_t LedStripe::http_active{.r = 0x80, .g = 0x80, .b = 0x00};
+  const rgb_t LedStripe::measure_warn_colr{rgb_from_code(0x00ff4000)};
+  const rgb_t LedStripe::measure_err_colr{rgb_from_code(0x00800000)};
+  const rgb_t LedStripe::measure_crit_colr{rgb_from_code(0x00ff1010)};
+  const rgb_t LedStripe::http_active{rgb_from_code(0x00808000)};
   bool LedStripe::is_running{false};
 
   void LedStripe::ledTask(void *)
   {
     using namespace Prefs;
-    int64_t nextWLANLedActionTime{800000LL};
-    int64_t nextMeasureLedActionTime{100000LL};
-    int64_t nextHTTPLedActionTime{3000000LL};
+    int64_t nextWLANLedActionTime{WLANlongActionDist};
+    int64_t nextMeasureLedActionTime{MeasureActionFlashDist};
+    int64_t nextHTTPLedActionTime{HTTPActionDarkDist};
     uint8_t ledStage{0};
     int64_t nowTime = esp_timer_get_time();
     LedStripe::is_running = true;
-    WlanState cWlanState{WlanState::FAILED};
     bool led_changed{false};
     // ESP32-S2 RGB LED
     ESP_LOGI(LedStripe::tag, "initialize WS2812 led stripe...");
@@ -88,36 +95,8 @@ namespace webserver
       //
       if (nextWLANLedActionTime < nowTime)
       {
-        if (cWlanState != StatusObject::getWlanState())
-        {
-          // only if changed
-          cWlanState = StatusObject::getWlanState();
-          switch (cWlanState)
-          {
-          case WlanState::DISCONNECTED:
-            LedStripe::setLed(LED_WLAN, LedStripe::wlan_discon_colr);
-            break;
-          case WlanState::SEARCHING:
-            LedStripe::setLed(LED_WLAN, LedStripe::wlan_search_colr);
-            break;
-          case WlanState::CONNECTED:
-            LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
-            break;
-          case WlanState::TIMESYNCED:
-            // led off when low acku
-            if (StatusObject::getLowAcku())
-              LedStripe::setLed(LED_WLAN, false);
-            else
-              LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
-            break;
-          default:
-          case WlanState::FAILED:
-            LedStripe::setLed(LED_WLAN, LedStripe::wlan_fail_col);
-            break;
-          }
-          led_changed = true;
-        }
-        nextWLANLedActionTime = esp_timer_get_time() + 800000LL;
+        // make led things
+        nextWLANLedActionTime = LedStripe::wlanStateLoop(&led_changed);
       }
       if (nextMeasureLedActionTime < nowTime)
       {
@@ -126,7 +105,7 @@ namespace webserver
         {
         case 0:
           // Measure state flash
-          nextMeasureLedActionTime = esp_timer_get_time() + 40000LL;
+          nextMeasureLedActionTime = esp_timer_get_time() + MeasureActionFlashDist;
           switch (StatusObject::getMeasureState())
           {
           case MeasureState::MEASURE_UNKNOWN:
@@ -161,12 +140,12 @@ namespace webserver
           {
             // dark
             LedStripe::setLed(LED_MEASURE, false);
-            nextMeasureLedActionTime = esp_timer_get_time() + 1000000LL;
+            nextMeasureLedActionTime = esp_timer_get_time() + MeasureActionDist;
           }
           else
           {
-            // if not dark, shorte sleep
-            nextMeasureLedActionTime = esp_timer_get_time() + 500000LL;
+            // if not dark, half sleep
+            nextMeasureLedActionTime = esp_timer_get_time() + (MeasureActionDist >> 1);
           }
           ledStage = 0;
           break;
@@ -184,7 +163,7 @@ namespace webserver
           // should set the led to "on"?
           LedStripe::setLed(LED_HTTP, LedStripe::http_active);
           // next time for activity check
-          nextHTTPLedActionTime = esp_timer_get_time() + 45000LL;
+          nextHTTPLedActionTime = esp_timer_get_time() + HTTPActionFlashDist;
           // activity rest
         }
         else
@@ -201,6 +180,58 @@ namespace webserver
         led_changed = false;
       }
     }
+  }
+
+  int64_t LedStripe::wlanStateLoop(bool *led_changed)
+  {
+    using namespace Prefs;
+    static bool wlanLedSwitch{true};
+    static WlanState cWlanState{WlanState::FAILED};
+    if (cWlanState != StatusObject::getWlanState())
+    {
+      *led_changed = true;
+      // mark state
+      cWlanState = StatusObject::getWlanState();
+      switch (cWlanState)
+      {
+      case WlanState::DISCONNECTED:
+        LedStripe::setLed(LED_WLAN, LedStripe::wlan_discon_colr);
+        break;
+      case WlanState::SEARCHING:
+        LedStripe::setLed(LED_WLAN, LedStripe::wlan_search_colr);
+        break;
+      case WlanState::CONNECTED:
+        LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_colr);
+        break;
+      case WlanState::TIMESYNCED:
+        // do here nothing
+        break;
+      default:
+      case WlanState::FAILED:
+        LedStripe::setLed(LED_WLAN, LedStripe::wlan_fail_col);
+        break;
+      }
+    }
+    int64_t nextLoopTime = esp_timer_get_time() + WLANlongActionDist;
+    // always this:
+    // led off when low acku
+    if (cWlanState == WlanState::TIMESYNCED)
+    {
+      if (StatusObject::getLowAcku())
+        LedStripe::setLed(LED_WLAN, false);
+      else if (wlanLedSwitch)
+      {
+        LedStripe::setLed(LED_WLAN, LedStripe::wlan_connect_and_sync_colr);
+        nextLoopTime = esp_timer_get_time() + WLANshortActionDist;
+      }
+      else
+      {
+        LedStripe::setLed(LED_WLAN, false);
+      }
+      *led_changed = true;
+    }
+    wlanLedSwitch = !wlanLedSwitch;
+    return nextLoopTime;
   }
 
   /**
