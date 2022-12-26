@@ -478,7 +478,7 @@ namespace webserver
   /**
    * ask for software vesion
   */
-  erp_err_t WebServber::apiVersionInfoGetHandler(httpd_req_t *rew)
+  esp_err_t WebServer::apiVersionInfoGetHandler(httpd_req_t *req)
   {
     httpd_resp_set_status(req, "200 OK");
     httpd_resp_set_type(req, "application/json");
