@@ -8,10 +8,11 @@
 
 namespace webserver
 {
-  constexpr int64_t WLANlongActionDist = 4000000LL;
+  constexpr int64_t WLANlongActionDist = 5000000LL;
   constexpr int64_t WLANshortActionDist = 40000LL;
   constexpr int64_t MeasureActionFlushDist = 40000LL;
-  constexpr int64_t MeasureActionDist = 1000000LL;
+  constexpr int64_t MeasureLongActionDist = 5100000LL;
+  constexpr int64_t MeasureShortActionDist = 1000000LL;
   constexpr int64_t HTTPActionFlashDist = 45000LL;
   constexpr int64_t HTTPActionDarkDist = 60000LL;
 
@@ -140,15 +141,31 @@ namespace webserver
     using namespace Prefs;
     static uint8_t ledStage{0}; // maybe more then two states
     static bool nominalLedActive{false};
-    uint64_t nextMActionTime = esp_timer_get_time() + MeasureActionDist;
+    uint64_t nextMActionTime = esp_timer_get_time() + MeasureLongActionDist;
     webserver::MeasureState state = StatusObject::getMeasureState();
-
+    //
+    // if acku low, flash red
+    //
     if (StatusObject::getLowAcku())
     {
-      // TODO; flash RED
+      if (ledStage % 2)
+      {
+        LedStripe::setLed(LED_MEASURE, measure_crit_colr);
+        nextMActionTime = esp_timer_get_time() + MeasureActionFlushDist;
+      }
+      else
+      {
+        LedStripe::setLed(LED_MEASURE, false);
+        nextMActionTime = esp_timer_get_time() + (MeasureActionFlushDist << 3);
+      }
+      if (!(ledStage % 6))
+        nextMActionTime = esp_timer_get_time() + (MeasureLongActionDist >> 1);
+      // else
+      //   nextMActionTime = esp_timer_get_time() + MeasureActionFlushDist;
+      ++ledStage;
+      *led_changed = true;
       return nextMActionTime;
     }
-
     //
     // nominal operation, short flashes
     //
@@ -166,6 +183,7 @@ namespace webserver
       }
       nominalLedActive = !nominalLedActive;
       //
+      *led_changed = true;
       return nextMActionTime;
     }
     //
@@ -203,7 +221,7 @@ namespace webserver
     default:
       // dark
       LedStripe::setLed(LED_MEASURE, false);
-      nextMActionTime = esp_timer_get_time() + MeasureActionDist;
+      nextMActionTime = esp_timer_get_time() + MeasureShortActionDist;
       ledStage = 0;
       break;
     }
