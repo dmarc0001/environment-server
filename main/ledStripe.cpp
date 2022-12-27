@@ -10,7 +10,7 @@ namespace webserver
 {
   constexpr int64_t WLANlongActionDist = 4000000LL;
   constexpr int64_t WLANshortActionDist = 40000LL;
-  constexpr int64_t MeasureActionFlashDist = 40000LL;
+  constexpr int64_t MeasureActionFlushDist = 40000LL;
   constexpr int64_t MeasureActionDist = 1000000LL;
   constexpr int64_t HTTPActionFlashDist = 45000LL;
   constexpr int64_t HTTPActionDarkDist = 60000LL;
@@ -37,9 +37,8 @@ namespace webserver
   {
     using namespace Prefs;
     int64_t nextWLANLedActionTime{WLANlongActionDist};
-    int64_t nextMeasureLedActionTime{MeasureActionFlashDist};
+    int64_t nextMeasureLedActionTime{MeasureActionFlushDist};
     int64_t nextHTTPLedActionTime{HTTPActionDarkDist};
-    uint8_t ledStage{0};
     int64_t nowTime = esp_timer_get_time();
     LedStripe::is_running = true;
     bool led_changed{false};
@@ -101,56 +100,7 @@ namespace webserver
       if (nextMeasureLedActionTime < nowTime)
       {
         // it ist time for LED action
-        switch (ledStage)
-        {
-        case 0:
-          // Measure state flash
-          nextMeasureLedActionTime = esp_timer_get_time() + MeasureActionFlashDist;
-          switch (StatusObject::getMeasureState())
-          {
-          case MeasureState::MEASURE_UNKNOWN:
-            LedStripe::setLed(LED_MEASURE, LedStripe::measure_unknown_colr);
-            break;
-          case MeasureState::MEASURE_ACTION:
-            LedStripe::setLed(LED_MEASURE, LedStripe::measure_action_colr);
-            break;
-          case MeasureState::MEASURE_NOMINAL:
-            // led off when low acku
-            if (StatusObject::getLowAcku())
-              LedStripe::setLed(LED_MEASURE, false);
-            else
-              LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
-            break;
-          case MeasureState::MEASURE_WARN:
-            LedStripe::setLed(LED_MEASURE, LedStripe::measure_warn_colr);
-            break;
-          case MeasureState::MEASURE_ERR:
-            LedStripe::setLed(LED_MEASURE, LedStripe::measure_err_colr);
-            break;
-          default:
-            LedStripe::setLed(LED_MEASURE, LedStripe::measure_crit_colr);
-            break;
-          }
-          ++ledStage;
-          break;
-
-        case 1:
-        default:
-          if (StatusObject::getMeasureState() != MeasureState::MEASURE_NOMINAL)
-          {
-            // dark
-            LedStripe::setLed(LED_MEASURE, false);
-            nextMeasureLedActionTime = esp_timer_get_time() + MeasureActionDist;
-          }
-          else
-          {
-            // if not dark, half sleep
-            nextMeasureLedActionTime = esp_timer_get_time() + (MeasureActionDist >> 1);
-          }
-          ledStage = 0;
-          break;
-        }
-        led_changed = true;
+        nextMeasureLedActionTime = measureStateLoop(&led_changed);
       }
       if (nextHTTPLedActionTime < nowTime)
       {
@@ -182,6 +132,88 @@ namespace webserver
     }
   }
 
+  /**
+   * loop for mesure state
+  */
+  int64_t LedStripe::measureStateLoop(bool *led_changed)
+  {
+    using namespace Prefs;
+    static uint8_t ledStage{0}; // maybe more then two states
+    static bool nominalLedActive{false};
+    uint64_t nextMActionTime = esp_timer_get_time() + MeasureActionDist;
+    webserver::MeasureState state = StatusObject::getMeasureState();
+
+    if (StatusObject::getLowAcku())
+    {
+      // TODO; flash RED
+      return nextMActionTime;
+    }
+
+    //
+    // nominal operation, short flashes
+    //
+    if (state == MeasureState::MEASURE_NOMINAL)
+    {
+      // flash rare
+      if (nominalLedActive)
+      {
+        LedStripe::setLed(LED_MEASURE, false);
+      }
+      else
+      {
+        LedStripe::setLed(LED_MEASURE, LedStripe::measure_nominal_colr);
+        nextMActionTime = esp_timer_get_time() + MeasureActionFlushDist;
+      }
+      nominalLedActive = !nominalLedActive;
+      //
+      return nextMActionTime;
+    }
+    //
+    // not nominal state
+    //
+    switch (ledStage)
+    {
+    case 0:
+      // Measure state flash
+      switch (StatusObject::getMeasureState())
+      {
+      case MeasureState::MEASURE_UNKNOWN:
+        LedStripe::setLed(LED_MEASURE, LedStripe::measure_unknown_colr);
+        break;
+      case MeasureState::MEASURE_ACTION:
+        LedStripe::setLed(LED_MEASURE, LedStripe::measure_action_colr);
+        break;
+      case MeasureState::MEASURE_NOMINAL:
+        break;
+      case MeasureState::MEASURE_WARN:
+        LedStripe::setLed(LED_MEASURE, LedStripe::measure_warn_colr);
+        break;
+      case MeasureState::MEASURE_ERR:
+        LedStripe::setLed(LED_MEASURE, LedStripe::measure_err_colr);
+        break;
+      default:
+        LedStripe::setLed(LED_MEASURE, LedStripe::measure_crit_colr);
+        break;
+      }
+      ++ledStage;
+      nextMActionTime = esp_timer_get_time() + MeasureActionFlushDist;
+      break;
+
+    case 1:
+    default:
+      // dark
+      LedStripe::setLed(LED_MEASURE, false);
+      nextMActionTime = esp_timer_get_time() + MeasureActionDist;
+      ledStage = 0;
+      break;
+    }
+    *led_changed = true;
+    return nextMActionTime;
+  }
+
+  /**
+   * loop to compute LED for wlan state
+  */
   int64_t LedStripe::wlanStateLoop(bool *led_changed)
   {
     using namespace Prefs;
