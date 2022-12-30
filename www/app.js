@@ -556,7 +556,7 @@ function prepareJsonData(envData, rawData) {
           lastTimeStamp = readTimestamp;
           // mark the current time, simulate one reading step
           readTimestamp += timeInterval;
-          axesDatasetNumber = readDatasetNumber + databaseOffset;
+          axesDatasetNumber = parseInt(readDatasetNumber) + databaseOffset;
         }
         // this should the next readet time
         awaitedTimestamp = lastTimeStamp + timeInterval;
