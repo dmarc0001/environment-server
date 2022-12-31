@@ -337,8 +337,8 @@ namespace webserver
     // 30 days back
     // uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
     // std::string fileName(Prefs::WEB_MONTHLY_FILE);
-    border_timestamp = timestamp - (24UL * 60UL * 60UL);
-    fileName = std::string(Prefs::WEB_DAYLY_FILE);
+    uint32_t border_timestamp = timestamp - (24UL * 60UL * 60UL);
+    std::string fileName = std::string(Prefs::WEB_DAYLY_FILE);
     FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);
     vTaskDelay(pdMS_TO_TICKS(250));
     fileName = std::string(Prefs::ACKU_LOG_FILE);
