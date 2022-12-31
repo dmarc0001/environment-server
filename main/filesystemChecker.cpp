@@ -177,6 +177,9 @@ namespace webserver
     return true;
   }
 
+  /**
+   * copy only up to the border value in a new file
+  */
   void FsCheckObject::computeFileWithLimit(std::string fileName, uint32_t border_timestamp, bool _lock = false)
   {
     struct stat file_stat;
@@ -185,7 +188,6 @@ namespace webserver
     int counter{0};
     std::string delimiter_dp = ":";
     std::string delimiter_str = "\"";
-    // std::string delimiter_comma = ",";
     std::string tempFileName(Prefs::WEB_TEMP_FILE);
     ESP_LOGI(FsCheckObject::tag, "check the file <%s> for obsolete data...", fileName.c_str());
 
@@ -253,7 +255,7 @@ namespace webserver
               }
               else
               {
-                // value is outer the allowed value
+                // value is outer the allowed value, dismiss....
                 // TODO: implement
               }
             }
@@ -285,7 +287,7 @@ namespace webserver
     // delete original file, rename tempfile to original filename
     if (_lock)
     {
-      if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
+      if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(5000)) == pdTRUE)
       {
         FsCheckObject::renameFiles(fileName, tempFileName);
         xSemaphoreGive(StatusObject::fileSem);
@@ -329,28 +331,18 @@ namespace webserver
 
   /**
    * check if data depricated...
-   * ,{"timestamp":"1670411578","data":[{"id":"13654914070250903080","temp":"22.687500","humidy":"-100.000000"},{"id":"2918332558598846760","temp":"22.875000","humidy":"-100.000000"},{"id":"4071254063206621992","temp":"22.937500","humidy":"-100.000000"},{"id":"9907919180278756136","temp":"22.875000","humidy":"-100.000000"},{"id":"0","temp":"23.000000","humidy":"49.000000"}]}
-   * ,{"timestamp":"1670411698","data":[{"id":"13654914070250903080","temp":"22.750000","humidy":"-100.000000"},{"id":"2918332558598846760","temp":"22.937500","humidy":"-100.000000"},{"id":"4071254063206621992","temp":"22.937500","humidy":"-100.000000"},{"id":"9907919180278756136","temp":"22.875000","humidy":"-100.000000"},{"id":"0","temp":"22.000000","humidy":"48.000000"}]}
-   * ,{"timestamp":"1670411819","data":[{"id":"13654914070250903080","temp":"22.750000","humidy":"-100.000000"},{"id":"2918332558598846760","temp":"22.937500","humidy":"-100.000000"},{"id":"4071254063206621992","temp":"22.937500","humidy":"-100.000000"},{"id":"9907919180278756136","temp":"22.875000","humidy":"-100.000000"},{"id":"0","temp":"22.000000","humidy":"48.000000"}]}
-   *  
   */
   void FsCheckObject::computeFilesysCheck(uint32_t timestamp)
   {
     // 30 days back
-    uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
-    std::string fileName(Prefs::WEB_MONTHLY_FILE);
-    // FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
-    // vTaskDelay(pdMS_TO_TICKS(250));
-    // border_timestamp = timestamp - (7 * 24 * 60 * 60);
-    // fileName = std::string(Prefs::WEB_WEEKLY_FILE);
-    // FsCheckObject::computeFileWithLimit(fileName, border_timestamp);
-    // vTaskDelay(pdMS_TO_TICKS(250));
+    // uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
+    // std::string fileName(Prefs::WEB_MONTHLY_FILE);
     border_timestamp = timestamp - (24UL * 60UL * 60UL);
     fileName = std::string(Prefs::WEB_DAYLY_FILE);
     FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);
     vTaskDelay(pdMS_TO_TICKS(250));
     fileName = std::string(Prefs::ACKU_LOG_FILE);
-    FsCheckObject::computeFileWithLimit(fileName, border_timestamp, true);
+    FsCheckObject::computeFileWithLimit(fileName, border_timestamp, false);
     vTaskDelay(pdMS_TO_TICKS(250));
   }
 
