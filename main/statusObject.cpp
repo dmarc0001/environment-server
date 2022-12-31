@@ -95,35 +95,37 @@ namespace webserver
     //
     ESP_LOGI(StatusObject::tag, "task started...");
     xSemaphoreGive(StatusObject::fileSem);
+    //
+    // infinity loop
+    //
     while (true)
     {
       vTaskDelay(pdMS_TO_TICKS(1403));
       if (!StatusObject::dataset->empty())
       {
         //
-        // there are data, try to save in file(s)
-        // one for every day
+        // there are data, try to save in file
         //
-        // struct stat file_stat;
         std::string daylyFileName(Prefs::WEB_DAYLY_FILE);
-        //bool exist_file{false};
         FILE *fd = nullptr;
 
         if (StatusObject::getIsBrownout())
         {
           ESP_LOGW(StatusObject::tag, "can't write data, voltage to low!");
           vTaskDelay(pdMS_TO_TICKS(15000));
+          // HEAP check, if to low, delete data
+          uint32_t nowHeap = xPortGetFreeHeapSize();
+          while (nowHeap < 1024)
+          {
+            StatusObject::dataset->erase(StatusObject::dataset->begin());
+            nowHeap = xPortGetFreeHeapSize();
+          }
           continue;
         }
         ESP_LOGI(StatusObject::tag, "data for save exist...");
-        // is file exist
-        // if (stat(daylyFileName.c_str(), &file_stat) == 0)
-        // {
-        //   exist_file = true;
-        // }
-        // else
-        //   ESP_LOGI(StatusObject::tag, "file save does not exist...");
-
+        //
+        // while datsa exist
+        //
         while (!StatusObject::dataset->empty())
         {
           // read one dataset
@@ -164,9 +166,9 @@ namespace webserver
           cJSON_AddItemToObject(dataSetObj, Prefs::JSON_DATAOBJECT_NAME, mArray);
           // dataSetObj complete
           // try to write to file
-          // wait max 1000 ms
+          // wait max 10min...
           //
-          if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(1000)) == pdTRUE)
+          if (xSemaphoreTake(StatusObject::fileSem, pdMS_TO_TICKS(600000)) == pdTRUE)
           {
             // We were able to obtain the semaphore and can now access the
             // shared resource.
@@ -175,18 +177,6 @@ namespace webserver
             if (fd)
             {
               ESP_LOGI(StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str());
-              // if (exist_file)
-              // {
-              //   // exist the file, is there minimum on dataset,
-              //   // an i need a comma to write
-              //   fputs(",", fd);
-              // }
-              // else
-              // {
-              //   // this is the first dataset, it's permitted
-              //   // wo write a comma on first entry
-              //   exist_file = true;
-              // }
               char *jsonPrintString = cJSON_PrintUnformatted(dataSetObj);
               fputs(jsonPrintString, fd);
               fflush(fd);
@@ -207,11 +197,16 @@ namespace webserver
             // We have finished accessing the shared resource.  Release the
             // semaphore.
             xSemaphoreGive(StatusObject::fileSem);
-            // static uint32_t oldh{0UL};
-            // uint32_t nowh = xPortGetFreeHeapSize();
-            // uint32_t diff = nowh - oldh;
-            // oldh = nowh;
-            // ESP_LOGW(StatusObject::tag, "HEAP: %d, diff %d", nowh, diff);
+          }
+          else
+          {
+            //
+            // timeout while wait for Data writing, maybe the cleaning routine is running
+            // make an extra long little sleep
+            //
+            ESP_LOGE(StatusObject::tag, "can't get the semaphore for write datafile, garbage collector running to long?");
+            ESP_LOGE(StatusObject::tag, "Dataset lost!");
+            vTaskDelay(pdMS_TO_TICKS(5000));
           }
         }
       }
