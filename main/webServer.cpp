@@ -6,6 +6,7 @@
 #include <esp_vfs.h>
 #include <esp_wifi.h>
 #include <esp_netif.h>
+#include <esp_app_desc.h>
 #include <cJSON.h>
 #include <esp_log.h>
 #include <esp_chip_info.h>
@@ -16,7 +17,6 @@
 #include <esp_http_server.h>
 #include <http_app.h>
 #include <wifi_manager.h>
-#include "version.hpp"
 #include "statusObject.hpp"
 #include "webServer.hpp"
 
@@ -478,10 +478,11 @@ namespace webserver
    */
   esp_err_t WebServer::apiVersionInfoGetHandler( httpd_req_t *req )
   {
+    const esp_app_desc_t *desc = esp_app_get_description();
     httpd_resp_set_status( req, "200 OK" );
     httpd_resp_set_type( req, "application/json" );
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddStringToObject( root, "version", MY_APP_VERSION );
+    cJSON_AddStringToObject( root, "version", desc->version );
     const char *sys_info = cJSON_Print( root );
     httpd_resp_sendstr( req, sys_info );
     free( ( void * ) sys_info );
