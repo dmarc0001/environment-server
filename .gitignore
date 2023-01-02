@@ -1,6 +1,5 @@
 build/
 read/
-components/
 sdkconfig.old
 spiffs-www.bin
 main/webServer.cpp
