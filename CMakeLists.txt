@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-list( APPEND EXTRA_COMPONENT_DIRS /usr/local/esp-extra-components/components )
+# list( APPEND EXTRA_COMPONENT_DIRS /usr/local/esp-extra-components/components )
 
 project(environment-server
         VERSION 1.0.0

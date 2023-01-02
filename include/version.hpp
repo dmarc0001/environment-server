@@ -1,4 +1,4 @@
 #pragma once
 
-constexpr const char *MY_APP_VERSION{"<ad4d854> 2022-12-31 14:56:13 +0100 dirk.marciniak@mail.de"};
+constexpr const char *MY_APP_VERSION{"<506149e> 2023-01-02 09:52:59 +0100 dirk.marciniak@mail.de"};
 

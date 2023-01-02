@@ -24,14 +24,13 @@ namespace webserver
     private:
     static const char *tag;
     static bool is_running;  //! is the task running
-    static esp_adc_cal_characteristics_t adc1_chars;
 
     public:
     static void start();
 
     private:
     static void ackuTask( void * );
-    static bool adcCalibrationInit();
+    static bool adcCalibrationInit( adc_cali_handle_t * );
   };
 
 }  // namespace webserver
