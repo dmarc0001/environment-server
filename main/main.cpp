@@ -30,7 +30,7 @@ void app_main( void )
   const esp_app_desc_t *desc = esp_app_get_description();
 
   ESP_LOGI( "", "\n\n" );
-  ESP_LOGI( "VERSION", "%s\n", desc->version );
+  ESP_LOGI( "VERSION", "%s", desc->version );
   ESP_LOGI( "PROJECT", "%s\n\n", desc->project_name );
   vTaskDelay( pdMS_TO_TICKS( 3500 ) );
   // Initialize NVS
