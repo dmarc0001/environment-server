@@ -8,10 +8,10 @@
 
 namespace webserver
 {
-  constexpr int64_t WLANlongActionDist = 5000000LL;
+  constexpr int64_t WLANlongActionDist = 10000000LL;
   constexpr int64_t WLANshortActionDist = 20000LL;
   constexpr int64_t MeasureActionFlushDist = 40000LL;
-  constexpr int64_t MeasureLongActionDist = 5100000LL;
+  constexpr int64_t MeasureLongActionDist = 10100000LL;
   constexpr int64_t MeasureShortActionDist = 1000000LL;
   constexpr int64_t HTTPActionFlashDist = 35000LL;
   constexpr int64_t HTTPActionDarkDist = 60000LL;
