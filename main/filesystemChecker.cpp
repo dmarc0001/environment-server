@@ -181,7 +181,7 @@ namespace webserver
   /**
    * copy only up to the border value in a new file
    */
-  void FsCheckObject::computeFileWithLimit( std::string fileName, uint32_t border_timestamp, bool _lock = false )
+  void FsCheckObject::computeFileWithLimit( std::string fileName, uint32_t border_timestamp, SemaphoreHandle_t _sem )
   {
     struct stat file_stat;
     FILE *rFile{ nullptr };
@@ -286,12 +286,12 @@ namespace webserver
       return;
     }
     // delete original file, rename tempfile to original filename
-    if ( _lock )
+    if ( _sem )
     {
-      if ( xSemaphoreTake( StatusObject::fileSem, pdMS_TO_TICKS( 5000 ) ) == pdTRUE )
+      if ( xSemaphoreTake( _sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
       {
         FsCheckObject::renameFiles( fileName, tempFileName );
-        xSemaphoreGive( StatusObject::fileSem );
+        xSemaphoreGive( _sem );
       }
       else
       {
@@ -340,10 +340,10 @@ namespace webserver
     // std::string fileName(Prefs::WEB_MONTHLY_FILE);
     uint32_t border_timestamp = timestamp - ( 24UL * 60UL * 60UL );
     std::string fileName = std::string( Prefs::WEB_DAYLY_FILE );
-    FsCheckObject::computeFileWithLimit( fileName, border_timestamp, true );
+    FsCheckObject::computeFileWithLimit( fileName, border_timestamp, StatusObject::measureFileSem );
     vTaskDelay( pdMS_TO_TICKS( 250 ) );
     fileName = std::string( Prefs::ACKU_LOG_FILE );
-    FsCheckObject::computeFileWithLimit( fileName, border_timestamp, false );
+    FsCheckObject::computeFileWithLimit( fileName, border_timestamp, StatusObject::ackuFileSem );
     vTaskDelay( pdMS_TO_TICKS( 250 ) );
   }
 

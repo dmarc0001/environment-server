@@ -127,7 +127,7 @@ namespace webserver
         // if filesystemchecker want to write, prevent this
         // read is walways possible
         //
-        if ( xSemaphoreTake( StatusObject::fileSem, pdMS_TO_TICKS( 1000 ) ) == pdTRUE )
+        if ( xSemaphoreTake( StatusObject::ackuFileSem, pdMS_TO_TICKS( 1000 ) ) == pdTRUE )
         {
           auto aFile = fopen( fileName.c_str(), "a" );
           if ( aFile )
@@ -149,7 +149,7 @@ namespace webserver
             cJSON_Delete( dataSetObj );
             cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
           }
-          xSemaphoreGive( StatusObject::fileSem );
+          xSemaphoreGive( StatusObject::ackuFileSem );
         }
       }
       //

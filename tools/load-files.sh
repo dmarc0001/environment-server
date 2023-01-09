@@ -2,7 +2,7 @@
 #
 # hole messdaten aktuell
 
-THOST=192.168.2.43
+THOST=192.168.1.43
 
 DATAFILES="acku.jdata last_fscheck.dat temporary.jdata today.jdata"
 

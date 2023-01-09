@@ -11,35 +11,36 @@ namespace webserver
 {
   class StatusObject
   {
-  private:
-    static const char *tag;       //! TAG for esp log
-    static bool is_init;          //! was object initialized
-    static bool is_running;       //! is save Task running?
-    static WlanState wlanState;   //! is wlan disconnected, connected etc....
-    static MeasureState msgState; //! which state ist the mesure
-    static bool http_active;      //! was an acces via http?
-    static int currentVoltage;    //! current voltage in mV
-    static bool isBrownout;       //! is voltage too low
-    static bool isLowAcku;        //! is low acku
-  public:
-    static std::shared_ptr<env_dataset> dataset; //! set of mesures
-    static SemaphoreHandle_t fileSem;            // is access to files busy
+    private:
+    static const char *tag;        //! TAG for esp log
+    static bool is_init;           //! was object initialized
+    static bool is_running;        //! is save Task running?
+    static WlanState wlanState;    //! is wlan disconnected, connected etc....
+    static MeasureState msgState;  //! which state ist the mesure
+    static bool http_active;       //! was an acces via http?
+    static int currentVoltage;     //! current voltage in mV
+    static bool isBrownout;        //! is voltage too low
+    static bool isLowAcku;         //! is low acku
+    public:
+    static std::shared_ptr< env_dataset > dataset;  //! set of mesures
+    static SemaphoreHandle_t measureFileSem;        // is access to files busy
+    static SemaphoreHandle_t ackuFileSem;           // is access to files busy
 
-  public:
+    public:
     static void init();
     static void start();
-    static void setWlanState(WlanState);
-    static void setMeasureState(MeasureState);
+    static void setWlanState( WlanState );
+    static void setMeasureState( MeasureState );
     static MeasureState getMeasureState();
     static WlanState getWlanState();
-    static void setHttpActive(bool);
+    static void setHttpActive( bool );
     static bool getHttpActive();
     static bool getIsBrownout();
-    static void setVoltage(int);
+    static void setVoltage( int );
     static int getVoltage();
     static bool getLowAcku();
 
-  private:
-    static void saveTask(void *);
+    private:
+    static void saveTask( void * );
   };
-}
+}  // namespace webserver
