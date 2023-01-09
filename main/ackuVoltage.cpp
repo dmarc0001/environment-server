@@ -18,22 +18,24 @@ namespace webserver
   using namespace Prefs;
 
   const char *AckuVoltage::tag{ "acku_voltage" };
-  bool AckuVoltage::is_running{ false };
+  TaskHandle_t AckuVoltage::taskHandle{ nullptr };
 
   /**
    * start low prio task for scanning the acku value
    */
   void AckuVoltage::start()
   {
-    if ( AckuVoltage::is_running )
+    if ( AckuVoltage::taskHandle )
     {
-      ESP_LOGE( AckuVoltage::tag, "acku measure task is running, abort." );
+      vTaskDelete( AckuVoltage::taskHandle );
+      AckuVoltage::taskHandle = nullptr;
     }
     else
     {
       // for security, if done do nothing
       StatusObject::init();
-      xTaskCreate( AckuVoltage::ackuTask, "acku-measure", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL );
+      xTaskCreate( AckuVoltage::ackuTask, "acku-measure", configMINIMAL_STACK_SIZE * 4, nullptr, tskIDLE_PRIORITY,
+                   &AckuVoltage::taskHandle );
     }
   }
 
@@ -42,7 +44,6 @@ namespace webserver
    */
   void AckuVoltage::ackuTask( void * )
   {
-    AckuVoltage::is_running = true;
     static uint32_t measures[ CURRENT_SMOOTH_COUNT ];
     adc_cali_handle_t adc_cali_handle = NULL;
     uint32_t idx = 0;

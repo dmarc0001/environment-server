@@ -12,7 +12,6 @@ namespace webserver
   {
     private:
     static const char *tag;
-    static bool is_running;                              //! is the task running
     static led_strip_t strip;                            //! STRIP describe struct
     static rgb_t curr_color[ Prefs::LED_STRIPE_COUNT ];  //! currend led color
     static const rgb_t wlan_discon_colr;                 //! color if wlan disconnected
@@ -30,6 +29,7 @@ namespace webserver
 
     public:
     static void start();  //! start the tsk (singleton)
+    static TaskHandle_t taskHandle;
 
     private:
     static void ledTask( void * );

@@ -23,10 +23,10 @@ namespace webserver
   {
     private:
     static const char *tag;
-    static bool is_running;  //! is the task running
 
     public:
     static void start();
+    static TaskHandle_t taskHandle;
 
     private:
     static void ackuTask( void * );

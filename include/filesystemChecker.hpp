@@ -15,10 +15,10 @@ namespace webserver
     private:
     static const char *tag;  //! TAG for esp log
     static bool is_init;     //! was object initialized
-    static bool is_running;  //! is save Task running?
 
     public:
     static void start();  //! start the task if is not running
+    static TaskHandle_t taskHandle;
 
     private:
     static void init();                                                            //! init vars etc

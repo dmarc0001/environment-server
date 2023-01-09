@@ -12,15 +12,15 @@ namespace webserver
 {
   class TempMeasure
   {
-  private:
+    private:
     static const char *tag;
-    static bool is_running;
 
-  public:
+    public:
     static void start();
+    static TaskHandle_t taskHandle;
 
-  private:
-    static void measureTask(void *);
+    private:
+    static void measureTask( void * );
   };
 
-}
+}  // namespace webserver

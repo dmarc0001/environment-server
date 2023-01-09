@@ -19,6 +19,7 @@ namespace webserver
   const char *LedStripe::tag{ "hardware" };
   led_strip_t LedStripe::strip{};
   rgb_t LedStripe::curr_color[ Prefs::LED_STRIPE_COUNT ]{};
+  TaskHandle_t LedStripe::taskHandle{ nullptr };
 
   const rgb_t LedStripe::wlan_discon_colr{ rgb_from_code( 0x00323200 ) };
   const rgb_t LedStripe::wlan_search_colr{ rgb_from_code( 0x00664106 ) };
@@ -32,7 +33,6 @@ namespace webserver
   const rgb_t LedStripe::measure_err_colr{ rgb_from_code( 0x00800000 ) };
   const rgb_t LedStripe::measure_crit_colr{ rgb_from_code( 0x00ff1010 ) };
   const rgb_t LedStripe::http_active{ rgb_from_code( 0x00808000 ) };
-  bool LedStripe::is_running{ false };
 
   void LedStripe::ledTask( void * )
   {
@@ -41,7 +41,6 @@ namespace webserver
     int64_t nextMeasureLedActionTime{ MeasureActionFlushDist };
     int64_t nextHTTPLedActionTime{ HTTPActionDarkDist };
     int64_t nowTime = esp_timer_get_time();
-    LedStripe::is_running = true;
     bool led_changed{ false };
     // ESP32-S2 RGB LED
     ESP_LOGI( LedStripe::tag, "initialize WS2812 led stripe..." );
@@ -366,15 +365,16 @@ namespace webserver
 
   void LedStripe::start()
   {
-    if ( LedStripe::is_running )
+    if ( LedStripe::taskHandle )
     {
-      ESP_LOGE( LedStripe::tag, "led task is running, abort." );
+      vTaskDelete( LedStripe::taskHandle );
+      LedStripe::taskHandle = nullptr;
     }
     else
     {
       // xTaskCreate(static_cast<void (*)(void *)>(&(rest_webserver::TempMeasure::measureTask)), "ds18x20", configMINIMAL_STACK_SIZE *
       // 4, NULL, 5, NULL);
-      xTaskCreate( LedStripe::ledTask, "led-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL );
+      xTaskCreate( LedStripe::ledTask, "led-task", configMINIMAL_STACK_SIZE * 4, nullptr, tskIDLE_PRIORITY, &LedStripe::taskHandle );
     }
   }
 }  // namespace webserver

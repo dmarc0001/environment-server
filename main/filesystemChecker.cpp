@@ -13,21 +13,23 @@ namespace webserver
 
   const char *FsCheckObject::tag{ "fs_checker" };
   bool FsCheckObject::is_init{ false };
-  bool FsCheckObject::is_running{ false };
+  TaskHandle_t FsCheckObject::taskHandle{ nullptr };
 
   /**
    * start (if not running yet) the file-system-checker
    */
   void FsCheckObject::start()
   {
-    if ( FsCheckObject::is_running )
+    if ( FsCheckObject::taskHandle )
     {
-      ESP_LOGE( FsCheckObject::tag, "filesystem chceker task is running, abort." );
+      vTaskDelete( FsCheckObject::taskHandle );
+      FsCheckObject::taskHandle = nullptr;
     }
     else
     {
       // start the task, lowest priority
-      xTaskCreate( FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY, NULL );
+      xTaskCreate( FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, nullptr, tskIDLE_PRIORITY,
+                   &FsCheckObject::taskHandle );
     }
   }
 
@@ -46,9 +48,8 @@ namespace webserver
    */
   void FsCheckObject::filesystemTask( void * )
   {
-    FsCheckObject::is_running = true;
     if ( !FsCheckObject::is_init )
-      init();
+      FsCheckObject::init();
     // for security, if init do nothing
     StatusObject::init();
     //

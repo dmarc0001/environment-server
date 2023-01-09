@@ -6,6 +6,7 @@
 #include <cJSON.h>
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
+#include "filesystemChecker.hpp"
 
 namespace webserver
 {
@@ -91,9 +92,7 @@ namespace webserver
    */
   void StatusObject::saveTask( void *ptr )
   {
-    //
-    // TODO: check count of files, delete if an file is too old
-    // do this all few hours
+    uint8_t errorCounter{ 0 };  // count if file semaphore not availible
     //
     ESP_LOGI( StatusObject::tag, "task started..." );
     xSemaphoreGive( StatusObject::measureFileSem );
@@ -170,10 +169,11 @@ namespace webserver
           cJSON_AddItemToObject( dataSetObj, Prefs::JSON_DATAOBJECT_NAME, mArray );
           // dataSetObj complete
           // try to write to file
-          // wait max 10min...
+          // wait max 60 sec, then counter incrase and continue
           //
-          if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 600000 ) ) == pdTRUE )
+          if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 60000 ) ) == pdTRUE )
           {
+            errorCounter = 0;
             // We were able to obtain the semaphore and can now access the
             // shared resource.
             // open File mode append
@@ -208,9 +208,27 @@ namespace webserver
             // timeout while wait for Data writing, maybe the cleaning routine is running
             // make an extra long little sleep
             //
+            ++errorCounter;
+            //
             ESP_LOGE( StatusObject::tag, "can't get the semaphore for write datafile, garbage collector running to long?" );
-            ESP_LOGE( StatusObject::tag, "Dataset lost!" );
-            vTaskDelay( pdMS_TO_TICKS( 5000 ) );
+            ESP_LOGE( StatusObject::tag, "Data may lost lost!" );
+            vTaskDelay( pdMS_TO_TICKS( 800 ) );
+            if ( errorCounter > 10 )
+            {
+              if ( errorCounter > 15 )
+              {
+                //
+                // maybe the whole system is bad
+                //
+                ESP_LOGE( StatusObject::tag, " seems the SPIFFS filesystem hat an problem, restart controller!" );
+                vTaskDelay( pdMS_TO_TICKS( 5000 ) );
+                esp_restart();
+              }
+              //
+              // maybe the filesystemchcekr hung, reset this
+              //
+              FsCheckObject::start();
+            }
           }
         }
       }
