@@ -215,6 +215,7 @@ namespace webserver
             vTaskDelay( pdMS_TO_TICKS( 800 ) );
             if ( errorCounter > 10 )
             {
+              ESP_LOGE( StatusObject::tag, "too many errors in spiffs... warning!!!!!!" );
               if ( errorCounter > 15 )
               {
                 //

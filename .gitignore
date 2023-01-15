@@ -4,3 +4,6 @@ sdkconfig.old
 spiffs-www.bin
 main/webServer.cpp
 read-spiffs-www.bin
+tools/last_fscheck.dat
+tools/acku.jdata
+tools/today.jdata
