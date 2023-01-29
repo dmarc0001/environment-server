@@ -45,7 +45,7 @@ namespace Prefs
   constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 6000;                    //! scan for new sensors
   constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;                         //! how many failed mesures to critical display?
   constexpr int MEASURE_MAX_DATASETS_IN_RAM = 20;                       //! how many unsaved datasets in RAM before critical error
-  constexpr uint32_t FILESYS_CHECK_INTERVAL = 12U * 60U * 60U;          //! interval between two checks
+  constexpr uint32_t FILESYS_CHECK_INTERVAL = 8U * 60U * 60U;           //! interval between two checks
   constexpr const char *ACKU_LOG_FILE{ "/spiffs/acku.jdata" };          //! virtual path for acku log
   constexpr int ACKU_BROWNOUT_VALUE = 2700;                             //! mV: voltage when brownout => no SPIFFS writings!
   constexpr int ACKU_BROWNOUT_LOWEST = 1800;                            //! mV: voltage when esp not running => invalid measure!
