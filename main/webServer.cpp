@@ -159,10 +159,6 @@ namespace webserver
       {
         WebServer::apiRestHandlerWeek( req );
       }
-      else if ( uri.compare( "month" ) == 0 )
-      {
-        WebServer::apiRestHandlerMonth( req );
-      }
       else if ( uri.compare( "current" ) == 0 )
       {
         WebServer::apiRestHandlerCurrent( req );
@@ -196,7 +192,7 @@ namespace webserver
    */
   esp_err_t WebServer::apiRestHandlerToday( httpd_req_t *req )
   {
-    std::string filePath( Prefs::WEB_DAYLY_FILE );
+    std::string filePath( Prefs::WEB_DAYLY_FILE_01 );
     return WebServer::deliverFileToHttpd( filePath, req );
   }
 
@@ -206,15 +202,6 @@ namespace webserver
   esp_err_t WebServer::apiRestHandlerWeek( httpd_req_t *req )
   {
     std::string filePath( Prefs::WEB_WEEKLY_FILE );
-    return WebServer::deliverFileToHttpd( filePath, req );
-  }
-
-  /**
-   * send JSON file for month
-   */
-  esp_err_t WebServer::apiRestHandlerMonth( httpd_req_t *req )
-  {
-    std::string filePath( Prefs::WEB_MONTHLY_FILE );
     return WebServer::deliverFileToHttpd( filePath, req );
   }
 

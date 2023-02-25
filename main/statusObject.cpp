@@ -107,7 +107,7 @@ namespace webserver
         //
         // there are data, try to save in file
         //
-        std::string daylyFileName( Prefs::WEB_DAYLY_FILE );
+        std::string daylyFileName( Prefs::WEB_DAYLY_FILE_01 );
         FILE *fd = nullptr;
 
         if ( StatusObject::getIsBrownout() )

@@ -15,18 +15,18 @@ namespace Prefs
   constexpr const char *TIMEZONE{ "CET-1" };                            //! my own timezone
   constexpr const char *MDNS_INSTANCE{ "esp rest server" };             //! instance nama of mdns process
   constexpr const char *WEB_PATH{ "/spiffs" };                          //! virtual path wegserver
-  constexpr const char *WEB_DAYLY_FILE{ "/spiffs/today.jdata" };        //! virtual path today's file
+  constexpr const char *WEB_DAYLY_FILE_01{ "/spiffs/today01.jdata" };   //! virtual path today's file
+  constexpr const char *WEB_DAYLY_FILE_02{ "/spiffs/today02.jdata" };   //! virtual path today's file
   constexpr const char *WEB_WEEKLY_FILE{ "/spiffs/week.jdata" };        //! virtual path 7 day-history file
-  constexpr const char *WEB_MONTHLY_FILE{ "/spiffs/month.jdata" };      //! virtual path 30 day history
   constexpr const char *WEB_TEMP_FILE{ "/spiffs/temporary.jdata" };     //! virtual path workerfile
+  constexpr size_t WEB_FILEPATH_MAX_SIZE{ 64 };                         //! max size of the filepath
+  constexpr uint32_t WEB_SCRATCH_BUFSIZE{ 1440 };                       //! buffsize für http server answers
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };                    //! timestamp name in json
   constexpr const char *JSON_TEMPERATURE_NAME{ "te" };                  //! temperature name in json
   constexpr const char *JSON_HUMIDY_NAME{ "hu" };                       //! humidy name in json
   constexpr const char *JSON_SENSOR_ID_NAME{ "id" };                    //! sensor id name in json
   constexpr const char *JSON_DATAOBJECT_NAME{ "da" };                   //! dataobject name in json for dataset per timestamp
   constexpr const char *JSON_ACKU_CURRENT_NAME{ "cu" };                 //! dataobject name in json for dataset per timestamp
-  constexpr size_t WEB_FILEPATH_MAX_SIZE{ 64 };                         //! max size of the filepath
-  constexpr uint32_t WEB_SCRATCH_BUFSIZE{ 1440 };                       //! buffsize für http server answers
   constexpr gpio_num_t LED_STRIPE_RMT_TX_GPIO = GPIO_NUM_4;             //! control pin GPIO für led control
   constexpr led_strip_type_t LED_STRIPE_TYPE = LED_STRIP_WS2812;        //! type of led stripe
   constexpr rmt_channel_t LED_STRIPE_RMT_CHANNEL = RMT_CHANNEL_3;       //! which remote control channel
@@ -45,8 +45,8 @@ namespace Prefs
   constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 6000;                    //! scan for new sensors
   constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;                         //! how many failed mesures to critical display?
   constexpr int MEASURE_MAX_DATASETS_IN_RAM = 20;                       //! how many unsaved datasets in RAM before critical error
-  constexpr uint32_t FILESYS_CHECK_INTERVAL = 8U * 60U * 60U;           //! interval between two checks
-  constexpr const char *ACKU_LOG_FILE{ "/spiffs/acku.jdata" };          //! virtual path for acku log
+  constexpr const char *ACKU_LOG_FILE_01{ "/spiffs/acku01.jdata" };     //! virtual path for acku log
+  constexpr const char *ACKU_LOG_FILE_02{ "/spiffs/acku02.jdata" };     //! virtual path for acku log
   constexpr int ACKU_BROWNOUT_VALUE = 2700;                             //! mV: voltage when brownout => no SPIFFS writings!
   constexpr int ACKU_BROWNOUT_LOWEST = 1800;                            //! mV: voltage when esp not running => invalid measure!
   constexpr int ACKU_LOWER_VALUE = 3100;                                //! mV: lower than this, LED minimum
@@ -54,8 +54,11 @@ namespace Prefs
   constexpr adc_channel_t ACKU_MEASURE_CHANNEL = ADC_CHANNEL_7;         //! AD pin for acku in LOLIN32
   constexpr adc_bitwidth_t ACKU_ADC_WIDTH = ADC_BITWIDTH_12;            //! full resulution for adc, we hab enough time
   constexpr adc_atten_t ACKU_ATTENT = ADC_ATTEN_DB_11;                  //! max db
-  // constexpr int MEASURE_INTERVAL_SEC = 20;                     //! interval between two measures
-  // constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 62;             //! scan for new sensors
+  constexpr const char *FILE_CHECK_FILE_NAME{ "/spiffs/last_fscheck.dat" };  //! timestamps for time check
+  constexpr uint32_t FILESYS_CHECK_INTERVAL = 15U * 60U;                     //! interval between two checks
+  // constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U;          //! interval between two checks
+  constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 900301;  //! sleeptime für filecheck
+
 }  // namespace Prefs
 
 #include "appStructs.hpp"

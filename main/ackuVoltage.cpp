@@ -122,7 +122,7 @@ namespace webserver
       if ( !StatusObject::getIsBrownout() && ( StatusObject::getWlanState() == WlanState::TIMESYNCED ) )
       {
         // write acku value to logfile
-        std::string fileName( Prefs::ACKU_LOG_FILE );
+        std::string fileName( Prefs::ACKU_LOG_FILE_01 );
         ESP_LOGD( AckuVoltage::tag, "acku value to file <%s>)", fileName.c_str() );
         //
         // if filesystemchecker want to write, prevent this

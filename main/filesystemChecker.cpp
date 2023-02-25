@@ -55,15 +55,14 @@ namespace webserver
     //
     // construct filename for marker for last check
     //
-    std::string fileName( Prefs::WEB_PATH );
-    fileName += "/last_fscheck.dat";
+    std::string fileName( Prefs::FILE_CHECK_FILE_NAME );
     // at first, do nothing, let oher things at first
-    vTaskDelay( pdMS_TO_TICKS( 10250 ) );
+    vTaskDelay( pdMS_TO_TICKS( 32109 ) );
     // infinity
     while ( true )
     {
       // wait for next garbage disposal
-      vTaskDelay( pdMS_TO_TICKS( 900301 ) );
+      vTaskDelay( pdMS_TO_TICKS( Prefs::FILESYS_CHECK_SLEEP_TIME_MS ) );
       if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
       {
         //
@@ -180,153 +179,46 @@ namespace webserver
   }
 
   /**
-   * copy only up to the border value in a new file
+   * delete original, rename temp to original
    */
-  void FsCheckObject::computeFileWithLimit( std::string fileName, uint32_t border_timestamp, SemaphoreHandle_t _sem )
+  esp_err_t FsCheckObject::renameFiles( std::string &fromFileName, std::string &toFileName, SemaphoreHandle_t _sem )
   {
-    struct stat file_stat;
-    FILE *rFile{ nullptr };
-    FILE *wFile{ nullptr };
-    int counter{ 0 };
-    std::string delimiter_dp = ":";
-    std::string delimiter_str = "\"";
-    std::string tempFileName( Prefs::WEB_TEMP_FILE );
-    ESP_LOGI( FsCheckObject::tag, "check the file <%s> for obsolete data...", fileName.c_str() );
-
-    // if exist, of course
-    if ( stat( fileName.c_str(), &file_stat ) == 0 )
+    ESP_LOGI( FsCheckObject::tag, "remove old and copy new file for <%s>...", fromFileName.c_str() );
+    if ( xSemaphoreTake( _sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
     {
       //
-      // file exist
+      // remove old file (if exist)
       //
-      ESP_LOGI( FsCheckObject::tag, "file <%s> exist...", fileName.c_str() );
-      // open the file, reading mode
-      rFile = fopen( fileName.c_str(), "r" );
-      if ( rFile )
+      if ( remove( toFileName.c_str() ) == 0 )
       {
-        //
-        // file is open for read
-        //
-        counter = 0;
-        // buffer for single line
-        char buffer[ L_BUFSIZE ];
-        // buffer for security clear
-        memset( &buffer[ 0 ], 0, L_BUFSIZE );
-        // read line
-        auto c_line = fgets( &buffer[ 0 ], L_BUFSIZE, rFile );
-        while ( c_line )
-        {
-          // convert line to String für edit reasons
-          std::string lineStr{ c_line };
-          // search first double point (after JSON_TIMESTAMP_NAME)
-          int dp_pos{ 0 };
-          if ( ( dp_pos = lineStr.find( delimiter_dp ) ) != std::string::npos )
-          {
-            // set point to first character after double quote
-            ++dp_pos;
-            ++dp_pos;
-            // and search next double quote
-            int str_pos{ 0 };
-            if ( ( str_pos = lineStr.find( delimiter_str, dp_pos ) ) != std::string::npos )
-            {
-              // extract value of timestring
-              auto token = lineStr.substr( dp_pos, ( str_pos - dp_pos ) );
-              ESP_LOGI( FsCheckObject::tag, "timestamp <%s> found...", token.c_str() );
-              // convert to number unsigned long
-              auto timestamp_current = std::stoul( token );
-              if ( timestamp_current > border_timestamp )
-              {
-                // the timestamp is inner of the allowed value
-                if ( !wFile )
-                {
-                  // okay i have to open a file
-                  ESP_LOGI( FsCheckObject::tag, "open temporary file <%s>...", tempFileName.c_str() );
-                  wFile = fopen( tempFileName.c_str(), "w" );
-                }
-                if ( wFile )
-                {
-                  // line ready for save
-                  ++counter;
-                  fputs( lineStr.c_str(), wFile );
-                  if ( counter % 25 == 0 )
-                  {
-                    // a little sleep for the other processes
-                    vTaskDelay( pdMS_TO_TICKS( 5 ) );
-                  }
-                }
-              }
-              else
-              {
-                // value is outer the allowed value, dismiss....
-                // TODO: implement
-              }
-            }
-          }
-          // small break...
-          vTaskDelay( pdMS_TO_TICKS( 13 ) );
-          // next line with fresh buffer...
-          memset( &buffer[ 0 ], 0, L_BUFSIZE );
-          c_line = fgets( &buffer[ 0 ], L_BUFSIZE, rFile );
-        }
-        //
-        // leave all clear
-        //
-        if ( wFile )
-          fclose( wFile );
-        wFile = nullptr;
-        fclose( rFile );
-        rFile = nullptr;
-      }
-    }
-    else
-    {
-      //
-      // there is no file to open...
-      //
-      ESP_LOGI( FsCheckObject::tag, "file <%s> not exist, abort...", fileName.c_str() );
-      return;
-    }
-    // delete original file, rename tempfile to original filename
-    if ( _sem )
-    {
-      if ( xSemaphoreTake( _sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
-      {
-        FsCheckObject::renameFiles( fileName, tempFileName );
-        xSemaphoreGive( _sem );
+        ESP_LOGI( FsCheckObject::tag, "removed <%s>, try to rename <%s> to <%s>...", toFileName.c_str(), fromFileName.c_str(),
+                  toFileName.c_str() );
       }
       else
       {
-        ESP_LOGE( FsCheckObject::tag, "can't obtain semaphore for filesystem check..." );
+        ESP_LOGE( FsCheckObject::tag, "remove file <%s> failed...", toFileName.c_str() );
       }
-    }
-    else
-    {
-      FsCheckObject::renameFiles( fileName, tempFileName );
-    }
-  }
-
-  /**
-   * delete original, rename temp to original
-   */
-  esp_err_t FsCheckObject::renameFiles( std::string &fileName, std::string &tempFileName )
-  {
-    ESP_LOGI( FsCheckObject::tag, "remove old and copy new file for <%s>...", fileName.c_str() );
-    if ( remove( fileName.c_str() ) == 0 )
-    {
-      ESP_LOGI( FsCheckObject::tag, "removed <%s>, try to rename <%s>...", fileName.c_str(), tempFileName.c_str() );
-      if ( rename( tempFileName.c_str(), fileName.c_str() ) == 0 )
+      //
+      // move file to old file
+      //
+      if ( rename( fromFileName.c_str(), toFileName.c_str() ) == 0 )
       {
-        ESP_LOGI( FsCheckObject::tag, "remove old and copy new file for <%s> successful.", fileName.c_str() );
+        ESP_LOGI( FsCheckObject::tag, "move <%s> file to <%s> successful.", fromFileName.c_str(), toFileName.c_str() );
+        // semaphore release
+        xSemaphoreGive( _sem );
         return ESP_OK;
       }
       else
       {
-        ESP_LOGE( FsCheckObject::tag, "rename file <%s> to <%s> failed, ABORT...", tempFileName.c_str(), fileName.c_str() );
+        ESP_LOGE( FsCheckObject::tag, "move file <%s> to <%s> failed, ABORT...", fromFileName.c_str(), toFileName.c_str() );
       }
+      // semaphore release
+      xSemaphoreGive( _sem );
+      return ESP_OK;
     }
     else
     {
-      ESP_LOGE( FsCheckObject::tag, "remove old file for <%s> failed, ABORT...", fileName.c_str() );
+      ESP_LOGE( FsCheckObject::tag, "can't obtain semaphore for filesystem check..." );
     }
     return ESP_FAIL;
   }
@@ -336,15 +228,14 @@ namespace webserver
    */
   void FsCheckObject::computeFilesysCheck( uint32_t timestamp )
   {
-    // 30 days back
-    // uint32_t border_timestamp = timestamp - (30 * 24 * 60 * 60);
-    // std::string fileName(Prefs::WEB_MONTHLY_FILE);
-    uint32_t border_timestamp = timestamp - ( 24UL * 60UL * 60UL );
-    std::string fileName = std::string( Prefs::WEB_DAYLY_FILE );
-    FsCheckObject::computeFileWithLimit( fileName, border_timestamp, StatusObject::measureFileSem );
+    std::string fromFileName( Prefs::WEB_DAYLY_FILE_01 );
+    std::string toFileName( Prefs::WEB_DAYLY_FILE_02 );
+    FsCheckObject::renameFiles( fromFileName, toFileName, StatusObject::measureFileSem );
     vTaskDelay( pdMS_TO_TICKS( 250 ) );
-    fileName = std::string( Prefs::ACKU_LOG_FILE );
-    FsCheckObject::computeFileWithLimit( fileName, border_timestamp, StatusObject::ackuFileSem );
+
+    fromFileName = std::string( Prefs::ACKU_LOG_FILE_01 );
+    toFileName = std::string( Prefs::ACKU_LOG_FILE_02 );
+    FsCheckObject::renameFiles( fromFileName, toFileName, StatusObject::ackuFileSem );
     vTaskDelay( pdMS_TO_TICKS( 250 ) );
   }
 
