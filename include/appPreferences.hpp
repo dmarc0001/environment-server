@@ -54,10 +54,9 @@ namespace Prefs
   constexpr adc_channel_t ACKU_MEASURE_CHANNEL = ADC_CHANNEL_7;         //! AD pin for acku in LOLIN32
   constexpr adc_bitwidth_t ACKU_ADC_WIDTH = ADC_BITWIDTH_12;            //! full resulution for adc, we hab enough time
   constexpr adc_atten_t ACKU_ATTENT = ADC_ATTEN_DB_11;                  //! max db
-  constexpr const char *FILE_CHECK_FILE_NAME{ "/spiffs/last_fscheck.dat" };  //! timestamps for time check
-  constexpr uint32_t FILESYS_CHECK_INTERVAL = 15U * 60U;                     //! interval between two checks
-  // constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U;          //! interval between two checks
-  constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 900301;  //! sleeptime für filecheck
+  constexpr const char *FILE_CHECK_FILE_NAME{ "/spiffs/fscheck.dat" };  //! timestamps for time check
+  constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U;          //! interval between two checks
+  constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 900301;              //! sleeptime für filecheck
 
 }  // namespace Prefs
 
