@@ -23,7 +23,7 @@
     "files.eol": "\n",
     "files.insertFinalNewline": true,
     "html.format.endWithNewline": true,
-    "C_Cpp.default.compilerPath": "C:/Users/dmarc/.platformio/packages/toolchain-xtensa32/bin/xtensa-esp32-elf-gcc.exe",
+    "C_Cpp.default.compilerPath": "/root/.espressif/tools/xtensa-esp-elf-gdb/11.2_20220823/xtensa-esp-elf-gdb/bin/xtensa-esp32-elf-gcc",
     "git.confirmSync": false,
     "liveshare.authenticationProvider": "GitHub",
     "todo-tree.tree.showScanModeButton": false,
@@ -40,7 +40,7 @@
         "jupyter-notebook": "left"
     },
     "python.analysis.logLevel": "Information",
-    "python.defaultInterpreterPath": "C:\\Program Files\\Python\\python.exe",
+    "python.defaultInterpreterPath": "/root/.espressif/python_env/idf5.0_py3.10_env/bin/python",
     "python.linting.pycodestyleCategorySeverity.E": "Hint",
     "editor.suggestSelection": "first",
     "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
