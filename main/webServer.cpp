@@ -3,6 +3,7 @@
 #include <utility>
 #include <string.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <esp_vfs.h>
 #include <esp_wifi.h>
 #include <esp_netif.h>
@@ -192,8 +193,8 @@ namespace webserver
    */
   esp_err_t WebServer::apiRestHandlerToday( httpd_req_t *req )
   {
-    std::string filePath( Prefs::WEB_DAYLY_FILE_01 );
-    return WebServer::deliverFileToHttpd( filePath, req );
+    std::list< std::string > files{ std::string( Prefs::WEB_DAYLY_FILE_01 ), std::string( Prefs::WEB_DAYLY_FILE_02 ) };
+    return WebServer::deliverJdataFilesToHttpd( files, req );
   }
 
   /**
@@ -271,6 +272,133 @@ namespace webserver
   }
 
   /**
+   * if there nor a pysical file, try other symbolic url's
+   */
+  esp_err_t WebServer::handleNotPhysicFileSources( std::string &filePath, httpd_req_t *req )
+  {
+    std::string uri( req->uri );
+    //
+    // If file not present on SPIFFS check if URI
+    // corresponds to one of the hardcoded paths
+    //
+    if ( uri.compare( "/" ) == 0 )
+    {
+      //
+      // redirect to index.html
+      //
+      return WebServer::indexHtmlGetHandler( req );
+    }
+    //
+    // so i not found file or hardcodet uri
+    // make a failure message
+    //
+    ESP_LOGE( WebServer::tag, "failed to stat file : %s", filePath.c_str() );
+    httpd_resp_send_err( req, HTTPD_404_NOT_FOUND, "file does not exist" );
+    return ESP_FAIL;
+  }
+
+  /**
+   * only jdata files concat
+   */
+  esp_err_t WebServer::deliverJdataFilesToHttpd( FileList &files, httpd_req_t *req )
+  {
+    uint8_t filesCount{ 0 };
+    //
+    // at first: is SPIFFS ready?
+    //
+    if ( !is_spiffs_ready )
+    {
+      httpd_resp_send_err( req, HTTPD_500_INTERNAL_SERVER_ERROR, "SPIFFS not ready!" );
+      return ESP_FAIL;
+    }
+    //
+    // set content type of file
+    //
+    httpd_resp_set_type( req, "application/json" );
+    //
+    // overall files
+    //
+    for ( auto readFile : files )
+    {
+      size_t currentChunkSize{ 0 };
+      auto fd = fopen( readFile.c_str(), "r" );
+      if ( !fd )
+      {
+        if ( filesCount == 0 )
+        {
+          ESP_LOGE( WebServer::tag, "json-data: failed to read file : %s", readFile.c_str() );
+          /* Respond with 500 Internal Server Error */
+          std::string errMsg( "Failed to read existing file: " );
+          errMsg.append( readFile );
+          httpd_resp_send_err( req, HTTPD_500_INTERNAL_SERVER_ERROR, errMsg.c_str() );
+          return ESP_FAIL;
+        }
+        else
+        {
+          ESP_LOGE( WebServer::tag, "json-data: failed to read file : %s", readFile.c_str() );
+          continue;
+        }
+      }
+      if ( filesCount == 0 )
+      {
+        // JSON Array opener
+        const char *startPtr{ "[\n" };
+        httpd_resp_send_chunk( req, startPtr, 2 );
+      }
+      else
+      {
+        // first file was send, need a comma
+        const char *commaPtr{ "," };
+        httpd_resp_send_chunk( req, commaPtr, 1 );
+      }
+      // the whole file...
+      do
+      {
+        std::unique_ptr< char > currentBuf( new char[ Prefs::WEB_SCRATCH_BUFSIZE ] );
+        char *currentBufferPtr = currentBuf.get();
+        // try to read the next chunk
+        char *currentReadetBufferPtr = fgets( currentBufferPtr, Prefs::WEB_SCRATCH_BUFSIZE - 2, fd );
+        if ( currentReadetBufferPtr )
+        {
+          // readed a line...
+          // was there a line before?
+          if ( currentChunkSize > 0 )
+          {
+            // last round was a line
+            std::string myLine( "," );
+            myLine.append( currentBufferPtr );
+            currentChunkSize = myLine.size();
+            httpd_resp_send_chunk( req, myLine.c_str(), currentChunkSize );
+          }
+          else
+          {
+            // this is the first line
+            std::string myLine( currentBufferPtr );
+            currentChunkSize = myLine.size();
+            httpd_resp_send_chunk( req, myLine.c_str(), currentChunkSize );
+          }
+        }
+        else
+        {
+          // not a line read, EOF
+          currentChunkSize = 0;
+        }
+      } while ( currentChunkSize > 0 );
+      fclose( fd );
+      //
+      // cont files
+      //
+      ++filesCount;
+    }
+    // JSON Array closener
+    const char *endPtr{ "]\n" };
+    httpd_resp_send_chunk( req, endPtr, 2 );
+    // end of transmussion
+    httpd_resp_sendstr_chunk( req, nullptr );
+    return ESP_OK;
+  }
+
+  /**
    * deliver file from spiff to httpd
    */
   esp_err_t WebServer::deliverFileToHttpd( std::string &filePath, httpd_req_t *req )
@@ -293,24 +421,7 @@ namespace webserver
     //
     if ( stat( filePath.c_str(), &file_stat ) == -1 )
     {
-      //
-      // If file not present on SPIFFS check if URI
-      // corresponds to one of the hardcoded paths
-      //
-      if ( uri.compare( "/" ) == 0 )
-      {
-        //
-        // redirect to index.html
-        //
-        return WebServer::indexHtmlGetHandler( req );
-      }
-      //
-      // so i not found file or hardcodet uri
-      // make a failure message
-      //
-      ESP_LOGE( WebServer::tag, "failed to stat file : %s", filePath.c_str() );
-      httpd_resp_send_err( req, HTTPD_404_NOT_FOUND, "file does not exist" );
-      return ESP_FAIL;
+      return WebServer::handleNotPhysicFileSources( filePath, req );
     }
     //
     // then open the destination file

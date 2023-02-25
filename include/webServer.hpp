@@ -1,4 +1,5 @@
 #include <string>
+#include <list>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
@@ -12,6 +13,7 @@ namespace webserver
 {
 
   constexpr int FILE_PATH_MAX = ( ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN );
+  using FileList = std::list< std::string >;
 
   class WebServer
   {
@@ -35,6 +37,8 @@ namespace webserver
     static esp_err_t indexHtmlGetHandler( httpd_req_t * );
     static esp_err_t rootGetHandler( httpd_req_t * );
     static esp_err_t deliverFileToHttpd( std::string &, httpd_req_t * );
+    static esp_err_t deliverJdataFilesToHttpd( FileList &, httpd_req_t * );
+    static esp_err_t handleNotPhysicFileSources( std::string &, httpd_req_t * );
     static esp_err_t apiRestHandlerToday( httpd_req_t * );
     static esp_err_t apiRestHandlerWeek( httpd_req_t * );
     static esp_err_t apiSystemInfoGetHandler( httpd_req_t * );
