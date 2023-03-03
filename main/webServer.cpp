@@ -193,7 +193,8 @@ namespace webserver
    */
   esp_err_t WebServer::apiRestHandlerToday( httpd_req_t *req )
   {
-    std::list< std::string > files{ std::string( Prefs::WEB_DAYLY_FILE_01 ), std::string( Prefs::WEB_DAYLY_FILE_02 ) };
+    ESP_LOGI( WebServer::tag, "read today data " );
+    std::list< std::string > files{ std::string( Prefs::WEB_DAYLY_FILE_02 ), std::string( Prefs::WEB_DAYLY_FILE_01 ) };
     return WebServer::deliverJdataFilesToHttpd( files, req );
   }
 
@@ -202,8 +203,11 @@ namespace webserver
    */
   esp_err_t WebServer::apiRestHandlerWeek( httpd_req_t *req )
   {
-    std::string filePath( Prefs::WEB_WEEKLY_FILE );
-    return WebServer::deliverFileToHttpd( filePath, req );
+    ESP_LOGI( WebServer::tag, "read week data " );
+    std::list< std::string > files{ std::string( Prefs::WEB_DAYLY_FILE_02 ), std::string( Prefs::WEB_DAYLY_FILE_01 ) };
+    return WebServer::deliverJdataFilesToHttpd( files, req );
+    // std::string filePath( Prefs::WEB_WEEKLY_FILE );
+    // return WebServer::deliverFileToHttpd( filePath, req );
   }
 
   /**
