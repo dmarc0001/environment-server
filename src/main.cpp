@@ -1,64 +1,80 @@
-#include <string.h>
-#include <cstring>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/event_groups.h>
-#include <esp_system.h>
-#include <esp_wifi.h>
-#include <esp_netif.h>
-#include <esp_event.h>
-#include <esp_log.h>
-#include <esp_app_desc.h>
-#include <nvs_flash.h>
-#include <lwip/err.h>
-#include <lwip/sys.h>
+/*
+  main, hier startet es
+*/
+#include "common.hpp"
 #include "main.hpp"
+#include "statics.hpp"
 #include "ledStripe.hpp"
-#include "webServer.hpp"
-#include "tempMeasure.hpp"
-#include "filesystemChecker.hpp"
-#include "ackuVoltage.hpp"
-#include "appPreferences.hpp"
+#include "ackuRead.hpp"
 
-static const char *TAG{ "wifi station" };
+// Set LED_BUILTIN if it is not defined by Arduino framework
+// #define LED_BUILTIN 13
 
-void app_main( void )
+void setup()
 {
-  //
-  // tll me the version....
-  //
-  const esp_app_desc_t *desc = esp_app_get_description();
+  using namespace EnvServer;
 
-  ESP_LOGI( "", "\n\n" );
-  ESP_LOGI( "VERSION", "%s", desc->version );
-  ESP_LOGI( "PROJECT", "%s\n\n", desc->project_name );
-  vTaskDelay( pdMS_TO_TICKS( 3500 ) );
-  // Initialize NVS
-  esp_err_t ret = nvs_flash_init();
-  if ( ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND )
+  // Debug Ausgabe initialisieren
+  Serial.begin( 115200 );
+  Serial.println( "program started..." );
+  elog.addSerialLogging( Serial, "MAIN", DEBUG );  // Enable serial logging. We want only INFO or lower logleve.
+  elog.log( ALERT, "start with logging..." );
+  LEDStripe::init();
+  EnvServer::LEDStripe::setLed( Prefs::LED_ALL, 0, 0, 0 );
+  AckuVoltage::init();
+}
+
+void loop()
+{
+  static uint8_t counter = 0;
+  static uint8_t ackucounter = 0;
+  static uint8_t led = 0;
+  CRGB local_color{};
+
+  // wait for a second
+  delay( 1000 );
+  // turn the LED off by making the voltage LOW
+  // EnvServer::elog.log( DEBUG, "tick..." );
+  switch ( counter )
   {
-    ESP_ERROR_CHECK( nvs_flash_erase() );
-    ret = nvs_flash_init();
+    case 0:
+      local_color.r = 255;
+      local_color.g = 0;
+      local_color.b = 0;
+      ++counter;
+      break;
+
+    case 1:
+      local_color.r = 0;
+      local_color.g = 255;
+      local_color.b = 0;
+      ++counter;
+      break;
+
+    case 2:
+      local_color.r = 0;
+      local_color.g = 0;
+      local_color.b = 255;
+      ++counter;
+      break;
+
+    default:
+      counter = 0;
+      EnvServer::LEDStripe::setLed( led, 0, 0, 0 );
+      ++led;
+      if ( led >= Prefs::LED_STRIPE_COUNT )
+      {
+        led = 0;
+      }
+      break;
   }
-  ESP_ERROR_CHECK( ret );
-  // set my timezone, i deal with timestamps
-  setenv( "TZ", Prefs::TIMEZONE, 1 );
-  tzset();
-  ESP_LOGI( TAG, "wifi/webserver init..." );
-  webserver::WebServer::init();
-  ESP_LOGI( TAG, "webserver init...OK" );
-  ESP_LOGI( TAG, "service Tasks start..." );
-  webserver::TempMeasure::start();
-  webserver::LedStripe::start();
-  webserver::FsCheckObject::start();
-  webserver::AckuVoltage::start();
-  ESP_LOGI( TAG, "service Tasks start...OK" );
-  //
-  // i'm boring
-  //
-  while ( true )
+  // EnvServer::elog.log( DEBUG, "led %1d, counter %02d, color r: %03d g:%03d b:%03d...", led, counter, local_color.r, local_color.g,
+  //                      local_color.b );
+  EnvServer::LEDStripe::setLed( led, local_color );
+  if ( ++ackucounter > 4 )
   {
-    webserver::WebServer::compute();
-    vTaskDelay( pdMS_TO_TICKS( 500 ) );
+    float temp = EnvServer::AckuVoltage::readValue();
+    EnvServer::elog.log( DEBUG, "acku %02.1f Volt...", temp );
+    ackucounter = 0;
   }
 }
