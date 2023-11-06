@@ -4,7 +4,6 @@
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
 #include <ds18x20.h>
-#include <led_strip.h>
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
 

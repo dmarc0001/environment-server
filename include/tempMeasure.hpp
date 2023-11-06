@@ -3,7 +3,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <ds18x20.h>
-#include <led_strip.h>
 #include <esp_log.h>
 #include <esp_err.h>
 #include "appPreferences.hpp"

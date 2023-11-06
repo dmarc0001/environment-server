@@ -2,9 +2,7 @@
 #include <string>
 #include <stdint.h>
 #include <driver/rtc_io.h>
-#include <driver/rmt.h>
 #include <esp_wifi.h>
-#include <led_strip.h>
 #include <dht.h>
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
@@ -28,9 +26,8 @@ namespace Prefs
   constexpr const char *JSON_DATAOBJECT_NAME{ "da" };                   //! dataobject name in json for dataset per timestamp
   constexpr const char *JSON_ACKU_CURRENT_NAME{ "cu" };                 //! dataobject name in json for dataset per timestamp
   constexpr gpio_num_t LED_STRIPE_RMT_TX_GPIO = GPIO_NUM_4;             //! control pin GPIO für led control
-  constexpr led_strip_type_t LED_STRIPE_TYPE = LED_STRIP_WS2812;        //! type of led stripe
-  constexpr rmt_channel_t LED_STRIPE_RMT_CHANNEL = RMT_CHANNEL_3;       //! which remote control channel
-  constexpr uint32_t LED_STRIPE_COUNT = 3U;                             //! count of rgb-led
+  constexpr uint32_t LED_STRIP_RESOLUTION_HZ = 10000000;                //! 10MHz resolution, 1 tick = 0.1us
+  constexpr uint8_t LED_STRIPE_COUNT = 3;                               //! count of rgb-led
   constexpr uint8_t LED_WLAN = 0;                                       //! indicator WLAN
   constexpr uint8_t LED_MEASURE = 1;                                    //! indicator generall messages
   constexpr uint8_t LED_HTTP = 2;                                       //! indicator http activity
