@@ -4,6 +4,7 @@
 #include <driver/rtc_io.h>
 #include <esp_wifi.h>
 #include <FastLED.h>
+#include <DHT.h>
 
 namespace Prefs
 {
@@ -14,6 +15,7 @@ namespace Prefs
   constexpr const char *WEB_DAYLY_FILE_02{ "/spiffs/today02.jdata" };   //! virtual path today's file
   constexpr const char *WEB_WEEKLY_FILE{ "/spiffs/week.jdata" };        //! virtual path 7 day-history file
   constexpr const char *WEB_TEMP_FILE{ "/spiffs/temporary.jdata" };     //! virtual path workerfile
+  constexpr const char *WEB_PARTITION_LABEL{ "mydata" };                //! label of the spiffs or null
   constexpr size_t WEB_FILEPATH_MAX_SIZE{ 64 };                         //! max size of the filepath
   constexpr uint32_t WEB_SCRATCH_BUFSIZE{ 1440 };                       //! buffsize für http server answers
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };                    //! timestamp name in json
@@ -37,6 +39,7 @@ namespace Prefs
   constexpr gpio_num_t SENSOR_DHT_GPIO = GPIO_NUM_5;                    //! port for sensor humidy and temperature (pullup resistor)
   constexpr gpio_num_t SENSOR_TEMPERATURE_GPIO = GPIO_NUM_18;           //! port fpr ds18b20 temperature sensor(es) (pullup resistor)
   constexpr uint8_t SENSOR_TEMPERATURE_MAX_COUNT = 4;                   //! max sensor count to measure
+  constexpr uint8_t SENSOR_TEMPERATURE_MAX_COUNT_LIB = 8;               //! max sensor count to measure in library DAllas Temperature
   constexpr int MEASURE_INTERVAL_SEC = 600;                             //! interval between two measures
   constexpr int MEASURE_SCAN_SENSOR_INTERVAL = 6000;                    //! scan for new sensors
   constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;                         //! how many failed mesures to critical display?
@@ -47,6 +50,7 @@ namespace Prefs
   constexpr int ACKU_BROWNOUT_VALUE = 2700;                             //! mV: voltage when brownout => no SPIFFS writings!
   constexpr int ACKU_BROWNOUT_LOWEST = 1800;                            //! mV: voltage when esp not running => invalid measure!
   constexpr int ACKU_LOWER_VALUE = 3100;                                //! mV: lower than this, LED minimum
+  constexpr uint32_t ACKU_CURRENT_SMOOTH_COUNT = 5U;                    //! smooting vlaue for acku value
   constexpr const char *FILE_CHECK_FILE_NAME{ "/spiffs/fscheck.dat" };  //! timestamps for time check
   constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U;          //! interval between two checks
   constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 900301;              //! sleeptime für filecheck

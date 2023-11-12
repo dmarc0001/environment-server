@@ -5,6 +5,7 @@
 
 namespace EnvServer
 {
+  const char *LEDStripe::tag{ "LEDStripe" };
   CRGB LEDStripe::leds[ Prefs::LED_STRIPE_COUNT ]{};
   CRGB LEDStripe::shadow_leds[ Prefs::LED_STRIPE_COUNT ]{};
 
@@ -19,7 +20,7 @@ namespace EnvServer
     // currentPalette = RainbowColors_p;
     // currentBlending = LINEARBLEND;
     FastLED.show();
-    elog.log( DEBUG, "LED stripe initialized..." );
+    elog.log( DEBUG, "%s: initialized...", LEDStripe::tag );
   }
 
   /**

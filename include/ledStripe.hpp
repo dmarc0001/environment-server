@@ -9,6 +9,7 @@ namespace EnvServer
   class LEDStripe
   {
     private:
+    static const char *tag;
     static CRGB leds[ Prefs::LED_STRIPE_COUNT ];
     static CRGB shadow_leds[ Prefs::LED_STRIPE_COUNT ];
 

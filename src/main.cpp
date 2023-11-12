@@ -6,6 +6,8 @@
 #include "statics.hpp"
 #include "ledStripe.hpp"
 #include "ackuRead.hpp"
+#include "tempMeasure.hpp"
+#include "statusObject.hpp"
 
 // Set LED_BUILTIN if it is not defined by Arduino framework
 // #define LED_BUILTIN 13
@@ -16,23 +18,45 @@ void setup()
 
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
-  Serial.println( "program started..." );
+  Serial.println( "main: program started..." );
   elog.addSerialLogging( Serial, "MAIN", DEBUG );  // Enable serial logging. We want only INFO or lower logleve.
-  elog.log( ALERT, "start with logging..." );
+  elog.log( INFO, "main: start with logging..." );
+  // set my timezone, i deal with timestamps
+  elog.log( DEBUG, "main: set timezone (%s)...", Prefs::TIMEZONE );
+  setenv( "TZ", Prefs::TIMEZONE, 1 );
+  tzset();
+  elog.log( DEBUG, "main: init LED Stripe..." );
   LEDStripe::init();
   EnvServer::LEDStripe::setLed( Prefs::LED_ALL, 0, 0, 0 );
-  AckuVoltage::init();
+  elog.log( DEBUG, "main: init acku watch..." );
+  AckuVoltage::start();
+  elog.log( DEBUG, "main: start sensor watching..." );
+  TempMeasure::start();
+  //
+  // TODO: fake dass alles bereit ist
+  //
+  fakeReady();
 }
 
 void loop()
 {
+  static uint16_t counter = 0;
+  // EnvServer::elog.log( DEBUG, "led %1d, counter %02d, color r: %03d g:%03d b:%03d...", led, counter, local_color.r, local_color.g,
+  //                      local_color.b );
+  delay( 250 );
+  if ( ( ++counter % 4 ) == 0 )
+  {
+    LEDTest();
+  }
+}
+
+void LEDTest()
+{
   static uint8_t counter = 0;
-  static uint8_t ackucounter = 0;
   static uint8_t led = 0;
   CRGB local_color{};
 
   // wait for a second
-  delay( 1000 );
   // turn the LED off by making the voltage LOW
   // EnvServer::elog.log( DEBUG, "tick..." );
   switch ( counter )
@@ -68,13 +92,15 @@ void loop()
       }
       break;
   }
-  // EnvServer::elog.log( DEBUG, "led %1d, counter %02d, color r: %03d g:%03d b:%03d...", led, counter, local_color.r, local_color.g,
-  //                      local_color.b );
   EnvServer::LEDStripe::setLed( led, local_color );
-  if ( ++ackucounter > 4 )
-  {
-    float temp = EnvServer::AckuVoltage::readValue();
-    EnvServer::elog.log( DEBUG, "acku %02.1f Volt...", temp );
-    ackucounter = 0;
-  }
+}
+
+void fakeReady()
+{
+  using namespace EnvServer;
+  // after start measure thrad!!!!
+  elog.log( WARNING, "main: fake system stati..." );
+  StatusObject::setWlanState( WlanState::TIMESYNCED );
+  StatusObject::setMeasureState( MeasureState::MEASURE_NOMINAL );
+  StatusObject::setVoltage( 4100 );
 }
