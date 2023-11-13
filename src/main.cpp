@@ -1,6 +1,7 @@
 /*
   main, hier startet es
 */
+#include <Elog.h>
 #include "common.hpp"
 #include "main.hpp"
 #include "statics.hpp"
@@ -45,8 +46,8 @@ void loop()
 {
   static uint16_t counter = 0;
   static uint32_t nextTime{ millis() + 800 };
-  // EnvServer::elog.log( DEBUG, "led %1d, counter %02d, color r: %03d g:%03d b:%03d...", led, counter, local_color.r, local_color.g,
-  //                      local_color.b );
+  // next time logger time sync
+  static unsigned long setNextTimeCorrect{ ( millis() * 1000UL * 21600UL ) };
 
   EnvServer::WifiConfig::loop();
   if ( nextTime < millis() )
@@ -54,6 +55,25 @@ void loop()
     LEDTest();
     nextTime = millis() + 1000;
   }
+
+  if ( setNextTimeCorrect < millis() )
+  {
+    EnvServer::elog.log( DEBUG, "main: logger time correction..." );
+    setNextTimeCorrect = ( millis() * 1000UL * 21600UL );
+    struct tm ti;
+    if ( !getLocalTime( &ti ) )
+    {
+      EnvServer::elog.log( WARNING, "main: failed to obtain system time!" );
+    }
+    else
+    {
+      EnvServer::elog.log( DEBUG, "main: gotten system time!" );
+      Elog::provideTime( ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
+      EnvServer::elog.log( DEBUG, "main: logger time correction...OK" );
+    }
+  }
+
+  // Elog::provideTime( 2023, 7, 15, 8, 12, 34 );  // We make up the time: 15th of july 2023 at 08:12:34
 }
 
 void LEDTest()
@@ -107,5 +127,4 @@ void fakeReady()
   // after start measure thrad!!!!
   elog.log( WARNING, "main: fake system stati..." );
   StatusObject::setMeasureState( MeasureState::MEASURE_NOMINAL );
-  StatusObject::setVoltage( 4100 );
 }

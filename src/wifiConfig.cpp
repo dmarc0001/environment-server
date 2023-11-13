@@ -98,6 +98,16 @@ namespace EnvServer
         {
           StatusObject::setWlanState( WlanState::TIMESYNCED );
         }
+        struct tm ti;
+        if ( !getLocalTime( &ti ) )
+        {
+          elog.log( WARNING, "%s: failed to obtain systemtime!", WifiConfig::tag );
+        }
+        else
+        {
+          elog.log( DEBUG, "%s: gotten system time!", WifiConfig::tag );
+          Elog::provideTime( ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
+        }
         break;
       default:
         elog.log( INFO, "%s: notification: time status NOT sync completed!", WifiConfig::tag );
