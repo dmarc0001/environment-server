@@ -8,6 +8,7 @@
 #include "ackuRead.hpp"
 #include "tempMeasure.hpp"
 #include "statusObject.hpp"
+#include "wifiConfig.hpp"
 
 // Set LED_BUILTIN if it is not defined by Arduino framework
 // #define LED_BUILTIN 13
@@ -32,6 +33,8 @@ void setup()
   AckuVoltage::start();
   elog.log( DEBUG, "main: start sensor watching..." );
   TempMeasure::start();
+  elog.log( DEBUG, "main: start wifi..." );
+  WifiConfig::init();
   //
   // TODO: fake dass alles bereit ist
   //
@@ -41,12 +44,15 @@ void setup()
 void loop()
 {
   static uint16_t counter = 0;
+  static uint32_t nextTime{ millis() + 800 };
   // EnvServer::elog.log( DEBUG, "led %1d, counter %02d, color r: %03d g:%03d b:%03d...", led, counter, local_color.r, local_color.g,
   //                      local_color.b );
-  delay( 250 );
-  if ( ( ++counter % 4 ) == 0 )
+
+  EnvServer::WifiConfig::loop();
+  if ( nextTime < millis() )
   {
     LEDTest();
+    nextTime = millis() + 1000;
   }
 }
 
@@ -100,7 +106,6 @@ void fakeReady()
   using namespace EnvServer;
   // after start measure thrad!!!!
   elog.log( WARNING, "main: fake system stati..." );
-  StatusObject::setWlanState( WlanState::TIMESYNCED );
   StatusObject::setMeasureState( MeasureState::MEASURE_NOMINAL );
   StatusObject::setVoltage( 4100 );
 }

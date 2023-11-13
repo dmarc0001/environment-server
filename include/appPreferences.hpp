@@ -10,6 +10,7 @@ namespace Prefs
 {
   constexpr const char *TIMEZONE{ "CET-1" };                            //! my own timezone
   constexpr const char *MDNS_INSTANCE{ "esp rest server" };             //! instance nama of mdns process
+  constexpr const char *WIFI_DEFAULT_HOSTNAME{ "env_sensor" };          //! default hostname network
   constexpr const char *WEB_PATH{ "/spiffs" };                          //! virtual path wegserver
   constexpr const char *WEB_DAYLY_FILE_01{ "/spiffs/today01.jdata" };   //! virtual path today's file
   constexpr const char *WEB_DAYLY_FILE_02{ "/spiffs/today02.jdata" };   //! virtual path today's file
