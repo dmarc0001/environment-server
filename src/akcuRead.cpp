@@ -1,5 +1,6 @@
 #include "ackuRead.hpp"
 #include "statusObject.hpp"
+#include <cJSON.h>
 
 namespace EnvServer
 {
@@ -70,42 +71,48 @@ namespace EnvServer
       {
         idx = 0U;
       }
-
-      // TODO: write a acku log file
       //
-      // if ( !StatusObject::getIsBrownout() && ( StatusObject::getWlanState() == WlanState::TIMESYNCED ) )
-      // {
-      //   // write acku value to logfile
-      //   std::string fileName( Prefs::ACKU_LOG_FILE_01 );
-      //   ESP_LOGD( AckuVoltage::tag, "acku value to file <%s>)", fileName.c_str() );
-      //   //
-      //   // if filesystemchecker want to write, prevent this
-      //   // read is walways possible
-      //   //
-      //   if ( xSemaphoreTake( StatusObject::ackuFileSem, pdMS_TO_TICKS( 1000 ) ) == pdTRUE )
-      //   {
-      //     auto aFile = fopen( fileName.c_str(), "a" );
-      //     if ( aFile )
-      //     {
-      //       timeval val;
-      //       gettimeofday( &val, nullptr );
-      //       auto timestamp = val.tv_sec;
-      //       // write value to file with timestamp
-      //       cJSON *dataSetObj = cJSON_CreateObject();
-      //       // make timestamp objekt item
-      //       cJSON_AddItemToObject( dataSetObj, Prefs::JSON_TIMESTAMP_NAME, cJSON_CreateString( std::to_string( timestamp ).c_str() )
-      //       ); cJSON_AddItemToObject( dataSetObj, Prefs::JSON_ACKU_CURRENT_NAME, cJSON_CreateString( std::to_string( voltage
-      //       ).c_str() ) ); char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj ); fputs( jsonPrintString, aFile ); fflush(
-      //       aFile ); fputs( "\n", aFile ); fclose( aFile ); cJSON_Delete( dataSetObj ); cJSON_free( jsonPrintString );  // !!!!!!!
-      //       memory leak if not
-      //     }
-      //     xSemaphoreGive( StatusObject::ackuFileSem );
-      //   }
-      // }
+      // write a acku log file
+      //
+      if ( !StatusObject::getIsBrownout() && ( StatusObject::getWlanState() == WlanState::TIMESYNCED ) )
+      {
+        // write acku value to logfile
+        std::string fileName( Prefs::ACKU_LOG_FILE_01 );
+        elog.log( DEBUG, "%s: acku value to file <%s>", AckuVoltage::tag, fileName.c_str() );
+        //
+        // if filesystemchecker want to write, prevent this
+        // read is walways possible
+        //
+        if ( xSemaphoreTake( StatusObject::ackuFileSem, pdMS_TO_TICKS( 1000 ) ) == pdTRUE )
+        {
+          auto aFile = fopen( fileName.c_str(), "a" );
+          if ( aFile )
+          {
+            timeval val;
+            gettimeofday( &val, nullptr );
+            auto timestamp = val.tv_sec;
+            // write value to file with timestamp
+            cJSON *dataSetObj = cJSON_CreateObject();
+            // make timestamp objekt item
+            cJSON_AddItemToObject( dataSetObj, Prefs::JSON_TIMESTAMP_NAME, cJSON_CreateString( std::to_string( timestamp ).c_str() ) );
+            cJSON_AddItemToObject( dataSetObj, Prefs::JSON_ACKU_CURRENT_NAME,
+                                   cJSON_CreateString( std::to_string( voltage ).c_str() ) );
+            char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
+            fputs( jsonPrintString, aFile );
+            fflush( aFile );
+            fputs( "\n", aFile );
+            fclose( aFile );
+            cJSON_Delete( dataSetObj );
+            cJSON_free( jsonPrintString );  // !!!!!!!
+            // memory leak if not do it!
+          }
+          xSemaphoreGive( StatusObject::ackuFileSem );
+        }
+      }
       //
       // sleep for a while, acku needs som time for changing
       //
-      delay( 45013 );
+      delay( 132351 );
     }
   }
 
