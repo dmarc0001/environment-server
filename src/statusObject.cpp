@@ -66,6 +66,7 @@ namespace EnvServer
         StatusObject::is_spiffs = true;
       }
       color = CRGB( Prefs::LED_COLOR_BLACK );
+      ESP.restart();
     }
     else
     {
