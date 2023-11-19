@@ -40,25 +40,18 @@ void setup()
   TempMeasure::start();
   elog.log( DEBUG, "main: start wifi..." );
   WifiConfig::init();
-  //
-  // TODO: fake dass alles bereit ist
-  //
-  // fakeReady();
 }
 
 void loop()
 {
   static uint16_t counter = 0;
-  static uint32_t nextTime{ millis() + 800 };
   // next time logger time sync
   static unsigned long setNextTimeCorrect{ ( millis() * 1000UL * 21600UL ) };
 
-  EnvServer::WifiConfig::loop();
-  // if ( nextTime < millis() )
-  // {
-  //   LEDTest();
-  //   nextTime = millis() + 1000;
-  // }
+  //
+  // for webserver
+  //
+  // EnvServer::WifiConfig::wm.process();
 
   if ( setNextTimeCorrect < millis() )
   {
@@ -78,57 +71,4 @@ void loop()
   }
 
   // Elog::provideTime( 2023, 7, 15, 8, 12, 34 );  // We make up the time: 15th of july 2023 at 08:12:34
-}
-
-void LEDTest()
-{
-  static uint8_t counter = 0;
-  static uint8_t led = 0;
-  CRGB local_color{};
-
-  // wait for a second
-  // turn the LED off by making the voltage LOW
-  // EnvServer::elog.log( DEBUG, "tick..." );
-  switch ( counter )
-  {
-    case 0:
-      local_color.r = 255;
-      local_color.g = 0;
-      local_color.b = 0;
-      ++counter;
-      break;
-
-    case 1:
-      local_color.r = 0;
-      local_color.g = 255;
-      local_color.b = 0;
-      ++counter;
-      break;
-
-    case 2:
-      local_color.r = 0;
-      local_color.g = 0;
-      local_color.b = 255;
-      ++counter;
-      break;
-
-    default:
-      counter = 0;
-      EnvServer::LEDStripe::setLed( led, 0, 0, 0 );
-      ++led;
-      if ( led >= Prefs::LED_STRIPE_COUNT )
-      {
-        led = 0;
-      }
-      break;
-  }
-  EnvServer::LEDStripe::setLed( led, local_color );
-}
-
-void fakeReady()
-{
-  using namespace EnvServer;
-  // after start measure thrad!!!!
-  elog.log( WARNING, "main: fake system stati..." );
-  StatusObject::setMeasureState( MeasureState::MEASURE_NOMINAL );
 }
