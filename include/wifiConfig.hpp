@@ -11,8 +11,10 @@ namespace EnvServer
     private:
     static const char *tag;                    //! for debugging
     static bool is_sntp_init;                  //! was sntp
-    static WiFiManager wm;                     //! global wm instance
     static WiFiManagerParameter custom_field;  //! for non-blocking
+
+    public:
+    static WiFiManager wm;  //! global wm instance
 
     public:
     static void init();  //! init wifi and/or wifi manager
