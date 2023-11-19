@@ -10,6 +10,7 @@
 #include "tempMeasure.hpp"
 #include "statusObject.hpp"
 #include "wifiConfig.hpp"
+#include "ledColorsDefinition.hpp"
 
 // Set LED_BUILTIN if it is not defined by Arduino framework
 // #define LED_BUILTIN 13
@@ -29,7 +30,10 @@ void setup()
   tzset();
   elog.log( DEBUG, "main: init LED Stripe..." );
   LEDStripe::init();
-  EnvServer::LEDStripe::setLed( Prefs::LED_ALL, 0, 0, 0 );
+  CRGB color( Prefs::LED_COLOR_BLACK );
+  EnvServer::LEDStripe::setLed( Prefs::LED_ALL, color );
+  elog.log( DEBUG, "main: init statusobject..." );
+  StatusObject::init();
   elog.log( DEBUG, "main: init acku watch..." );
   AckuVoltage::start();
   elog.log( DEBUG, "main: start sensor watching..." );
@@ -39,7 +43,7 @@ void setup()
   //
   // TODO: fake dass alles bereit ist
   //
-  fakeReady();
+  // fakeReady();
 }
 
 void loop()
@@ -50,11 +54,11 @@ void loop()
   static unsigned long setNextTimeCorrect{ ( millis() * 1000UL * 21600UL ) };
 
   EnvServer::WifiConfig::loop();
-  if ( nextTime < millis() )
-  {
-    LEDTest();
-    nextTime = millis() + 1000;
-  }
+  // if ( nextTime < millis() )
+  // {
+  //   LEDTest();
+  //   nextTime = millis() + 1000;
+  // }
 
   if ( setNextTimeCorrect < millis() )
   {
