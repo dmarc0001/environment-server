@@ -7,7 +7,9 @@
 #include <cJSON.h>
 #include "statics.hpp"
 #include "appPreferences.hpp"
+#include "ledColorsDefinition.hpp"
 #include "statusObject.hpp"
+#include "ledStripe.hpp"
 // #include "filesystemChecker.hpp"
 
 namespace EnvServer
@@ -32,15 +34,38 @@ namespace EnvServer
    */
   void StatusObject::init()
   {
+    if ( StatusObject::is_init )
+    {
+      elog.log( DEBUG, "%s: always initialized... Igpore call", StatusObject::tag );
+      return;
+    }
+    CRGB color( Prefs::LED_COLOR_BLACK );
     elog.log( INFO, "%s: init status object...", StatusObject::tag );
     //
     // init the filesystem for log and web
     //
     elog.log( DEBUG, "%s: init filesystem...", StatusObject::tag );
-    if ( !SPIFFS.begin( true, Prefs::WEB_PATH, 8, Prefs::WEB_PARTITION_LABEL ) )
+    if ( !SPIFFS.begin( false, Prefs::WEB_PATH, 8, Prefs::WEB_PARTITION_LABEL ) )
     {
-      // there is an error BAD!
-      elog.log( ERROR, "%s: An Error has occurred while mounting SPIFFS!", StatusObject::tag );
+      color = CRGB( Prefs::LED_COLOR_FORMATTING );
+      LEDStripe::setLed( Prefs::LED_ALL, color );
+      delay( 1000 );
+      elog.log( INFO, "%s: init failed, FORMAT filesystem...", StatusObject::tag );
+      if ( !SPIFFS.format() )
+      {
+        // there is an error BAD!
+        color = CRGB( Prefs::LED_COLOR_ALERT );
+        LEDStripe::setLed( Prefs::LED_ALL, color );
+        elog.log( ERROR, "%s: An Error has occurred while mounting SPIFFS!", StatusObject::tag );
+        delay( 5000 );
+      }
+      else
+      {
+        elog.log( INFO, "%s: FORMAT filesystem successful...", StatusObject::tag );
+        // is okay
+        StatusObject::is_spiffs = true;
+      }
+      color = CRGB( Prefs::LED_COLOR_BLACK );
     }
     else
     {
@@ -48,6 +73,7 @@ namespace EnvServer
       StatusObject::is_spiffs = true;
       elog.log( DEBUG, "%s: init filesystem...OK", StatusObject::tag );
     }
+    LEDStripe::setLed( Prefs::LED_ALL, color );
     vSemaphoreCreateBinary( StatusObject::measureFileSem );
     vSemaphoreCreateBinary( StatusObject::ackuFileSem );
     StatusObject::is_init = true;
@@ -120,137 +146,138 @@ namespace EnvServer
     {
       // TODO: persistieren der Werte im filesystem
       vTaskDelay( pdMS_TO_TICKS( 1403 ) );
-      // if ( !StatusObject::dataset->empty() )
-      // {
-      //   //
-      //   // there are data, try to save in file
-      //   //
-      //   std::string daylyFileName( Prefs::WEB_DAYLY_FILE_01 );
-      //   FILE *fd = nullptr;
+      if ( !StatusObject::dataset->empty() )
+      {
+        //
+        // there are data, try to save in file
+        //
+        std::string daylyFileName( Prefs::WEB_DAYLY_FILE_01 );
+        FILE *fd = nullptr;
 
-      //   if ( StatusObject::getIsBrownout() )
-      //   {
-      //     ESP_LOGW( StatusObject::tag, "can't write data, voltage to low!" );
-      //     vTaskDelay( pdMS_TO_TICKS( 15000 ) );
-      //     // HEAP check, if to low, delete data
-      //     uint32_t nowHeap = xPortGetFreeHeapSize();
-      //     while ( nowHeap < 1024 )
-      //     {
-      //       StatusObject::dataset->erase( StatusObject::dataset->begin() );
-      //       nowHeap = xPortGetFreeHeapSize();
-      //     }
-      //     continue;
-      //   }
-      //   ESP_LOGI( StatusObject::tag, "data for save exist..." );
-      //   //
-      //   // while datsa exist
-      //   //
-      //   while ( !StatusObject::dataset->empty() )
-      //   {
-      //     // read one dataset
-      //     auto elem = StatusObject::dataset->front();
-      //     StatusObject::dataset->erase( StatusObject::dataset->begin() );
-      //     // create one object for one dataset
-      //     cJSON *dataSetObj = cJSON_CreateObject();
-      //     // make timestamp objekt item
-      //     cJSON_AddItemToObject( dataSetObj, Prefs::JSON_TIMESTAMP_NAME,
-      //                            cJSON_CreateString( std::to_string( elem.timestamp ).c_str() ) );
-      //     // make array of measures
-      //     auto m_dataset = elem.dataset;
-      //     cJSON *mArray = cJSON_CreateArray();
-      //     while ( !m_dataset.empty() )
-      //     {
-      //       // fill messure array
-      //       auto m_elem = m_dataset.front();
-      //       m_dataset.erase( m_dataset.begin() );
-      //       cJSON *mObj = cJSON_CreateObject();
-      //       char buffer[ 16 ];
-      //       if ( m_elem.addr > 0 )
-      //       {
-      //         cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME,
-      //                                cJSON_CreateString( std::to_string( m_elem.addr ).substr( 1, 6 ).c_str() ) );
-      //       }
-      //       else
-      //       {
-      //         cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( "0" ) );
-      //       }
-      //       std::memset( &buffer[ 0 ], 0, 16 );
-      //       sprintf( &buffer[ 0 ], "%3.1f", m_elem.temp );
-      //       cJSON_AddItemToObject( mObj, Prefs::JSON_TEMPERATURE_NAME, cJSON_CreateString( &buffer[ 0 ] ) );
-      //       std::memset( &buffer[ 0 ], 0, 16 );
-      //       sprintf( &buffer[ 0 ], "%3.1f", m_elem.humidy );
-      //       cJSON_AddItemToObject( mObj, Prefs::JSON_HUMIDY_NAME, cJSON_CreateString( &buffer[ 0 ] ) );
-      //       // measure object to array
-      //       cJSON_AddItemToArray( mArray, mObj );
-      //     }
-      //     // array as item to object
-      //     cJSON_AddItemToObject( dataSetObj, Prefs::JSON_DATAOBJECT_NAME, mArray );
-      //     // dataSetObj complete
-      //     // try to write to file
-      //     // wait max 60 sec, then counter incrase and continue
-      //     //
-      //     if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 60000 ) ) == pdTRUE )
-      //     {
-      //       errorCounter = 0;
-      //       // We were able to obtain the semaphore and can now access the
-      //       // shared resource.
-      //       // open File mode append
-      //       fd = fopen( daylyFileName.c_str(), "a" );
-      //       if ( fd )
-      //       {
-      //         ESP_LOGI( StatusObject::tag, "datafile <%s> opened...", daylyFileName.c_str() );
-      //         char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
-      //         fputs( jsonPrintString, fd );
-      //         fflush( fd );
-      //         fputs( "\n", fd );
-      //         fclose( fd );
-      //         cJSON_Delete( dataSetObj );
-      //         cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
-      //         ESP_LOGI( StatusObject::tag, "datafile <%s> written and closed...", daylyFileName.c_str() );
-      //       }
-      //       else
-      //       {
-      //         while ( !StatusObject::dataset->empty() )
-      //         {
-      //           StatusObject::dataset->erase( StatusObject::dataset->begin() );
-      //         }
-      //         ESP_LOGE( StatusObject::tag, "datafile <%s> can't open, data lost...", daylyFileName.c_str() );
-      //       }
-      //       // We have finished accessing the shared resource.  Release the
-      //       // semaphore.
-      //       xSemaphoreGive( StatusObject::measureFileSem );
-      //     }
-      //     else
-      //     {
-      //       //
-      //       // timeout while wait for Data writing, maybe the cleaning routine is running
-      //       // make an extra long little sleep
-      //       //
-      //       ++errorCounter;
-      //       //
-      //       ESP_LOGE( StatusObject::tag, "can't get the semaphore for write datafile, garbage collector running to long?" );
-      //       ESP_LOGE( StatusObject::tag, "Data may lost lost!" );
-      //       vTaskDelay( pdMS_TO_TICKS( 800 ) );
-      //       if ( errorCounter > 10 )
-      //       {
-      //         ESP_LOGE( StatusObject::tag, "too many errors in spiffs... warning!!!!!!" );
-      //         if ( errorCounter > 15 )
-      //         {
-      //           //
-      //           // maybe the whole system is bad
-      //           //
-      //           ESP_LOGE( StatusObject::tag, " seems the SPIFFS filesystem hat an problem, restart controller!" );
-      //           vTaskDelay( pdMS_TO_TICKS( 5000 ) );
-      //           esp_restart();
-      //         }
-      //         //
-      //         // maybe the filesystemchcekr hung, reset this
-      //         //
-      //         FsCheckObject::start();
-      //       }
-      //    }
-      //  }
-      // }
+        if ( StatusObject::getIsBrownout() )
+        {
+          elog.log( WARNING, "%s: can't write data, voltage too low!", StatusObject::tag );
+          delay( 15000 );
+          // HEAP check, if to low, delete data
+          uint32_t nowHeap = xPortGetFreeHeapSize();
+          while ( nowHeap < 1024 )
+          {
+            StatusObject::dataset->erase( StatusObject::dataset->begin() );
+            nowHeap = xPortGetFreeHeapSize();
+          }
+          continue;
+        }
+        ESP_LOGI( StatusObject::tag, "data for save exist..." );
+        //
+        // while datsa exist
+        //
+        while ( !StatusObject::dataset->empty() )
+        {
+          // read one dataset
+          auto elem = StatusObject::dataset->front();
+          StatusObject::dataset->erase( StatusObject::dataset->begin() );
+          // create one object for one dataset
+          cJSON *dataSetObj = cJSON_CreateObject();
+          // make timestamp objekt item
+          cJSON_AddItemToObject( dataSetObj, Prefs::JSON_TIMESTAMP_NAME,
+                                 cJSON_CreateString( std::to_string( elem.timestamp ).c_str() ) );
+          // make array of measures
+          auto m_dataset = elem.dataset;
+          cJSON *mArray = cJSON_CreateArray();
+          while ( !m_dataset.empty() )
+          {
+            // fill messure array
+            auto m_elem = m_dataset.front();
+            m_dataset.erase( m_dataset.begin() );
+            cJSON *mObj = cJSON_CreateObject();
+            char buffer[ 16 ];
+            if ( m_elem.addr > 0 )
+            {
+              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME,
+                                     cJSON_CreateString( std::to_string( m_elem.addr ).substr( 1, 6 ).c_str() ) );
+            }
+            else
+            {
+              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( "0" ) );
+            }
+            std::memset( &buffer[ 0 ], 0, 16 );
+            sprintf( &buffer[ 0 ], "%3.1f", m_elem.temp );
+            cJSON_AddItemToObject( mObj, Prefs::JSON_TEMPERATURE_NAME, cJSON_CreateString( &buffer[ 0 ] ) );
+            std::memset( &buffer[ 0 ], 0, 16 );
+            sprintf( &buffer[ 0 ], "%3.1f", m_elem.humidy );
+            cJSON_AddItemToObject( mObj, Prefs::JSON_HUMIDY_NAME, cJSON_CreateString( &buffer[ 0 ] ) );
+            // measure object to array
+            cJSON_AddItemToArray( mArray, mObj );
+          }
+          // array as item to object
+          cJSON_AddItemToObject( dataSetObj, Prefs::JSON_DATAOBJECT_NAME, mArray );
+          // dataSetObj complete
+          // try to write to file
+          // wait max 60 sec, then counter incrase and continue
+          //
+          if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 60000 ) ) == pdTRUE )
+          {
+            errorCounter = 0;
+            // We were able to obtain the semaphore and can now access the
+            // shared resource.
+            // open File mode append
+            fd = fopen( daylyFileName.c_str(), "a" );
+            if ( fd )
+            {
+              elog.log( INFO, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
+              char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
+              fputs( jsonPrintString, fd );
+              fflush( fd );
+              fputs( "\n", fd );
+              fclose( fd );
+              cJSON_Delete( dataSetObj );
+              cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
+              elog.log( INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );
+            }
+            else
+            {
+              while ( !StatusObject::dataset->empty() )
+              {
+                StatusObject::dataset->erase( StatusObject::dataset->begin() );
+              }
+              elog.log( ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag, daylyFileName.c_str() );
+            }
+            // We have finished accessing the shared resource.  Release the
+            // semaphore.
+            xSemaphoreGive( StatusObject::measureFileSem );
+          }
+          else
+          {
+            //
+            // timeout while wait for Data writing, maybe the cleaning routine is running
+            // make an extra long little sleep
+            //
+            ++errorCounter;
+            //
+            elog.log( ERROR, "%s: can't get the semaphore for write datafile, garbage collector running to long?", StatusObject::tag );
+            elog.log( ERROR, "%s: data may be lost!", StatusObject::tag );
+            delay( 800 );
+            if ( errorCounter > 10 )
+            {
+              elog.log( ERROR, "%s: too many errors in spiffs... warning!!!!!", StatusObject::tag );
+              if ( errorCounter > 15 )
+              {
+                //
+                // maybe the whole system is bad
+                //
+                elog.log( ERROR, "%s: seems the SPIFFS filesystem hat an problem, restart controller!", StatusObject::tag );
+                ESP_LOGE( StatusObject::tag, " seems the SPIFFS filesystem hat an problem, restart controller!" );
+                delay( 5000 );
+                esp_restart();
+              }
+              //
+              // maybe the filesystemchcekr hung, reset this
+              //
+              // TODO: FsCheckObject::start();
+            }
+          }
+        }
+      }
     }
   }
 

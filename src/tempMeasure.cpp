@@ -202,22 +202,6 @@ namespace EnvServer
     uint8_t sensors_count = TempMeasure::sensors.getDS18Count();
     elog.log( DEBUG, "%s: %03d DS18x20 devices found...", TempMeasure::tag, sensors_count );
     elog.log( DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag, sensors.isParasitePowerMode() ? "true" : "false" );
-    // for ( uint8_t sensor_idx = 0; sensor_idx < TempMeasure::maxSensors; ++sensor_idx )
-    // {
-    //   TempMeasure::addrs[ sensor_idx ] = 0;
-    // }
-    // for ( uint8_t sensor_idx = 0; ( sensor_idx < sensors_count && sensor_idx < TempMeasure::maxSensors ); ++sensor_idx )
-    // {
-    //   if ( !TempMeasure::oneWire.search( &( TempMeasure::addrs[ sensor_idx ] ) ) )
-    //   {
-    //     elog.log( INFO, "TempMeasure::measureTask: sensor idx %02d found, Addr %d...", sensor_idx, TempMeasure::addrs[ sensor_idx ]
-    //     );
-    //   }
-    //   else
-    //   {
-    //     elog.log( ERROR, "TempMeasure::measureTask: sensor idx %02d NOT found...", sensor_idx, TempMeasure::addrs[ sensor_idx ] );
-    //   }
-    // }
     return ( sensors_count );
   }
 

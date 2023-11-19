@@ -18,15 +18,15 @@ namespace EnvServer
     // wm.resetSettings();
     WifiConfig::wm.setConfigPortalBlocking( false );
     WifiConfig::wm.setConnectTimeout( 20 );
+    sntp_set_sync_mode( SNTP_SYNC_MODE_IMMED );
+    sntp_setoperatingmode( SNTP_OPMODE_POLL );
+    sntp_setservername( 1, "pool.ntp.org" );
+    sntp_set_time_sync_notification_cb( WifiConfig::timeSyncNotificationCallback );
     if ( WifiConfig::wm.autoConnect( "AutoConnectAP" ) )
     {
       elog.log( INFO, "%s: wifi connected...", WifiConfig::tag );
       StatusObject::setWlanState( WlanState::CONNECTED );
       elog.log( DEBUG, "%s: try to sync time...", WifiConfig::tag );
-      sntp_set_sync_mode( SNTP_SYNC_MODE_IMMED );
-      sntp_setoperatingmode( SNTP_OPMODE_POLL );
-      sntp_setservername( 1, "pool.ntp.org" );
-      sntp_set_time_sync_notification_cb( WifiConfig::timeSyncNotificationCallback );
       sntp_init();
       WifiConfig::is_sntp_init = true;
       // sntp_restart();
@@ -42,13 +42,11 @@ namespace EnvServer
       //     "Three";
       // new ( &WifiConfig::custom_field ) WiFiManagerParameter( custom_radio_str );  // custom html input
       // WifiConfig::wm.addParameter( &WifiConfig::custom_field );
-      // WifiConfig::wm.setAPCallback( configModeCallback );
+      WifiConfig::wm.setAPCallback( configModeCallback );
       // std::vector< const char * > menu = { "wifi", "info", "param", "sep", "restart", "exit" };
       // WifiConfig::wm.setMenu( menu );
       // set dark mode
       WifiConfig::wm.setClass( "invert" );
-      // config portal timeout 30 Sek
-      // WifiConfig::wm.setConfigPortalTimeout( 120 );
     }
     elog.log( INFO, "%s: initialize wifi...OK", WifiConfig::tag );
   }
@@ -76,6 +74,7 @@ namespace EnvServer
         break;
       case SYSTEM_EVENT_STA_GOT_IP:
         elog.log( INFO, "%s: device got ip <%s>...", WifiConfig::tag, WiFi.localIP().toString().c_str() );
+        sntp_init();
         break;
       case SYSTEM_EVENT_STA_LOST_IP:
         elog.log( INFO, "%s: device lost ip...", WifiConfig::tag );
