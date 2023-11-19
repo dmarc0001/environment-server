@@ -16,44 +16,31 @@ namespace EnvServer
     WiFi.onEvent( WifiConfig::wifiEventCallback );
     // reset settings - wipe credentials for testing
     // wm.resetSettings();
-    WifiConfig::wm.setConfigPortalBlocking( false );
+    // WifiConfig::wm.setConfigPortalBlocking( false );
+    WifiConfig::wm.setConfigPortalBlocking( true );
     WifiConfig::wm.setConnectTimeout( 20 );
     sntp_set_sync_mode( SNTP_SYNC_MODE_IMMED );
     sntp_setoperatingmode( SNTP_OPMODE_POLL );
     sntp_setservername( 1, "pool.ntp.org" );
     sntp_set_time_sync_notification_cb( WifiConfig::timeSyncNotificationCallback );
-    if ( WifiConfig::wm.autoConnect( "AutoConnectAP" ) )
+    if ( WifiConfig::wm.autoConnect( "EnvServerConfigAP" ) )
     {
       elog.log( INFO, "%s: wifi connected...", WifiConfig::tag );
       StatusObject::setWlanState( WlanState::CONNECTED );
       elog.log( DEBUG, "%s: try to sync time...", WifiConfig::tag );
       sntp_init();
       WifiConfig::is_sntp_init = true;
-      // sntp_restart();
+      WifiConfig::wm.stopWebPortal();
     }
     else
     {
       elog.log( WARNING, "%s: wifi not connected, access point running...", WifiConfig::tag );
       StatusObject::setWlanState( WlanState::DISCONNECTED );
-      // test custom html(radio)
-      // const char *custom_radio_str =
-      //     "<br/><label for='customfieldid'>Custom Field Label</label><input type='radio' name='customfieldid' value='1' checked> "
-      //     "One<br><input type='radio' name='customfieldid' value='2'> Two<br><input type='radio' name='customfieldid' value='3'> "
-      //     "Three";
-      // new ( &WifiConfig::custom_field ) WiFiManagerParameter( custom_radio_str );  // custom html input
-      // WifiConfig::wm.addParameter( &WifiConfig::custom_field );
-      WifiConfig::wm.setAPCallback( configModeCallback );
-      // std::vector< const char * > menu = { "wifi", "info", "param", "sep", "restart", "exit" };
-      // WifiConfig::wm.setMenu( menu );
+      WifiConfig::wm.setAPCallback( WifiConfig::configModeCallback );
       // set dark mode
       WifiConfig::wm.setClass( "invert" );
     }
     elog.log( INFO, "%s: initialize wifi...OK", WifiConfig::tag );
-  }
-
-  void WifiConfig::loop()
-  {
-    WifiConfig::wm.process();
   }
 
   void WifiConfig::wifiEventCallback( arduino_event_t *event )
