@@ -115,7 +115,6 @@ namespace EnvServer
     };
     String contentType( "text/plain" );
     String contentTypeMarker{ 0 };
-    FILE *fd{ nullptr };
 
     if ( !StatusObject::getIsSpiffsOkay() )
     {
@@ -139,45 +138,24 @@ namespace EnvServer
     contentTypeMarker = EnvWebServer::setContentTypeFromFile( contentType, filePath );
     elog.log( DEBUG, "%s: file <%s>: type: <%s>...", EnvWebServer::tag, filePath.c_str(), contentTypeMarker.c_str() );
     //
-    // then open the destination file
-    //
-    if ( contentTypeMarker.equals( "js.gz" ) )
-    {
-      fd = fopen( filePath.c_str(), "rb" );
-    }
-    else
-    {
-      fd = fopen( filePath.c_str(), "ra" );
-    }
-    if ( !fd )
-    {
-      elog.log( ERROR, "%s: failed to read existing file : <%s>, ABORT!", EnvWebServer::tag, filePath.c_str() );
-      /* Respond with 500 Internal Server Error */
-      request->send( 500, "text/plain", "can't read file" );
-      return;
-    }
-    elog.log( DEBUG, "%s: opened file <%s>!", EnvWebServer::tag, filePath.c_str() );
-    //
     // content-type from file find and set
     //
     elog.log( INFO, "%s: sending file : <%s> (%ld bytes)...", EnvWebServer::tag, filePath.c_str(), file_stat.st_size );
-    delay( 200 );
 
     //
     // make a chunked output
     //
     AsyncWebServerResponse *response =
         request->beginChunkedResponse( contentType,
-                                       [ &contentTypeMarker, fd ]( uint8_t *buffer, size_t maxLen, size_t index ) -> size_t
+                                       [ &contentTypeMarker, filePath ]( uint8_t *buffer, size_t maxLen, size_t index ) -> size_t
                                        {
                                          // Write up to "maxLen" bytes into "buffer" and return the
                                          // amount written. index equals the amount of bytes that have
                                          // been already sent You will be asked for more data until 0 is
                                          // returned Keep in mind that you can not delay or yield
                                          // waiting for more data!
-                                         return EnvWebServer::readFromPhysicFile( contentTypeMarker, fd, buffer, maxLen );
+                                         return EnvWebServer::readFromPhysicFile( contentTypeMarker, filePath, buffer, maxLen );
                                        } );
-    delay( 1200 );
     elog.log( DEBUG, "%s: add header and send...", EnvWebServer::tag );
     response->addHeader( "Server", "ESP32 Environment Server" );
     if ( contentTypeMarker.equals( "js.gz" ) )
@@ -191,23 +169,47 @@ namespace EnvServer
   /**
    * read chunks from physical file
    */
-  size_t EnvWebServer::readFromPhysicFile( String &contentTypeMarker, FILE *fd, uint8_t *buffer, size_t maxLen )
+  size_t EnvWebServer::readFromPhysicFile( String &contentTypeMarker, const String &filePath, uint8_t *buffer, size_t maxLen )
   {
+    static FILE *fd{ nullptr };
     size_t chunksize{ 0 };
-    if ( fd = nullptr )
+
+    //
+    // is a file opened?
+    //
+    if ( !fd )
     {
-      elog.log( ERROR, "%s: can't filedescriptor not found. ABORT!", EnvWebServer::tag );
-      return 0;
+      //
+      // then open the destination file
+      //
+      if ( contentTypeMarker.equals( "js.gz" ) )
+      {
+        fd = fopen( filePath.c_str(), "rb" );
+      }
+      else
+      {
+        fd = fopen( filePath.c_str(), "ra" );
+      }
+      if ( !fd )
+      {
+        elog.log( ERROR, "%s: failed to read existing file : <%s>, ABORT!", EnvWebServer::tag, filePath.c_str() );
+        /* Respond with 500 Internal Server Error */
+        // request->send( 500, "text/plain", "can't read file" );
+        fd = nullptr;
+        return 0;
+      }
     }
+    elog.log( DEBUG, "%s: opened file <%s>!", EnvWebServer::tag, filePath.c_str() );
+    // check buffer to write
     if ( buffer == nullptr )
     {
       elog.log( ERROR, "%s: buffer not allocatred. ABORT!", EnvWebServer::tag );
       return 0;
     }
     elog.log( DEBUG, "%s: readFromPhysicFile, type: %s, maxlen: %04d, ...", EnvWebServer::tag, contentTypeMarker, maxLen );
-    elog.log( DEBUG, "%s: readFromPhysicFile, buffer: %X ...", EnvWebServer::tag, buffer );
-    delay( 200 );
-
+    //
+    //  chcek if data special
+    //
     if ( contentTypeMarker.equals( "jdata" ) )
     {
       //
@@ -221,7 +223,16 @@ namespace EnvServer
       elog.log( DEBUG, "%s: readFromPhysicFile fread...", EnvWebServer::tag );
       delay( 200 );
       chunksize = fread( buffer, 1, maxLen, fd );
-      elog.log( DEBUG, "%s: readFromPhysicFile fread, read %04d bytes", EnvWebServer::tag, chunksize );
+      if ( chunksize == 0 )
+      {
+        fclose( fd );
+        fd = nullptr;
+        elog.log( DEBUG, "%s: readFromPhysicFile file end, close file...", EnvWebServer::tag );
+      }
+      else
+      {
+        elog.log( DEBUG, "%s: readFromPhysicFile fread, read %04d bytes", EnvWebServer::tag, chunksize );
+      }
       delay( 200 );
     }
     return chunksize;
@@ -410,7 +421,7 @@ namespace EnvServer
 
   void EnvWebServer::notFound( AsyncWebServerRequest *request )
   {
-    String myUrl = request->url();
+    String myUrl( request->url() );
     elog.log( WARNING, "%s: url not found <%s>", EnvWebServer::tag, myUrl );
     request->send( 404, "text/plain", "URL not found: <" + myUrl + ">" );
   }
