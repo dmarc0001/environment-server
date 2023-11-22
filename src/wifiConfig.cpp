@@ -36,7 +36,7 @@ namespace EnvServer
     {
       elog.log( WARNING, "%s: wifi not connected, access point running...", WifiConfig::tag );
       StatusObject::setWlanState( WlanState::DISCONNECTED );
-      WifiConfig::wm.setAPCallback( WifiConfig::configModeCallback );
+      // WifiConfig::wm.setAPCallback( WifiConfig::configModeCallback );
       // set dark mode
       WifiConfig::wm.setClass( "invert" );
     }
@@ -49,8 +49,8 @@ namespace EnvServer
     {
       case SYSTEM_EVENT_STA_CONNECTED:
         elog.log( INFO, "%s: device connected to accesspoint...", WifiConfig::tag );
-        if ( StatusObject::getWlanState() == WlanState::DISCONNECTED )
-          StatusObject::setWlanState( WlanState::CONNECTED );
+        // if ( StatusObject::getWlanState() == WlanState::DISCONNECTED )
+        //   StatusObject::setWlanState( WlanState::CONNECTED );
         break;
       case SYSTEM_EVENT_STA_DISCONNECTED:
         elog.log( INFO, "%s: device disconnected from accesspoint...", WifiConfig::tag );
@@ -61,6 +61,8 @@ namespace EnvServer
         break;
       case SYSTEM_EVENT_STA_GOT_IP:
         elog.log( INFO, "%s: device got ip <%s>...", WifiConfig::tag, WiFi.localIP().toString().c_str() );
+        if ( StatusObject::getWlanState() == WlanState::DISCONNECTED )
+          StatusObject::setWlanState( WlanState::CONNECTED );
         sntp_init();
         break;
       case SYSTEM_EVENT_STA_LOST_IP:

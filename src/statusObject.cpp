@@ -225,7 +225,7 @@ namespace EnvServer
             fd = fopen( daylyFileName.c_str(), "a" );
             if ( fd )
             {
-              elog.log( INFO, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
+              elog.log( DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
               char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
               fputs( jsonPrintString, fd );
               fflush( fd );

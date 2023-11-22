@@ -105,6 +105,11 @@ namespace EnvServer
             cJSON_Delete( dataSetObj );
             cJSON_free( jsonPrintString );  // !!!!!!!
             // memory leak if not do it!
+            elog.log( INFO, "%s: acku value wrote to file <%s>.", AckuVoltage::tag, fileName.c_str() );
+          }
+          else
+          {
+            elog.log( WARNING, "%s: acku value can't wrote to file <%s>!", AckuVoltage::tag, fileName.c_str() );
           }
           xSemaphoreGive( StatusObject::ackuFileSem );
         }

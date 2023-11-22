@@ -5,9 +5,19 @@
 #include <esp_wifi.h>
 #include <FastLED.h>
 #include <DHT.h>
+#include <Elog.h>
 
 namespace Prefs
 {
+#ifdef BUILD_DEBUG
+  constexpr Loglevel LOG_LEVEL = DEBUG;
+#else
+#ifdef BUILD_RELEASE
+  constexpr Loglevel LOG_LEVEL = INFO;
+#else
+  constexpr Loglevel LOG_LEVEL = WARNING;
+#endif
+#endif
   constexpr const char *TIMEZONE{ "CET-1" };                            //! my own timezone
   constexpr const char *MDNS_INSTANCE{ "esp rest server" };             //! instance nama of mdns process
   constexpr const char *WIFI_DEFAULT_HOSTNAME{ "env_sensor" };          //! default hostname network
@@ -18,7 +28,6 @@ namespace Prefs
   constexpr const char *WEB_TEMP_FILE{ "/spiffs/temporary.jdata" };     //! virtual path workerfile
   constexpr const char *WEB_PARTITION_LABEL{ "mydata" };                //! label of the spiffs or null
   constexpr size_t WEB_FILEPATH_MAX_SIZE{ 64 };                         //! max size of the filepath
-  constexpr uint32_t WEB_SCRATCH_BUFSIZE{ 1440 };                       //! buffsize für http server answers
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };                    //! timestamp name in json
   constexpr const char *JSON_TEMPERATURE_NAME{ "te" };                  //! temperature name in json
   constexpr const char *JSON_HUMIDY_NAME{ "hu" };                       //! humidy name in json

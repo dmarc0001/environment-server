@@ -110,7 +110,7 @@ namespace EnvServer
           }
           continue;
         }
-        elog.log( INFO, "%s: measuring...", TempMeasure::tag );
+        elog.log( DEBUG, "%s: measuring...", TempMeasure::tag );
         timeval val;
         gettimeofday( &val, nullptr );
         TempMeasure::sensors.requestTemperatures();

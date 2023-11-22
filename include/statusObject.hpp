@@ -36,6 +36,10 @@ namespace EnvServer
     static void setHttpActive( bool );
     static bool getHttpActive();
     static bool getIsBrownout();
+    static bool getIsSpiffsOkay()
+    {
+      return ( is_spiffs );
+    }
     static void setVoltage( int );
     static int getVoltage();
     static bool getLowAcku();
