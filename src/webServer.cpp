@@ -98,7 +98,8 @@ namespace EnvServer
    */
   void EnvWebServer::getTodayData( AsyncWebServerRequest *request )
   {
-    FileList files{ std::string( Prefs::WEB_DAYLY_FILE_01 ), std::string( Prefs::WEB_DAYLY_FILE_02 ) };
+    FileList files{ String( Prefs::WEB_DAYLY_FILE_01 ), String( Prefs::WEB_DAYLY_FILE_02 ) };
+    elog.log( DEBUG, "%s: getTodayData...", EnvWebServer::tag );
     return EnvWebServer::deliverJdataFilesToHttpd( files, request );
   }
 
@@ -107,6 +108,9 @@ namespace EnvServer
    */
   void EnvWebServer::getWeekData( AsyncWebServerRequest *request )
   {
+    // TODO: for future use implement!
+    FileList files{ String( Prefs::WEB_DAYLY_FILE_01 ), String( Prefs::WEB_DAYLY_FILE_02 ) };
+    return EnvWebServer::deliverJdataFilesToHttpd( files, request );
   }
 
   /**
@@ -114,6 +118,9 @@ namespace EnvServer
    */
   void EnvWebServer::getMonthData( AsyncWebServerRequest *request )
   {
+    // TODO: for future use implement!
+    FileList files{ String( Prefs::WEB_DAYLY_FILE_01 ), String( Prefs::WEB_DAYLY_FILE_02 ) };
+    return EnvWebServer::deliverJdataFilesToHttpd( files, request );
   }
 
   /**
@@ -162,17 +169,82 @@ namespace EnvServer
     EnvWebServer::notFound( request );
   }
 
-  void EnvWebServer::deliverJdataFilesToHttpd( FileList &, AsyncWebServerRequest * )
+  void EnvWebServer::deliverJdataFilesToHttpd( FileList &files, AsyncWebServerRequest *request )
   {
-    uint8_t filesCount{ 0 };
-    //
-    // at first: is SPIFFS ready?
-    //
-    // if ( !is_spiffs_ready )
-    // {
-    //   httpd_resp_send_err( req, HTTPD_500_INTERNAL_SERVER_ERROR, "SPIFFS not ready!" );
-    //   return ESP_FAIL;
-    // }
+    size_t filesCount{ files.size() };
+
+    if ( !StatusObject::getIsSpiffsOkay() )
+    {
+      elog.log( WARNING, "%s: SPIFFS not initialized, send file ABORT!", EnvWebServer::tag );
+      request->send( 500, "text/plain", "SPIFFS not initialized" );
+      return;
+    }
+    if ( filesCount == 0 )
+    {
+      elog.log( WARNING, "%s: no file specified, ABORT!", EnvWebServer::tag );
+      request->send( 500, "text/plain", "no file specified" );
+      return;
+    }
+    elog.log( DEBUG, "%s: deliverJdataFilesToHttpd...", EnvWebServer::tag );
+
+    auto fend = files.end();
+    AsyncWebServerResponse *response =
+        request->beginChunkedResponse( "application/json",
+                                       [ files, fend, filesCount ]( uint8_t *buffer, size_t maxLen, size_t index ) -> size_t
+                                       {
+                                         // Write up to "maxLen" bytes into "buffer" and return the amount written.
+                                         // index equals the amount of bytes that have been already sent
+                                         // You will not be asked for more bytes once the content length has been reached.
+                                         // Keep in mind that you can not delay or yield waiting for more data!
+                                         // Send what you currently have and you will be asked for more again
+                                         static int8_t readNumberInProgress{ -1 };
+                                         static auto fit = files.begin();
+                                         static File fileHandler;
+                                         size_t chunk{ 0 };
+                                         elog.log( DEBUG, "%s: chunk response filler...", EnvWebServer::tag );
+                                         if ( readNumberInProgress == -1 )
+                                         {
+                                           //
+                                           // not file open yet
+                                           // first file open
+                                           //
+                                           elog.log( DEBUG, "%s: crf open file %s...", EnvWebServer::tag, ( *fit ).c_str() );
+                                           fileHandler = SPIFFS.open( *fit, "r", false );
+                                           ++readNumberInProgress;
+                                         }
+                                         if ( fileHandler.available() )
+                                         {
+                                           //
+                                           // their is an filehandler open and availible
+                                           //
+                                           uint8_t *ptr = buffer;
+                                           while ( chunk < maxLen )
+                                           {
+                                             int r = fileHandler.read();
+                                             if ( r == -1 )
+                                             {
+                                               // can't read anymore
+                                               fileHandler.close();
+                                               if ( fit != fend )
+                                               {
+                                                 // is ther a new file?
+                                                 fit++;
+                                                 fileHandler = SPIFFS.open( *fit, "r", false );
+                                               }
+                                               else
+                                               {
+                                                 // no more files -> end
+                                                 return ( chunk );
+                                               }
+                                             }
+                                             *ptr++ = static_cast< uint8_t >( r );
+                                             ++chunk;
+                                           }
+                                         }
+                                         return ( chunk );
+                                       } );
+    elog.log( DEBUG, "%s: deliverJdataFilesToHttpd send response...", EnvWebServer::tag );
+    request->send( response );
     // //
     // // set content type of file
     // //

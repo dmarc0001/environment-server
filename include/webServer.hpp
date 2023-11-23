@@ -7,7 +7,7 @@
 
 namespace EnvServer
 {
-  using FileList = std::list< std::string >;
+  using FileList = std::list< String >;
 
   class EnvWebServer
   {
