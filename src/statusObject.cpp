@@ -152,8 +152,7 @@ namespace EnvServer
         //
         // there are data, try to save in file
         //
-        std::string daylyFileName( Prefs::WEB_DAYLY_FILE_01 );
-        FILE *fd = nullptr;
+        String daylyFileName( Prefs::WEB_DAYLY_FILE_01 );
 
         if ( StatusObject::getIsBrownout() )
         {
@@ -222,15 +221,16 @@ namespace EnvServer
             // We were able to obtain the semaphore and can now access the
             // shared resource.
             // open File mode append
-            fd = fopen( daylyFileName.c_str(), "a" );
-            if ( fd )
+            auto fh = SPIFFS.open( daylyFileName, "a", true );
+            if ( fh )
             {
               elog.log( DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
               char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
-              fputs( jsonPrintString, fd );
-              fflush( fd );
-              fputs( "\n", fd );
-              fclose( fd );
+              String jsonString( jsonPrintString );
+              jsonString += "\n";
+              fh.print( jsonString );
+              fh.flush();
+              fh.close();
               cJSON_Delete( dataSetObj );
               cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
               elog.log( INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );

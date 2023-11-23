@@ -36,7 +36,6 @@ namespace EnvServer
     static uint32_t measures[ ACKU_CURRENT_SMOOTH_COUNT ];
     uint32_t idx = 0;
     uint32_t m_value{ 0 };
-    // esp_err_t retVal;
 
     // fill array with defaults
     for ( auto i = 0; i < ACKU_CURRENT_SMOOTH_COUNT; i++ )
@@ -77,7 +76,7 @@ namespace EnvServer
       if ( !StatusObject::getIsBrownout() && ( StatusObject::getWlanState() == WlanState::TIMESYNCED ) )
       {
         // write acku value to logfile
-        std::string fileName( Prefs::ACKU_LOG_FILE_01 );
+        String fileName( Prefs::ACKU_LOG_FILE_01 );
         elog.log( DEBUG, "%s: acku value to file <%s>", AckuVoltage::tag, fileName.c_str() );
         //
         // if filesystemchecker want to write, prevent this
@@ -85,8 +84,8 @@ namespace EnvServer
         //
         if ( xSemaphoreTake( StatusObject::ackuFileSem, pdMS_TO_TICKS( 1000 ) ) == pdTRUE )
         {
-          auto aFile = fopen( fileName.c_str(), "a" );
-          if ( aFile )
+          auto fh = SPIFFS.open( fileName, "a", true );
+          if ( fh )
           {
             timeval val;
             gettimeofday( &val, nullptr );
@@ -98,10 +97,11 @@ namespace EnvServer
             cJSON_AddItemToObject( dataSetObj, Prefs::JSON_ACKU_CURRENT_NAME,
                                    cJSON_CreateString( std::to_string( voltage ).c_str() ) );
             char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
-            fputs( jsonPrintString, aFile );
-            fflush( aFile );
-            fputs( "\n", aFile );
-            fclose( aFile );
+            String jsonString( jsonPrintString );
+            jsonString += "\n";
+            fh.print( jsonString );
+            fh.flush();
+            fh.close();
             cJSON_Delete( dataSetObj );
             cJSON_free( jsonPrintString );  // !!!!!!!
             // memory leak if not do it!

@@ -22,10 +22,10 @@ namespace Prefs
   constexpr const char *MDNS_INSTANCE{ "esp rest server" };             //! instance nama of mdns process
   constexpr const char *WIFI_DEFAULT_HOSTNAME{ "env_sensor" };          //! default hostname network
   constexpr const char *WEB_PATH{ "/spiffs" };                          //! virtual path wegserver
-  constexpr const char *WEB_DAYLY_FILE_01{ "/spiffs/today01.jdata" };   //! virtual path today's file
-  constexpr const char *WEB_DAYLY_FILE_02{ "/spiffs/today02.jdata" };   //! virtual path today's file
-  constexpr const char *WEB_WEEKLY_FILE{ "/spiffs/week.jdata" };        //! virtual path 7 day-history file
-  constexpr const char *WEB_TEMP_FILE{ "/spiffs/temporary.jdata" };     //! virtual path workerfile
+  constexpr const char *WEB_DAYLY_FILE_01{ "/today01.jdata" };          //! virtual path today's file
+  constexpr const char *WEB_DAYLY_FILE_02{ "/today02.jdata" };          //! virtual path today's file
+  constexpr const char *WEB_WEEKLY_FILE{ "/week.jdata" };               //! virtual path 7 day-history file
+  constexpr const char *WEB_TEMP_FILE{ "/temporary.jdata" };            //! virtual path workerfile
   constexpr const char *WEB_PARTITION_LABEL{ "mydata" };                //! label of the spiffs or null
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };                    //! timestamp name in json
   constexpr const char *JSON_TEMPERATURE_NAME{ "te" };                  //! temperature name in json
@@ -54,8 +54,8 @@ namespace Prefs
   constexpr int MEASURE_WARN_TO_CRIT_COUNT = 4;                         //! how many failed mesures to critical display?
   constexpr int MEASURE_MAX_DATASETS_IN_RAM = 20;                       //! how many unsaved datasets in RAM before critical error
   constexpr gpio_num_t ACKU_MEASURE_GPIO = GPIO_NUM_35;                 //! AD Port for Acku
-  constexpr const char *ACKU_LOG_FILE_01{ "/spiffs/acku01.jdata" };     //! virtual path for acku log
-  constexpr const char *ACKU_LOG_FILE_02{ "/spiffs/acku02.jdata" };     //! virtual path for acku log
+  constexpr const char *ACKU_LOG_FILE_01{ "/acku01.jdata" };            //! virtual path for acku log
+  constexpr const char *ACKU_LOG_FILE_02{ "/acku02.jdata" };            //! virtual path for acku log
   constexpr int ACKU_BROWNOUT_VALUE = 2700;                             //! mV: voltage when brownout => no SPIFFS writings!
   constexpr int ACKU_BROWNOUT_LOWEST = 1800;                            //! mV: voltage when esp not running => invalid measure!
   constexpr int ACKU_LOWER_VALUE = 3100;                                //! mV: lower than this, LED minimum
