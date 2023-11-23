@@ -1,5 +1,6 @@
 #pragma Once
 #include <list>
+#include <fstream>
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -21,16 +22,16 @@ namespace EnvServer
     static void stop();   //! server stop
 
     private:
-    static void onIndex( AsyncWebServerRequest * );                                   //! on index ("/" or "/index.html")
-    static void onApiV1( AsyncWebServerRequest * );                                   //! on url path "/api/v1/"
-    static void getTodayData( AsyncWebServerRequest * );                              //! on api get today data
-    static void getWeekData( AsyncWebServerRequest * );                               //! on api get week data
-    static void getMonthData( AsyncWebServerRequest * );                              //! on api get month data
-    static void deliverFileToHttpd( String &, AsyncWebServerRequest * );              //! deliver content file via http
-    static void deliverJdataFilesToHttpd( FileList &, AsyncWebServerRequest * );      //! deliber my json file via http
-    static void handleNotPhysicFileSources( String &, AsyncWebServerRequest * );      //! handle virtual files/paths
-    static String setContentTypeFromFile( String &, const String & );                 //! find content type
-    static size_t readFromPhysicFile( String &, const String &, uint8_t *, size_t );  //! read an chunk from file until end
+    static void onIndex( AsyncWebServerRequest * );                               //! on index ("/" or "/index.html")
+    static void onApiV1( AsyncWebServerRequest * );                               //! on url path "/api/v1/"
+    static void onFilesReq( AsyncWebServerRequest * );                            //! on some file
+    static void getTodayData( AsyncWebServerRequest * );                          //! on api get today data
+    static void getWeekData( AsyncWebServerRequest * );                           //! on api get week data
+    static void getMonthData( AsyncWebServerRequest * );                          //! on api get month data
+    static void deliverFileToHttpd( String &, AsyncWebServerRequest * );          //! deliver content file via http
+    static void deliverJdataFilesToHttpd( FileList &, AsyncWebServerRequest * );  //! deliber my json file via http
+    static void handleNotPhysicFileSources( String &, AsyncWebServerRequest * );  //! handle virtual files/paths
+    static String setContentTypeFromFile( String &, const String & );             //! find content type
     static void notFound( AsyncWebServerRequest * );
   };
 
