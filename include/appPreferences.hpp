@@ -27,7 +27,6 @@ namespace Prefs
   constexpr const char *WEB_WEEKLY_FILE{ "/spiffs/week.jdata" };        //! virtual path 7 day-history file
   constexpr const char *WEB_TEMP_FILE{ "/spiffs/temporary.jdata" };     //! virtual path workerfile
   constexpr const char *WEB_PARTITION_LABEL{ "mydata" };                //! label of the spiffs or null
-  constexpr size_t WEB_FILEPATH_MAX_SIZE{ 64 };                         //! max size of the filepath
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };                    //! timestamp name in json
   constexpr const char *JSON_TEMPERATURE_NAME{ "te" };                  //! temperature name in json
   constexpr const char *JSON_HUMIDY_NAME{ "hu" };                       //! humidy name in json
