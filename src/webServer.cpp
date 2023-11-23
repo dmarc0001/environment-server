@@ -1,5 +1,3 @@
-#include <memory>
-#include <fstream>
 #include "webServer.hpp"
 #include "statics.hpp"
 #include "appPreferences.hpp"
@@ -19,6 +17,7 @@ namespace EnvServer
     //
     // maybe a few things to init?
     //
+     StatusObject::init();
   }
 
   /**
@@ -103,10 +102,16 @@ namespace EnvServer
     return EnvWebServer::deliverJdataFilesToHttpd( files, request );
   }
 
+  /**
+   * get json data for last week
+   */
   void EnvWebServer::getWeekData( AsyncWebServerRequest *request )
   {
   }
 
+  /**
+   * get json data for last month
+   */
   void EnvWebServer::getMonthData( AsyncWebServerRequest *request )
   {
   }
@@ -125,10 +130,8 @@ namespace EnvServer
       request->send( 500, "text/plain", "SPIFFS not initialized" );
       return;
     }
-
     //
     // next check if filename not exits
-    // its hardcoded path ?
     // do this after file check, so i can overwrite this
     // behavior if an file is exist
     //
