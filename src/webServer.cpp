@@ -17,7 +17,7 @@ namespace EnvServer
     //
     // maybe a few things to init?
     //
-     StatusObject::init();
+    StatusObject::init();
   }
 
   /**
@@ -147,7 +147,13 @@ namespace EnvServer
     //
     // send via http server, he mak this chunked if need
     //
-    request->send( SPIFFS, filePath, contentType, false );
+    AsyncWebServerResponse *response = request->beginResponse( SPIFFS, filePath, contentType, false );
+    response->addHeader( "Server", "ESP Environment Server" );
+    if ( contentTypeMarker.equals( "js.gz" ) )
+    {
+      response->addHeader( "Content-Encoding", "gzip" );
+    }
+    request->send( response );
   }
 
   void EnvWebServer::handleNotPhysicFileSources( String &filePath, AsyncWebServerRequest *request )
