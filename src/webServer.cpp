@@ -5,6 +5,7 @@
 #include "statics.hpp"
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
+#include "version.hpp"
 
 namespace EnvServer
 {
@@ -163,9 +164,8 @@ namespace EnvServer
    */
   void EnvWebServer::apiVersionInfoGetHandler( AsyncWebServerRequest *request )
   {
-    String version( "ESP32" );
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddStringToObject( root, "version", version.c_str() );
+    cJSON_AddStringToObject( root, "version", Prefs::VERSION );
     const char *sys_info = cJSON_Print( root );
     String info( sys_info );
     request->send( 200, "application/json", info );
