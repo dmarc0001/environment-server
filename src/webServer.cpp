@@ -1,3 +1,6 @@
+#include <memory>
+#include <cJSON.h>
+#include <esp_chip_info.h>
 #include "webServer.hpp"
 #include "statics.hpp"
 #include "appPreferences.hpp"
@@ -33,7 +36,8 @@ namespace EnvServer
     //
     EnvWebServer::server.on( "/", HTTP_GET, EnvWebServer::onIndex );
     EnvWebServer::server.on( "/index\\.html", HTTP_GET, EnvWebServer::onIndex );
-    EnvWebServer::server.on( "^\\/api\\/v1\\/(month|week|today)$", HTTP_GET, EnvWebServer::onApiV1 );
+    // EnvWebServer::server.on( "^\\/api\\/v1\\/(month|week|today|version|interval|current)$", HTTP_GET, EnvWebServer::onApiV1 );
+    EnvWebServer::server.on( "^\\/api\\/v1\\/(.*)$", HTTP_GET, EnvWebServer::onApiV1 );
     EnvWebServer::server.on( "^\\/.*$", HTTP_GET, EnvWebServer::onFilesReq );
     EnvWebServer::server.onNotFound( EnvWebServer::notFound );
     EnvWebServer::server.begin();
@@ -73,54 +77,136 @@ namespace EnvServer
    */
   void EnvWebServer::onApiV1( AsyncWebServerRequest *request )
   {
-    String timearea = request->pathArg( 0 );
-    elog.log( DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, timearea );
-    if ( timearea == "today" )
+    String parameter = request->pathArg( 0 );
+    elog.log( DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, parameter );
+    if ( parameter.equals( "today" ) )
     {
-      EnvWebServer::getTodayData( request );
+      EnvWebServer::apiGetTodayData( request );
     }
-    else if ( timearea == "week" )
+    else if ( parameter.equals( "week" ) )
     {
-      EnvWebServer::getWeekData( request );
+      EnvWebServer::apiGetWeekData( request );
     }
-    else if ( timearea == "month" )
+    else if ( parameter.equals( "month" ) )
     {
-      EnvWebServer::getMonthData( request );
+      EnvWebServer::apiGetMonthData( request );
+    }
+    else if ( parameter.equals( "interval" ) )
+    {
+      EnvWebServer::apiRestHandlerInterval( request );
+    }
+    else if ( parameter.equals( "version" ) )
+    {
+      EnvWebServer::apiVersionInfoGetHandler( request );
+    }
+    else if ( parameter.equals( "info" ) )
+    {
+      EnvWebServer::apiSystemInfoGetHandler( request );
+    }
+    else if ( parameter.equals( "current" ) )
+    {
+      EnvWebServer::apiRestHandlerCurrent( request );
     }
     else
     {
-      request->send( 300, "text/plain", "fail api call v1 for <" + timearea + ">" );
+      request->send( 300, "text/plain", "fail api call v1 for <" + parameter + ">" );
     }
   }
 
   /**
    * request for environment data for today
    */
-  void EnvWebServer::getTodayData( AsyncWebServerRequest *request )
+  void EnvWebServer::apiGetTodayData( AsyncWebServerRequest *request )
   {
-    FileList files{ String( Prefs::WEB_DAYLY_FILE_01 ), String( Prefs::WEB_DAYLY_FILE_02 ) };
+    String file( Prefs::WEB_DAYLY_FILE );
     elog.log( DEBUG, "%s: getTodayData...", EnvWebServer::tag );
-    return EnvWebServer::deliverJdataFilesToHttpd( files, request );
+    return EnvWebServer::deliverFileToHttpd( file, request );
+    // deliverJdataFilesToHttpd( file, request );
   }
 
   /**
    * get json data for last week
    */
-  void EnvWebServer::getWeekData( AsyncWebServerRequest *request )
+  void EnvWebServer::apiGetWeekData( AsyncWebServerRequest *request )
   {
     // TODO: for future use implement!
-    FileList files{ String( Prefs::WEB_DAYLY_FILE_01 ), String( Prefs::WEB_DAYLY_FILE_02 ) };
-    return EnvWebServer::deliverJdataFilesToHttpd( files, request );
+    String file( Prefs::WEB_DAYLY_FILE );
+    return EnvWebServer::deliverFileToHttpd( file, request );
   }
 
   /**
    * get json data for last month
    */
-  void EnvWebServer::getMonthData( AsyncWebServerRequest *request )
+  void EnvWebServer::apiGetMonthData( AsyncWebServerRequest *request )
   {
     // TODO: for future use implement!
-    FileList files{ String( Prefs::WEB_DAYLY_FILE_01 ), String( Prefs::WEB_DAYLY_FILE_02 ) };
-    return EnvWebServer::deliverJdataFilesToHttpd( files, request );
+    String file( Prefs::WEB_DAYLY_FILE );
+    return EnvWebServer::deliverFileToHttpd( file, request );
+  }
+
+  void EnvWebServer::apiSystemInfoGetHandler( AsyncWebServerRequest *request )
+  {
+    cJSON *root = cJSON_CreateObject();
+    esp_chip_info_t chip_info;
+    esp_chip_info( &chip_info );
+    cJSON_AddStringToObject( root, "version", IDF_VER );
+    cJSON_AddNumberToObject( root, "cores", chip_info.cores );
+    const char *sys_info = cJSON_Print( root );
+    String info( sys_info );
+    request->send( 200, "application/json", info );
+    free( ( void * ) sys_info );
+    cJSON_Delete( root );
+  }
+
+  /**
+   * ask for software vesion
+   */
+  void EnvWebServer::apiVersionInfoGetHandler( AsyncWebServerRequest *request )
+  {
+    String version( "ESP32" );
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject( root, "version", version.c_str() );
+    const char *sys_info = cJSON_Print( root );
+    String info( sys_info );
+    request->send( 200, "application/json", info );
+    free( ( void * ) sys_info );
+    cJSON_Delete( root );
+  }
+  /**
+   * return jsom object with measure interval
+   */
+  void EnvWebServer::apiRestHandlerInterval( AsyncWebServerRequest *request )
+  {
+    elog.log( DEBUG, "%s: request measure interval...", EnvWebServer::tag );
+    cJSON *root = cJSON_CreateObject();
+    char buffer[ 8 ];
+    sprintf( &buffer[ 0 ], "%04d", Prefs::MEASURE_INTERVAL_SEC );
+    cJSON_AddStringToObject( root, "interval", &buffer[ 0 ] );
+    char *int_info = cJSON_PrintUnformatted( root );  // cJSON_Print(root);
+    String info( int_info );
+    request->send( 200, "application/json", info );
+    cJSON_Delete( root );
+    cJSON_free( int_info );  //!!!! important, memory leak
+    elog.log( DEBUG, "%s: request interval  <%04d>...", EnvWebServer::tag, Prefs::MEASURE_INTERVAL_SEC );
+  }
+
+  /**
+   * return json object for acku curent
+   */
+  void EnvWebServer::apiRestHandlerCurrent( AsyncWebServerRequest *request )
+  {
+    elog.log( DEBUG, "%s: request acku current...", EnvWebServer::tag );
+    cJSON *root = cJSON_CreateObject();
+    char buffer[ 16 ];
+    float cValue{ static_cast< float >( StatusObject::getVoltage() ) / 1000.0F };
+    sprintf( &buffer[ 0 ], "%1.3f", cValue );
+    cJSON_AddStringToObject( root, "current", &buffer[ 0 ] );
+    char *tmp_info = cJSON_PrintUnformatted( root );  // cJSON_Print(root);
+    String info( tmp_info );
+    request->send( 200, "application/json", info );
+    cJSON_Delete( root );
+    cJSON_free( tmp_info );  //!!!! important, memory leak
+    elog.log( DEBUG, "%s: request acku current <%f> done...", EnvWebServer::tag, cValue );
   }
 
   /**
@@ -167,169 +253,6 @@ namespace EnvServer
   {
     // TODO: implemtieren von virtuellen daten
     EnvWebServer::notFound( request );
-  }
-
-  void EnvWebServer::deliverJdataFilesToHttpd( FileList &files, AsyncWebServerRequest *request )
-  {
-    size_t filesCount{ files.size() };
-
-    if ( !StatusObject::getIsSpiffsOkay() )
-    {
-      elog.log( WARNING, "%s: SPIFFS not initialized, send file ABORT!", EnvWebServer::tag );
-      request->send( 500, "text/plain", "SPIFFS not initialized" );
-      return;
-    }
-    if ( filesCount == 0 )
-    {
-      elog.log( WARNING, "%s: no file specified, ABORT!", EnvWebServer::tag );
-      request->send( 500, "text/plain", "no file specified" );
-      return;
-    }
-    elog.log( DEBUG, "%s: deliverJdataFilesToHttpd...", EnvWebServer::tag );
-
-    auto fend = files.end();
-    AsyncWebServerResponse *response =
-        request->beginChunkedResponse( "application/json",
-                                       [ files, fend, filesCount ]( uint8_t *buffer, size_t maxLen, size_t index ) -> size_t
-                                       {
-                                         // Write up to "maxLen" bytes into "buffer" and return the amount written.
-                                         // index equals the amount of bytes that have been already sent
-                                         // You will not be asked for more bytes once the content length has been reached.
-                                         // Keep in mind that you can not delay or yield waiting for more data!
-                                         // Send what you currently have and you will be asked for more again
-                                         static int8_t readNumberInProgress{ -1 };
-                                         static auto fit = files.begin();
-                                         static File fileHandler;
-                                         size_t chunk{ 0 };
-                                         elog.log( DEBUG, "%s: chunk response filler...", EnvWebServer::tag );
-                                         if ( readNumberInProgress == -1 )
-                                         {
-                                           //
-                                           // not file open yet
-                                           // first file open
-                                           //
-                                           elog.log( DEBUG, "%s: crf open file %s...", EnvWebServer::tag, ( *fit ).c_str() );
-                                           fileHandler = SPIFFS.open( *fit, "r", false );
-                                           ++readNumberInProgress;
-                                         }
-                                         if ( fileHandler.available() )
-                                         {
-                                           //
-                                           // their is an filehandler open and availible
-                                           //
-                                           uint8_t *ptr = buffer;
-                                           while ( chunk < maxLen )
-                                           {
-                                             int r = fileHandler.read();
-                                             if ( r == -1 )
-                                             {
-                                               // can't read anymore
-                                               fileHandler.close();
-                                               if ( fit != fend )
-                                               {
-                                                 // is ther a new file?
-                                                 fit++;
-                                                 fileHandler = SPIFFS.open( *fit, "r", false );
-                                               }
-                                               else
-                                               {
-                                                 // no more files -> end
-                                                 return ( chunk );
-                                               }
-                                             }
-                                             *ptr++ = static_cast< uint8_t >( r );
-                                             ++chunk;
-                                           }
-                                         }
-                                         return ( chunk );
-                                       } );
-    elog.log( DEBUG, "%s: deliverJdataFilesToHttpd send response...", EnvWebServer::tag );
-    request->send( response );
-    // //
-    // // set content type of file
-    // //
-    // httpd_resp_set_type( req, "application/json" );
-    // //
-    // // overall files
-    // //
-    // for ( auto readFile : files )
-    // {
-    //   size_t currentChunkSize{ 0 };
-    //   auto fd = fopen( readFile.c_str(), "r" );
-    //   if ( !fd )
-    //   {
-    //     if ( filesCount == 0 )
-    //     {
-    //       ESP_LOGE( WebServer::tag, "json-data: failed to read file : %s", readFile.c_str() );
-    //       /* Respond with 500 Internal Server Error */
-    //       std::string errMsg( "Failed to read existing file: " );
-    //       errMsg.append( readFile );
-    //       httpd_resp_send_err( req, HTTPD_500_INTERNAL_SERVER_ERROR, errMsg.c_str() );
-    //       return ESP_FAIL;
-    //     }
-    //     else
-    //     {
-    //       ESP_LOGE( WebServer::tag, "json-data: failed to read file : %s", readFile.c_str() );
-    //       continue;
-    //     }
-    //   }
-    //   if ( filesCount == 0 )
-    //   {
-    //     // JSON Array opener
-    //     const char *startPtr{ "[\n" };
-    //     httpd_resp_send_chunk( req, startPtr, 2 );
-    //   }
-    //   else
-    //   {
-    //     // first file was send, need a comma
-    //     const char *commaPtr{ "," };
-    //     httpd_resp_send_chunk( req, commaPtr, 1 );
-    //   }
-    //   // the whole file...
-    //   do
-    //   {
-    //     std::unique_ptr< char > currentBuf( new char[ Prefs::WEB_SCRATCH_BUFSIZE ] );
-    //     char *currentBufferPtr = currentBuf.get();
-    //     // try to read the next chunk
-    //     char *currentReadetBufferPtr = fgets( currentBufferPtr, Prefs::WEB_SCRATCH_BUFSIZE - 2, fd );
-    //     if ( currentReadetBufferPtr )
-    //     {
-    //       // readed a line...
-    //       // was there a line before?
-    //       if ( currentChunkSize > 0 )
-    //       {
-    //         // last round was a line
-    //         std::string myLine( "," );
-    //         myLine.append( currentBufferPtr );
-    //         currentChunkSize = myLine.size();
-    //         httpd_resp_send_chunk( req, myLine.c_str(), currentChunkSize );
-    //       }
-    //       else
-    //       {
-    //         // this is the first line
-    //         std::string myLine( currentBufferPtr );
-    //         currentChunkSize = myLine.size();
-    //         httpd_resp_send_chunk( req, myLine.c_str(), currentChunkSize );
-    //       }
-    //     }
-    //     else
-    //     {
-    //       // not a line read, EOF
-    //       currentChunkSize = 0;
-    //     }
-    //   } while ( currentChunkSize > 0 );
-    //   fclose( fd );
-    //   //
-    //   // cont files
-    //   //
-    //   ++filesCount;
-    // }
-    // // JSON Array closener
-    // const char *endPtr{ "]\n" };
-    // httpd_resp_send_chunk( req, endPtr, 2 );
-    // // end of transmussion
-    // httpd_resp_sendstr_chunk( req, nullptr );
-    // return ESP_OK;
   }
 
   void EnvWebServer::notFound( AsyncWebServerRequest *request )

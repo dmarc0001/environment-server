@@ -28,7 +28,7 @@ namespace EnvServer
 
   struct env_dataset_t
   {
-    uint8_t addr;
+    String addr;
     float temp;
     float humidy;
   };

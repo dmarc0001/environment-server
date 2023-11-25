@@ -152,7 +152,7 @@ namespace EnvServer
         //
         // there are data, try to save in file
         //
-        String daylyFileName( Prefs::WEB_DAYLY_FILE_01 );
+        String daylyFileName( Prefs::WEB_DAYLY_FILE );
 
         if ( StatusObject::getIsBrownout() )
         {
@@ -191,14 +191,13 @@ namespace EnvServer
             m_dataset.erase( m_dataset.begin() );
             cJSON *mObj = cJSON_CreateObject();
             char buffer[ 16 ];
-            if ( m_elem.addr > 0 )
+            if ( m_elem.addr.length() > 6 )
             {
-              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME,
-                                     cJSON_CreateString( std::to_string( m_elem.addr ).substr( 1, 6 ).c_str() ) );
+              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( m_elem.addr.substring( 1, 6 ).c_str() ) );
             }
             else
             {
-              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( "0" ) );
+              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( m_elem.addr.c_str() ) );
             }
             std::memset( &buffer[ 0 ], 0, 16 );
             sprintf( &buffer[ 0 ], "%3.1f", m_elem.temp );

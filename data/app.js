@@ -6,7 +6,7 @@ const week_url = '/api/v1/week';
 const today_url = '/api/v1/today';
 const current_url = '/api/v1/current';
 const interval_url = '/api/v1/interval';
-const soft_version_url = '/api/v1/system/version';
+const soft_version_url = '/api/v1/version';
 const brownout_curent = 2.720;
 const warning_current = 2.850;
 const min_screen_em = 45;
@@ -155,7 +155,7 @@ function init_page() {
   getIntervalFromController();
   // get version from controller
   setTimeout(
-      function() { getSoftwareVersionFromController(); }, 500);
+      function() { getSoftwareVersionFromController(); }, 1500);
   // wait for settung interval
   // if interval setting make furter actions
   let waitForInterval = setInterval(
@@ -291,10 +291,10 @@ function getSoftwareVersionFromController() {
             version_div_elem.hidden = false;
             setTimeout(
                 function() {
-                  console.debug("hide version info...");
+                  console.debug("hide version info, timeout...");
                   version_div_elem.hidden = true;
                 },
-                9000);
+                12000);
           }
         }
       }
@@ -382,8 +382,11 @@ function getDataFromController() {
     if (xhr.readyState == 4 && xhr.status == 200) {
       //
       // START if datatransfer done
+      // first add json start and end sign
+      // easier as in the controller
       //
-      let retValue = prepareJsonData(envData, xhr.responseText);
+      let cEnvData="[\n" + xhr.responseText + "\n]";
+      let retValue = prepareJsonData(envData, cEnvData);
       if (retValue) {
         setErrorMessage("");
         //

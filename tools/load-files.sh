@@ -4,15 +4,16 @@
 
 THOST=env-sensor.fritz.box
 
-DATAFILES="acku02.jdata acku01.jdata last_fscheck.dat today01.jdata today02.jdata"
+DATAFILES="acku.jdata last_fscheck.dat today.jdata"
 
 for DFILE in $DATAFILES ; 
 do
   echo "check $DFILE..."
   if [ -e $DFILE ] ; then
+    echo "remove old one..."
     rm -f $DFILE
-  wget http://$THOST/$DFILE
   fi
+  wget http://$THOST/$DFILE
 done
 
 

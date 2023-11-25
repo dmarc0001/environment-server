@@ -125,8 +125,11 @@ namespace EnvServer
         for ( uint8_t addr_idx = 0; addr_idx < sensors_count; ++addr_idx )
         {
           // one measure
+          char buffer[ 8 ];
+          sprintf( buffer, "%02d", addr_idx );
+          String addr( buffer );
           env_dataset_t sensor_data;
-          sensor_data.addr = addr_idx;  // static_cast< uint8_t >( addrs[ addr_idx ] );
+          sensor_data.addr = addr;  // static_cast< uint8_t >( addrs[ addr_idx ] );
           sensor_data.humidy = -100.0f;
           sensor_data.temp = TempMeasure::sensors.getTempCByIndex( addr_idx );
           // sensor_data.temp = TempMeasure::sensors.getTempC( &( sensor_data.addr ) );
