@@ -584,7 +584,7 @@ function prepareJsonData(envData, rawData) {
       // for every sensor value
       //
       // humidy
-      if (sensor.id == 0) {
+      if (sensor.id == 254) {
         // humidy sensor
         envData.axes[1][axesDatasetNumber] = parseFloat(sensor.hu);
       }

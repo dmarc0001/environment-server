@@ -4,3 +4,4 @@
 .vscode/launch.json
 .vscode/ipch
 read/
+tools/spiffs-www.bin

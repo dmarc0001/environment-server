@@ -224,6 +224,10 @@ namespace EnvServer
             if ( fh )
             {
               elog.log( DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
+              if ( fh.position() > 0 )
+              {
+                fh.print( "," );
+              }
               char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
               String jsonString( jsonPrintString );
               jsonString += "\n";
