@@ -125,14 +125,18 @@ namespace EnvServer
         for ( uint8_t addr_idx = 0; addr_idx < sensors_count; ++addr_idx )
         {
           // one measure
-          char buffer[ 8 ];
-          sprintf( buffer, "%02d", addr_idx );
-          String addr( buffer );
           env_dataset_t sensor_data;
-          sensor_data.addr = addr;  // static_cast< uint8_t >( addrs[ addr_idx ] );
+          uint8_t devAddr[ 10 ];
+          char buffer[ 24 ];
+          TempMeasure::sensors.getAddress( &devAddr[ 0 ], addr_idx );
+          // make hexa string
+          sprintf( buffer, "%02X%02X%02X%02X%02X%02X%02X%02X", devAddr[ 0 ], devAddr[ 1 ], devAddr[ 2 ], devAddr[ 3 ], devAddr[ 4 ],
+                   devAddr[ 5 ], devAddr[ 6 ], devAddr[ 7 ] );
+          String addr( buffer );
+          sensor_data.addr = addr;
           sensor_data.humidy = -100.0f;
-          sensor_data.temp = TempMeasure::sensors.getTempCByIndex( addr_idx );
-          // sensor_data.temp = TempMeasure::sensors.getTempC( &( sensor_data.addr ) );
+          // sensor_data.temp = TempMeasure::sensors.getTempCByIndex( addr_idx );
+          sensor_data.temp = TempMeasure::sensors.getTempC( devAddr );
           if ( sensor_data.temp == DEVICE_DISCONNECTED_C )
           {
             elog.log( ERROR, "%s: Sensors (ds18x20) read error (DISCONNECTED)!", TempMeasure::tag );
@@ -151,7 +155,7 @@ namespace EnvServer
         // plus 1 for dht11
         env_dataset_t h_sensor_data;
         sensors_event_t event;
-        h_sensor_data.addr = 254;
+        h_sensor_data.addr = String( "HUM" );
         h_sensor_data.humidy = -100.0f;
         h_sensor_data.temp = -100.0f;
         TempMeasure::dht.temperature().getEvent( &event );

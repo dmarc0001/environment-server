@@ -191,9 +191,9 @@ namespace EnvServer
             m_dataset.erase( m_dataset.begin() );
             cJSON *mObj = cJSON_CreateObject();
             char buffer[ 16 ];
-            if ( m_elem.addr.length() > 6 )
+            if ( m_elem.addr.length() > 16 )
             {
-              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( m_elem.addr.substring( 1, 6 ).c_str() ) );
+              cJSON_AddItemToObject( mObj, Prefs::JSON_SENSOR_ID_NAME, cJSON_CreateString( m_elem.addr.substring( 0, 15 ).c_str() ) );
             }
             else
             {
