@@ -142,8 +142,7 @@ namespace EnvServer
     //
     while ( true )
     {
-      // TODO: persistieren der Werte im filesystem
-      vTaskDelay( pdMS_TO_TICKS( 1403 ) );
+      delay( 1403 );
       if ( !StatusObject::dataset->empty() )
       {
         //
@@ -267,14 +266,13 @@ namespace EnvServer
                 // maybe the whole system is bad
                 //
                 elog.log( ERROR, "%s: seems the SPIFFS filesystem hat an problem, restart controller!", StatusObject::tag );
-                ESP_LOGE( StatusObject::tag, " seems the SPIFFS filesystem hat an problem, restart controller!" );
                 delay( 5000 );
                 esp_restart();
               }
               //
               // maybe the filesystemchcekr hung, reset this
               //
-              // TODO: FsCheckObject::start();
+              // FsCheckObject::start();
             }
           }
         }
