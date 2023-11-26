@@ -32,8 +32,6 @@ void setup()
   tzset();
   elog.log( DEBUG, "main: init LED Stripe..." );
   LEDStripe::init();
-  CRGB color( Prefs::LED_COLOR_BLACK );
-  EnvServer::LEDStripe::setLed( Prefs::LED_ALL, color );
   elog.log( DEBUG, "main: init statusobject..." );
   StatusObject::init();
   elog.log( DEBUG, "main: init acku watch..." );
