@@ -40,7 +40,7 @@ namespace EnvServer
     // EnvWebServer::server.on( "^\\/api\\/v1\\/(month|week|today|version|interval|current)$", HTTP_GET, EnvWebServer::onApiV1 );
     EnvWebServer::server.on( "^\\/api\\/v1\\/(.*)$", HTTP_GET, EnvWebServer::onApiV1 );
     EnvWebServer::server.on( "^\\/.*$", HTTP_GET, EnvWebServer::onFilesReq );
-    EnvWebServer::server.onNotFound( EnvWebServer::notFound );
+    EnvWebServer::server.onNotFound( EnvWebServer::onNotFound );
     EnvWebServer::server.begin();
     elog.log( DEBUG, "%s: start webserver...OK", EnvWebServer::tag );
   }
@@ -60,6 +60,7 @@ namespace EnvServer
   void EnvWebServer::onIndex( AsyncWebServerRequest *request )
   {
     String file( "/index.html" );
+    StatusObject::setHttpActive( true );
     EnvWebServer::deliverFileToHttpd( file, request );
     // request->send( 200, "text/plain", "Hello, INDEX" );
   }
@@ -69,6 +70,7 @@ namespace EnvServer
    */
   void EnvWebServer::onFilesReq( AsyncWebServerRequest *request )
   {
+    StatusObject::setHttpActive( true );
     String file( request->url() );
     EnvWebServer::deliverFileToHttpd( file, request );
   }
@@ -78,6 +80,7 @@ namespace EnvServer
    */
   void EnvWebServer::onApiV1( AsyncWebServerRequest *request )
   {
+    StatusObject::setHttpActive( true );
     String parameter = request->pathArg( 0 );
     elog.log( DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, parameter );
     if ( parameter.equals( "today" ) )
@@ -252,11 +255,12 @@ namespace EnvServer
   void EnvWebServer::handleNotPhysicFileSources( String &filePath, AsyncWebServerRequest *request )
   {
     // TODO: implemtieren von virtuellen daten
-    EnvWebServer::notFound( request );
+    EnvWebServer::onNotFound( request );
   }
 
-  void EnvWebServer::notFound( AsyncWebServerRequest *request )
+  void EnvWebServer::onNotFound( AsyncWebServerRequest *request )
   {
+    StatusObject::setHttpActive( true );
     String myUrl( request->url() );
     elog.log( WARNING, "%s: url not found <%s>", EnvWebServer::tag, myUrl.c_str() );
     request->send( 404, "text/plain", "URL not found: <" + myUrl + ">" );

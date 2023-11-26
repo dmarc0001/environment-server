@@ -31,7 +31,7 @@ namespace EnvServer
     static void deliverFileToHttpd( String &, AsyncWebServerRequest * );          //! deliver content file via http
     static void handleNotPhysicFileSources( String &, AsyncWebServerRequest * );  //! handle virtual files/paths
     static String setContentTypeFromFile( String &, const String & );             //! find content type
-    static void notFound( AsyncWebServerRequest * );
+    static void onNotFound( AsyncWebServerRequest * );
   };
 
 }  // namespace EnvServer
