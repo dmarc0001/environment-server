@@ -3,11 +3,10 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
-#include <ds18x20.h>
-#include <led_strip.h>
+#include <SPIFFS.h>
 #include "appPreferences.hpp"
 
-namespace webserver
+namespace EnvServer
 {
   class StatusObject
   {
@@ -15,6 +14,7 @@ namespace webserver
     static const char *tag;        //! TAG for esp log
     static bool is_init;           //! was object initialized
     static bool is_running;        //! is save Task running?
+    static bool is_spiffs;         //! is fikesystem okay?
     static WlanState wlanState;    //! is wlan disconnected, connected etc....
     static MeasureState msgState;  //! which state ist the mesure
     static bool http_active;       //! was an acces via http?
@@ -36,6 +36,10 @@ namespace webserver
     static void setHttpActive( bool );
     static bool getHttpActive();
     static bool getIsBrownout();
+    static bool getIsSpiffsOkay()
+    {
+      return ( is_spiffs );
+    }
     static void setVoltage( int );
     static int getVoltage();
     static bool getLowAcku();
@@ -43,4 +47,4 @@ namespace webserver
     private:
     static void saveTask( void * );
   };
-}  // namespace webserver
+}  // namespace EnvServer

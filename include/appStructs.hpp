@@ -2,9 +2,9 @@
 #include <vector>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <ds18x20.h>
+#include <DallasTemperature.h>
 
-namespace webserver
+namespace EnvServer
 {
 
   enum WlanState : uint8_t
@@ -28,7 +28,7 @@ namespace webserver
 
   struct env_dataset_t
   {
-    ds18x20_addr_t addr;
+    String addr;
     float temp;
     float humidy;
   };
@@ -36,10 +36,10 @@ namespace webserver
   struct env_measure_t
   {
     uint32_t timestamp;
-    std::vector<env_dataset_t> dataset;
+    std::vector< env_dataset_t > dataset;
   };
 
-  using env_dataset = std::vector<env_measure_t>;
-  //using env_measure_a = env_measure_t[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1];
+  using env_dataset = std::vector< env_measure_t >;
+  // using env_measure_a = env_measure_t[Prefs::TEMPERATURE_SENSOR_MAX_COUNT + 1];
 
-}
+}  // namespace EnvServer

@@ -1,14 +1,12 @@
 #pragma once
+#include <Arduino.h>
 #include <memory>
-#include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
-#include <ds18x20.h>
-#include <led_strip.h>
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
 
-namespace webserver
+namespace EnvServer
 {
   class FsCheckObject
   {
@@ -21,13 +19,14 @@ namespace webserver
     static TaskHandle_t taskHandle;
 
     private:
-    static void init();                                                               //! init vars etc
-    static void filesystemTask( void * );                                             //! the ininite task
-    static bool checkExistStatFile( std::string, uint32_t );                          //! is an status file exist
-    static bool updateStatFile( std::string, uint32_t );                              //! update stat file for new timestamp
-    static uint32_t getLastTimestamp( std::string );                                  //! get last timestamp from stat file
-    static esp_err_t renameFiles( std::string &, std::string &, SemaphoreHandle_t );  //! rename files
-    static void computeFilesysCheck( uint32_t );                                      //! compute the filesystem
+    static void init();                                                                 //! init vars etc
+    static void filesystemTask( void * );                                               //! the ininite task
+    static bool checkExistStatFile( const String &, uint32_t );                         //! is an status file exist
+    static bool updateStatFile( const String &, uint32_t );                             //! update stat file for new timestamp
+    static uint32_t getLastTimestamp( const String & );                                 //! get last timestamp from stat file
+    static bool renameFiles( const String &, const String &, SemaphoreHandle_t );       //! rename files
+    static void computeFilesysCheck( uint32_t );                                        //! compute the filesystem
+    static bool separateFromBorder( String &, String &, SemaphoreHandle_t, uint32_t );  //! move data before timestamp to other file
     static uint32_t getMidnight( uint32_t );  //! give last midnight time in sec since 01.01.1970 (up to 2038)
   };
-}  // namespace webserver
+}  // namespace EnvServer

@@ -1,51 +1,37 @@
-#include <string>
-#include <list>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/event_groups.h>
-#include <esp_vfs.h>
-#include <esp_http_server.h>
-#include <wifi_manager.h>
-#include <esp_sntp.h>
-#include "appPreferences.hpp"
+#pragma Once
+#include <SPIFFS.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include "ESPAsyncWebServer.h"
 
-namespace webserver
+namespace EnvServer
 {
-
-  constexpr int FILE_PATH_MAX = ( ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN );
-  using FileList = std::list< std::string >;
-
-  class WebServer
+  class EnvWebServer
   {
     private:
-    static const char *tag;  //! Kennzeichnung fürs debug
-    static bool is_spiffs_ready;
-    static bool is_snmp_init;
+    static const char *tag;        //! for debugging
+    static AsyncWebServer server;  //! webserver ststic
 
     public:
-    static void init();
-    static void compute();
+    static void init();   //! init http server
+    static void start();  //! server.begin()
+    static void stop();   //! server stop
 
     private:
-    static esp_err_t spiffs_init();
-    static void callBackConnectionOk( void * );
-    static void callBackDisconnect( void * );
-    static esp_err_t callbackGetHttpHandler( httpd_req_t * );
-    static void time_sync_notification_cb( struct timeval * );
-
-    static esp_err_t getPathFromUri( std::string &, const std::string &, std::string & );
-    static esp_err_t indexHtmlGetHandler( httpd_req_t * );
-    static esp_err_t rootGetHandler( httpd_req_t * );
-    static esp_err_t deliverFileToHttpd( std::string &, httpd_req_t * );
-    static esp_err_t deliverJdataFilesToHttpd( FileList &, httpd_req_t * );
-    static esp_err_t handleNotPhysicFileSources( std::string &, httpd_req_t * );
-    static esp_err_t apiRestHandlerToday( httpd_req_t * );
-    static esp_err_t apiRestHandlerWeek( httpd_req_t * );
-    static esp_err_t apiSystemInfoGetHandler( httpd_req_t * );
-    static esp_err_t apiVersionInfoGetHandler( httpd_req_t * );
-    static esp_err_t apiRestHandlerCurrent( httpd_req_t * );
-    static esp_err_t apiRestHandlerInterval( httpd_req_t * );
-    static esp_err_t setContentTypeFromFile( std::string &, httpd_req_t *, const std::string & );
+    static void onIndex( AsyncWebServerRequest * );                               //! on index ("/" or "/index.html")
+    static void onApiV1( AsyncWebServerRequest * );                               //! on url path "/api/v1/"
+    static void onFilesReq( AsyncWebServerRequest * );                            //! on some file
+    static void apiGetTodayData( AsyncWebServerRequest * );                       //! on api get today data
+    static void apiGetWeekData( AsyncWebServerRequest * );                        //! on api get week data
+    static void apiGetMonthData( AsyncWebServerRequest * );                       //! on api get month data
+    static void apiSystemInfoGetHandler( AsyncWebServerRequest * );               //! deliver server info
+    static void apiVersionInfoGetHandler( AsyncWebServerRequest * );              //! deliver esp infos
+    static void apiRestHandlerInterval( AsyncWebServerRequest * );                //! deliver measure interval
+    static void apiRestHandlerCurrent( AsyncWebServerRequest * );                 //! deliver acku current
+    static void deliverFileToHttpd( String &, AsyncWebServerRequest * );          //! deliver content file via http
+    static void handleNotPhysicFileSources( String &, AsyncWebServerRequest * );  //! handle virtual files/paths
+    static String setContentTypeFromFile( String &, const String & );             //! find content type
+    static void onNotFound( AsyncWebServerRequest * );
   };
 
-}  // namespace webserver
+}  // namespace EnvServer
