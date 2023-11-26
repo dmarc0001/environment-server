@@ -133,7 +133,6 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetWeekData( AsyncWebServerRequest *request )
   {
-    // TODO: for future use implement!
     String file( Prefs::WEB_DAYLY_FILE );
     return EnvWebServer::deliverFileToHttpd( file, request );
   }
@@ -143,7 +142,6 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetMonthData( AsyncWebServerRequest *request )
   {
-    // TODO: for future use implement!
     String file( Prefs::WEB_DAYLY_FILE );
     return EnvWebServer::deliverFileToHttpd( file, request );
   }
