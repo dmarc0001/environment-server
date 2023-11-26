@@ -31,6 +31,7 @@ namespace Prefs
   constexpr const char *WEB_PATH{ "/spiffs" };                   //! virtual path wegserver
   constexpr const char *WEB_DAYLY_FILE{ "/today.jdata" };        //! virtual path today's file (round about 24 hours)
   constexpr const char *WEB_WEEKLY_FILE{ "/week.jdata" };        //! virtual path 7 day-history file
+  constexpr const char *WEB_MONTHLY_FILE{ "/month.jdata" };      //! monthly data
   constexpr const char *WEB_TEMP_FILE{ "/temporary.jdata" };     //! virtual path workerfile
   constexpr const char *WEB_PARTITION_LABEL{ "mydata" };         //! label of the spiffs or null
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };             //! timestamp name in json

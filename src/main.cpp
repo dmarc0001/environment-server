@@ -12,6 +12,7 @@
 #include "wifiConfig.hpp"
 #include "ledColorsDefinition.hpp"
 #include "webServer.hpp"
+#include "filesystemChecker.hpp"
 
 // Set LED_BUILTIN if it is not defined by Arduino framework
 // #define LED_BUILTIN 13
@@ -41,6 +42,8 @@ void setup()
   TempMeasure::start();
   elog.log( DEBUG, "main: start wifi..." );
   WifiConfig::init();
+  elog.log( DEBUG, "main: start filesystemchecker..." );
+  FsCheckObject::start();
 }
 
 void loop()
