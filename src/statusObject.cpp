@@ -7,10 +7,9 @@
 #include <cJSON.h>
 #include "statics.hpp"
 #include "appPreferences.hpp"
-#include "ledColorsDefinition.hpp"
 #include "statusObject.hpp"
 #include "ledStripe.hpp"
-// #include "filesystemChecker.hpp"
+#include "ledColorsDefinition.hpp"
 
 namespace EnvServer
 {
@@ -65,7 +64,6 @@ namespace EnvServer
         // is okay
         StatusObject::is_spiffs = true;
       }
-      color = CRGB( Prefs::LED_COLOR_BLACK );
       ESP.restart();
     }
     else
@@ -74,7 +72,6 @@ namespace EnvServer
       StatusObject::is_spiffs = true;
       elog.log( DEBUG, "%s: init filesystem...OK", StatusObject::tag );
     }
-    LEDStripe::setLed( Prefs::LED_ALL, color );
     vSemaphoreCreateBinary( StatusObject::measureFileSem );
     vSemaphoreCreateBinary( StatusObject::ackuFileSem );
     StatusObject::is_init = true;
