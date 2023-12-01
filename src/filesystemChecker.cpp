@@ -61,8 +61,18 @@ namespace EnvServer
     // infinity
     while ( true )
     {
-      // wait for next garbage disposal
-      delay( Prefs::FILESYS_CHECK_SLEEP_TIME_MS );
+      // wait for next garbage disposal or request
+      for ( uint8_t i = 0; i < Prefs::FILESYS_CHECK_SLEEP_TIME_MULTIPLIER; ++i )
+      {
+        if ( StatusObject::getFsCheckReq() )
+        {
+          //
+          // if an request for filesystem check?
+          //
+          break;
+        }
+        delay( Prefs::FILESYS_CHECK_SLEEP_TIME_MS );
+      }
       if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
       {
         //
@@ -89,16 +99,18 @@ namespace EnvServer
       //
       // file exist
       // when was thel last running of the garbage disposal
+      //
       lastTimestamp = FsCheckObject::getLastTimestamp( fileName );
       //
       // is the last timestamp older than the difference from prefs?
       //
-      if ( timestamp - lastTimestamp > Prefs::FILESYS_CHECK_INTERVAL )
+      if ( ( timestamp - lastTimestamp > Prefs::FILESYS_CHECK_INTERVAL ) || StatusObject::getFsCheckReq() )
       {
         elog.log( INFO, "%s: make an garbage disposal...", FsCheckObject::tag );
         //
         // make something
         //
+        StatusObject::setFsCheckReq( false );
         FsCheckObject::computeFilesysCheck( timestamp );
         //
         // mark the current timestamp
@@ -123,9 +135,10 @@ namespace EnvServer
     //
     if ( fd )
     {
-      char buffer[ 128 ];
-      size_t len = fd.readBytes( buffer, 128 );
-      String line( buffer );
+      char buffer[ 42 ];
+      size_t len = fd.readBytes( buffer, 42 );
+      // buffer[ len ] = 0;
+      String line( buffer, len );
       if ( len > 0 && line.length() > 0 )
       {
         // get time as unix timestamp
@@ -210,12 +223,12 @@ namespace EnvServer
       if ( SPIFFS.rename( fromFileName, toFileName ) )
       {
         elog.log( DEBUG, "%s: move <%s> file to <%s> successful.", FsCheckObject::tag, fromFileName.c_str(), toFileName.c_str() );
-        retVal = false;
+        retVal = true;
       }
       else
       {
         elog.log( ERROR, "%s: move <%s> file to <%s> failed! ABORT!.", FsCheckObject::tag, fromFileName.c_str(), toFileName.c_str() );
-        retVal = true;
+        retVal = false;
       }
       // semaphore release
       xSemaphoreGive( _sem );
@@ -244,7 +257,7 @@ namespace EnvServer
     String toFile( Prefs::WEB_WEEKLY_FILE );
     if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::ackuFileSem, borderTimestamp ) )
     {
-      elog.log( ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
+      elog.log( ERROR, "%s: can't separate dayly from weekly data!", FsCheckObject::tag );
       return;
     }
     delay( 2500 );
@@ -279,21 +292,21 @@ namespace EnvServer
     if ( xSemaphoreTake( sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
     {
       // open temp file
-      elog.log( INFO, "%s: open tempfile <%s> for writing...", FsCheckObject::tag, tempFile );
+      elog.log( INFO, "%s: open tempfile <%s> for writing...", FsCheckObject::tag, tempFile.c_str() );
       fdTemp = SPIFFS.open( tempFile, "w", true );
       if ( !fdTemp )
       {
-        elog.log( ERROR, "%s: open tempfile <%s> for writing FAILED!", FsCheckObject::tag, tempFile );
+        elog.log( ERROR, "%s: open tempfile <%s> for writing FAILED!", FsCheckObject::tag, tempFile.c_str() );
         retVal = false;
       }
       if ( retVal )
       {
         // open source file
-        elog.log( INFO, "%s: open source file <%s> for reading...", FsCheckObject::tag, fromFile );
+        elog.log( INFO, "%s: open source file <%s> for reading...", FsCheckObject::tag, fromFile.c_str() );
         fdFrom = SPIFFS.open( fromFile, "r", false );
         if ( !fdFrom )
         {
-          elog.log( ERROR, "%s: open source file <%s> for reading FAILED!", FsCheckObject::tag, fromFile );
+          elog.log( ERROR, "%s: open source file <%s> for reading FAILED!", FsCheckObject::tag, fromFile.c_str() );
           fdTemp.close();
           retVal = false;
         }
@@ -301,11 +314,11 @@ namespace EnvServer
       if ( retVal )
       {
         // open destination file for append
-        elog.log( INFO, "%s: open destination file <%s> for appending...", FsCheckObject::tag, toFile );
+        elog.log( INFO, "%s: open destination file <%s> for appending...", FsCheckObject::tag, toFile.c_str() );
         fdDest = SPIFFS.open( toFile, "a", false );
         if ( !fdDest )
         {
-          elog.log( ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile );
+          elog.log( ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile.c_str() );
           fdTemp.close();
           fdFrom.close();
           retVal = false;
@@ -340,23 +353,26 @@ namespace EnvServer
               // have to find timestamp
               // mak a string from buffer
               String line( reinterpret_cast< char * >( &buffer[ 0 ] ) );
-              uint timestampStart = line.indexOf( "\"ti\":\"" ) + 1;
-              uint timestampEnd = line.indexOf( "\",\"da\"" ) - 1;
+              uint timestampStart = line.indexOf( "\"ti\":\"" ) + 6;
+              uint timestampEnd = line.indexOf( "\",\"da\"" );
               size_t len = currPtr - startPtr;
               if ( timestampStart > 1 && timestampEnd > 5 )
               {
                 String timestampString = line.substring( timestampStart, timestampEnd );
+                elog.log( DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );
                 // save ram
                 line.clear();
                 uint32_t timestamp = timestampString.toInt();
                 if ( timestamp < borderTimestamp )
                 {
                   // older data to destination
+                  elog.log( DEBUG, "%s: timestamp %s write to destfile", FsCheckObject::tag, timestampString.c_str() );
                   fdDest.write( startPtr, len );
                 }
                 else
                 {
                   // younger data to temp, leave later in current file
+                  elog.log( DEBUG, "%s: timestamp %s write to tempfile", FsCheckObject::tag, timestampString.c_str() );
                   fdTemp.write( startPtr, len );
                 }
               }
@@ -365,6 +381,7 @@ namespace EnvServer
                 //
                 // if the search war negative
                 //
+                elog.log( DEBUG, "%s: timestamp write to tempfile, because not found marker", FsCheckObject::tag );
                 fdTemp.write( startPtr, len );
               }
               // next round
@@ -413,7 +430,8 @@ namespace EnvServer
       //
       elog.log( INFO, "%s: separate data from file <%s>, part two", FsCheckObject::tag, fromFile.c_str() );
       retVal = FsCheckObject::renameFiles( tempFile, fromFile, sem );
-      elog.log( DEBUG, "%s: separate data from file <%s>, part two SUCCESS", FsCheckObject::tag, fromFile.c_str() );
+      if ( retVal )
+        elog.log( DEBUG, "%s: separate data from file <%s>, part two SUCCESS", FsCheckObject::tag, fromFile.c_str() );
     }
     return retVal;
   }

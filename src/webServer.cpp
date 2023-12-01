@@ -111,6 +111,10 @@ namespace EnvServer
     {
       EnvWebServer::apiRestHandlerCurrent( request );
     }
+    else if ( parameter.equals( "fscheck" ) )
+    {
+      EnvWebServer::apiRestFilesystemCheck( request );
+    }
     else
     {
       request->send( 300, "text/plain", "fail api call v1 for <" + parameter + ">" );
@@ -208,6 +212,16 @@ namespace EnvServer
     cJSON_Delete( root );
     cJSON_free( tmp_info );  //!!!! important, memory leak
     elog.log( DEBUG, "%s: request acku current <%f> done...", EnvWebServer::tag, cValue );
+  }
+
+  /**
+   * reques an filesystemcheck
+   */
+  void EnvWebServer::apiRestFilesystemCheck( AsyncWebServerRequest *request )
+  {
+    elog.log( DEBUG, "%s: request trigger filesystemckeck...", EnvWebServer::tag );
+    StatusObject::setFsCheckReq( true );
+    request->send( 200, "application/json", "OK" );
   }
 
   /**

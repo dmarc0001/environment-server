@@ -14,7 +14,7 @@ namespace Prefs
   //
 #ifdef BUILD_DEBUG
   constexpr Loglevel D_LOG_LEVEL = DEBUG;
-  constexpr int D_MININTERVAL = 60;
+  constexpr int D_MININTERVAL = 600;
 #else
 #ifdef BUILD_RELEASE
   constexpr Loglevel D_LOG_LEVEL = INFO;
@@ -68,7 +68,8 @@ namespace Prefs
   constexpr uint32_t ACKU_CURRENT_SMOOTH_COUNT = 5U;             //! smooting vlaue for acku value
   constexpr const char *FILE_CHECK_FILE_NAME{ "/fscheck.dat" };  //! timestamps for time check
   constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U;   //! interval between two checks
-  constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 900301;       //! sleeptime für filecheck
+  constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 8121;         //! sleeptime für filecheck
+  constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MULTIPLIER = 64;   //! multipiler for sleep ms
 
 }  // namespace Prefs
 

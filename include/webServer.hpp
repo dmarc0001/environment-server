@@ -28,6 +28,7 @@ namespace EnvServer
     static void apiVersionInfoGetHandler( AsyncWebServerRequest * );              //! deliver esp infos
     static void apiRestHandlerInterval( AsyncWebServerRequest * );                //! deliver measure interval
     static void apiRestHandlerCurrent( AsyncWebServerRequest * );                 //! deliver acku current
+    static void apiRestFilesystemCheck( AsyncWebServerRequest * );                //! trigger the filesystem checker...
     static void deliverFileToHttpd( String &, AsyncWebServerRequest * );          //! deliver content file via http
     static void handleNotPhysicFileSources( String &, AsyncWebServerRequest * );  //! handle virtual files/paths
     static String setContentTypeFromFile( String &, const String & );             //! find content type

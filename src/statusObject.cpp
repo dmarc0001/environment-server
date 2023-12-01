@@ -17,9 +17,10 @@ namespace EnvServer
   bool StatusObject::is_init{ false };
   bool StatusObject::is_running{ false };
   bool StatusObject::is_spiffs{ false };
-  int StatusObject::currentVoltage{ 3300 };  //! current voltage in mV
-  bool StatusObject::isBrownout{ false };    //! is voltage too low
-  bool StatusObject::isLowAcku{ false };     //! is low acku
+  int StatusObject::currentVoltage{ 3300 };       //! current voltage in mV
+  bool StatusObject::isBrownout{ false };         //! is voltage too low
+  bool StatusObject::isLowAcku{ false };          //! is low acku
+  bool StatusObject::isFilesystemcheck{ false };  // is an filesystemcheck running or requested
   WlanState StatusObject::wlanState{ WlanState::DISCONNECTED };
   MeasureState StatusObject::msgState{ MeasureState::MEASURE_UNKNOWN };
   bool StatusObject::http_active{ false };

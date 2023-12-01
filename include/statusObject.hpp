@@ -11,16 +11,17 @@ namespace EnvServer
   class StatusObject
   {
     private:
-    static const char *tag;        //! TAG for esp log
-    static bool is_init;           //! was object initialized
-    static bool is_running;        //! is save Task running?
-    static bool is_spiffs;         //! is fikesystem okay?
-    static WlanState wlanState;    //! is wlan disconnected, connected etc....
-    static MeasureState msgState;  //! which state ist the mesure
-    static bool http_active;       //! was an acces via http?
-    static int currentVoltage;     //! current voltage in mV
-    static bool isBrownout;        //! is voltage too low
-    static bool isLowAcku;         //! is low acku
+    static const char *tag;         //! TAG for esp log
+    static bool is_init;            //! was object initialized
+    static bool is_running;         //! is save Task running?
+    static bool is_spiffs;          //! is fikesystem okay?
+    static WlanState wlanState;     //! is wlan disconnected, connected etc....
+    static MeasureState msgState;   //! which state ist the mesure
+    static bool http_active;        //! was an acces via http?
+    static int currentVoltage;      //! current voltage in mV
+    static bool isBrownout;         //! is voltage too low
+    static bool isLowAcku;          //! is low acku
+    static bool isFilesystemcheck;  // is an filesystemcheck running or requested
     public:
     static std::shared_ptr< env_dataset > dataset;  //! set of mesures
     static SemaphoreHandle_t measureFileSem;        // is access to files busy
@@ -38,11 +39,19 @@ namespace EnvServer
     static bool getIsBrownout();
     static bool getIsSpiffsOkay()
     {
-      return ( is_spiffs );
+      return ( StatusObject::is_spiffs );
     }
     static void setVoltage( int );
     static int getVoltage();
     static bool getLowAcku();
+    static void setFsCheckReq( bool _fsc )
+    {
+      StatusObject::isFilesystemcheck = _fsc;
+    }
+    static bool getFsCheckReq()
+    {
+      return StatusObject::isFilesystemcheck;
+    }
 
     private:
     static void saveTask( void * );
