@@ -2,6 +2,6 @@
  
 namespace Prefs
 {
-  constexpr const char *VERSION{ "20231126-first-arduino-version" };
+  constexpr const char *VERSION{ "20231203-Release-2.0-Arduino" };
 }
 
