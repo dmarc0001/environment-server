@@ -22,6 +22,13 @@ namespace EnvServer
     static bool isBrownout;         //! is voltage too low
     static bool isLowAcku;          //! is low acku
     static bool isFilesystemcheck;  // is an filesystemcheck running or requested
+    static size_t todayFileSize;    // filesize of the today.json file
+    static size_t weekFileSize;     // filesize of the weekly.json file
+    static size_t monthFileSize;    // filesize of the month.json file
+    static size_t ackuFileSize;     //! filesize acku trace file
+    static size_t fsTotalSpace;     //! total space in FS
+    static size_t fsUsedSpace;      //! free Space in FS
+
     public:
     static std::shared_ptr< env_dataset > dataset;  //! set of mesures
     static SemaphoreHandle_t measureFileSem;        // is access to files busy
@@ -51,6 +58,54 @@ namespace EnvServer
     static bool getFsCheckReq()
     {
       return StatusObject::isFilesystemcheck;
+    }
+    static void setTodayFileSize( size_t _size )
+    {
+      StatusObject::todayFileSize = _size;
+    }
+    static size_t getTodayFilseSize()
+    {
+      return StatusObject::todayFileSize;
+    }
+    static void setWeekFileSize( size_t _size )
+    {
+      StatusObject::weekFileSize = _size;
+    }
+    static size_t getWeekFilseSize()
+    {
+      return StatusObject::weekFileSize;
+    }
+    static void setMonthFileSize( size_t _size )
+    {
+      StatusObject::monthFileSize = _size;
+    }
+    static size_t getMonthFilseSize()
+    {
+      return StatusObject::monthFileSize;
+    }
+    static void setAckuFileSize( size_t _size )
+    {
+      StatusObject::ackuFileSize = _size;
+    }
+    static size_t getAckuFilseSize()
+    {
+      return StatusObject::ackuFileSize;
+    }
+    static void setFsTotalSpace( size_t _size )
+    {
+      StatusObject::fsTotalSpace = _size;
+    }
+    static size_t getFsTotalSpace()
+    {
+      return StatusObject::fsTotalSpace;
+    }
+    static void setFsUsedSpace( size_t _size )
+    {
+      StatusObject::fsUsedSpace = _size;
+    }
+    static size_t getFsUsedSpace()
+    {
+      return StatusObject::fsUsedSpace;
     }
 
     private:

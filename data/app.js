@@ -385,7 +385,15 @@ function getDataFromController() {
       // first add json start and end sign
       // easier as in the controller
       //
-      let cEnvData="[\n" + xhr.responseText.substring(1) + "\n]";
+      let cEnvData;
+      if(xhr.responseText.length > 1)
+      {
+        cEnvData="[\n" + xhr.responseText.substring(1) + "\n]";
+      }
+      else
+      {
+        cEnvData="[\n" + xhr.responseText + "\n]";
+      }
       let retValue = prepareJsonData(envData, cEnvData);
       if (retValue) {
         setErrorMessage("");
@@ -476,6 +484,7 @@ function prepareJsonData(envData, rawData) {
   let id_idx = 2;  // sensors starts by idx 2, id == ids[id]
   let readTimestamp = findFirstValidTimestamp(json);
   if (!readTimestamp) {
+    data_in_use = false;
     return undefined;
   }
   // which sensors are there, round one dor the data

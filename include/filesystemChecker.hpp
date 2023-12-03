@@ -27,6 +27,12 @@ namespace EnvServer
     static bool renameFiles( const String &, const String &, SemaphoreHandle_t );       //! rename files
     static void computeFilesysCheck( uint32_t );                                        //! compute the filesystem
     static bool separateFromBorder( String &, String &, SemaphoreHandle_t, uint32_t );  //! move data before timestamp to other file
+    static void getFileInfo();                                                          //! get sizes for data files
     static uint32_t getMidnight( uint32_t );  //! give last midnight time in sec since 01.01.1970 (up to 2038)
   };
+
+
+    //   static SemaphoreHandle_t measureFileSem;        // is access to files busy
+    // static SemaphoreHandle_t ackuFileSem;           // is access to files busy
+
 }  // namespace EnvServer

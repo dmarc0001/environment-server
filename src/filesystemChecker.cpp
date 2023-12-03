@@ -40,6 +40,79 @@ namespace EnvServer
     elog.log( INFO, "%s: init filesystemchecker task...", FsCheckObject::tag );
     // nothing to do at this time ;-)
     FsCheckObject::is_init = true;
+    FsCheckObject::getFileInfo();
+  }
+
+  /**
+   * check the file sizes
+   */
+  void FsCheckObject::getFileInfo()
+  {
+    File fd;
+    String fileName;
+    elog.log( DEBUG, "%s: get file infos...", FsCheckObject::tag );
+    if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
+    {
+      // dayly file
+      fileName = String( Prefs::WEB_DAYLY_FILE );
+      fd = SPIFFS.open( fileName, "r", false );
+      if ( fd )
+      {
+        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        StatusObject::setTodayFileSize( fd.size() );
+        fd.close();
+        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getTodayFilseSize() );
+      }
+      else
+        elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
+      // weekly file
+      fileName = String( Prefs::WEB_WEEKLY_FILE );
+      fd = SPIFFS.open( fileName, "r", false );
+      if ( fd )
+      {
+        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        StatusObject::setWeekFileSize( fd.size() );
+        fd.close();
+        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getWeekFilseSize() );
+      }
+      else
+        elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
+      // month file
+      fileName = String( Prefs::WEB_MONTHLY_FILE );
+      fd = SPIFFS.open( fileName, "r", false );
+      if ( fd )
+      {
+        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        StatusObject::setMonthFileSize( fd.size() );
+        fd.close();
+        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getMonthFilseSize() );
+      }
+      else
+        elog.log( DEBUG, "%s: file %d can't open!", FsCheckObject::tag, fileName.c_str() );
+      // semaphore release
+      xSemaphoreGive( StatusObject::measureFileSem );
+    }
+
+    if ( xSemaphoreTake( StatusObject::ackuFileSem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
+    {
+      // acku file
+      fileName = String( Prefs::ACKU_LOG_FILE_01 );
+      fd = SPIFFS.open( fileName, "r", false );
+      if ( fd )
+      {
+        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        StatusObject::setAckuFileSize( fd.size() );
+        fd.close();
+        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getAckuFilseSize() );
+      }
+      else
+        elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
+      // semaphore release
+      xSemaphoreGive( StatusObject::ackuFileSem );
+    }
+    StatusObject::setFsTotalSpace( SPIFFS.totalBytes() );
+    StatusObject::setFsUsedSpace( SPIFFS.usedBytes() );
+    elog.log( DEBUG, "%s: get file infos...OK", FsCheckObject::tag );
   }
 
   /**
@@ -255,7 +328,7 @@ namespace EnvServer
     uint32_t borderTimestamp = FsCheckObject::getMidnight( timestamp ) - ( 68400 * 7 );
     String fromFile( Prefs::WEB_DAYLY_FILE );
     String toFile( Prefs::WEB_WEEKLY_FILE );
-    if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::ackuFileSem, borderTimestamp ) )
+    if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::measureFileSem, borderTimestamp ) )
     {
       elog.log( ERROR, "%s: can't separate dayly from weekly data!", FsCheckObject::tag );
       return;
@@ -266,13 +339,32 @@ namespace EnvServer
     // data where older as this timestamp have to copy in weekly data
     //
     borderTimestamp = FsCheckObject::getMidnight( timestamp ) - ( 68400 * 31 );
-    fromFile = Prefs::WEB_WEEKLY_FILE;
-    toFile = Prefs::WEB_MONTHLY_FILE;
+    fromFile = String( Prefs::WEB_WEEKLY_FILE );
+    toFile = String( Prefs::WEB_MONTHLY_FILE );
+    if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::measureFileSem, borderTimestamp ) )
+    {
+      elog.log( ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
+      return;
+    }
+    delay( 2500 );
+    //
+    // check the length of the acku file
+    // longest a week
+    //
+    borderTimestamp = FsCheckObject::getMidnight( timestamp ) - ( 68400 * 31 );
+    fromFile = String( Prefs::ACKU_LOG_FILE_01 );
+    toFile = String( "dummy" );
     if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::ackuFileSem, borderTimestamp ) )
     {
       elog.log( ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
       return;
     }
+
+    delay( 2500 );
+    //
+    // last, check length of all files
+    //
+    FsCheckObject::getFileInfo();
   }
 
   bool FsCheckObject::separateFromBorder( String &fromFile, String &toFile, SemaphoreHandle_t sem, uint32_t borderTimestamp )
@@ -281,10 +373,13 @@ namespace EnvServer
     // first open a fresh temfile
     //
     bool retVal{ true };
+    bool isDestFile{ true };
     String tempFile( Prefs::WEB_TEMP_FILE );
     File fdTemp;
     File fdFrom;
     File fdDest;
+
+    isDestFile = !toFile.equals( "dummy" );
     //
     // part one, separate from source to temp and dest
     //
@@ -313,20 +408,23 @@ namespace EnvServer
       }
       if ( retVal )
       {
-        // open destination file for append
-        elog.log( INFO, "%s: open destination file <%s> for appending...", FsCheckObject::tag, toFile.c_str() );
-        fdDest = SPIFFS.open( toFile, "a", false );
-        if ( !fdDest )
+        if ( isDestFile )
         {
-          elog.log( ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile.c_str() );
-          elog.log( INFO, "%s: try open and create destination file <%s>...", FsCheckObject::tag, fromFile.c_str() );
-          fdDest = SPIFFS.open( toFile, "a", true );
+          // open destination file for append
+          elog.log( INFO, "%s: open destination file <%s> for appending...", FsCheckObject::tag, toFile.c_str() );
+          fdDest = SPIFFS.open( toFile, "a", false );
           if ( !fdDest )
           {
-            elog.log( ERROR, "%s: open and create destination file <%s> FAILED!", FsCheckObject::tag, fromFile.c_str() );
-            fdTemp.close();
-            fdFrom.close();
-            retVal = false;
+            elog.log( ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile.c_str() );
+            elog.log( INFO, "%s: try open and create destination file <%s>...", FsCheckObject::tag, fromFile.c_str() );
+            fdDest = SPIFFS.open( toFile, "a", true );
+            if ( !fdDest )
+            {
+              elog.log( ERROR, "%s: open and create destination file <%s> FAILED!", FsCheckObject::tag, fromFile.c_str() );
+              fdTemp.close();
+              fdFrom.close();
+              retVal = false;
+            }
           }
         }
       }
@@ -373,7 +471,10 @@ namespace EnvServer
                 {
                   // older data to destination
                   // elog.log( DEBUG, "%s: timestamp %s write to destfile", FsCheckObject::tag, timestampString.c_str() );
-                  fdDest.write( startPtr, len );
+                  if ( isDestFile )
+                  {
+                    fdDest.write( startPtr, len );
+                  }
                 }
                 else
                 {
@@ -419,7 +520,8 @@ namespace EnvServer
       }
       fdFrom.close();
       fdTemp.close();
-      fdDest.close();
+      if ( isDestFile )
+        fdDest.close();
       // semaphore release
       xSemaphoreGive( sem );
     }

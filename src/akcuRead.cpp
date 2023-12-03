@@ -36,6 +36,7 @@ namespace EnvServer
     static uint32_t measures[ ACKU_CURRENT_SMOOTH_COUNT ];
     uint32_t idx = 0;
     uint32_t m_value{ 0 };
+    xSemaphoreGive( StatusObject::ackuFileSem );
 
     // fill array with defaults
     for ( auto i = 0; i < ACKU_CURRENT_SMOOTH_COUNT; i++ )

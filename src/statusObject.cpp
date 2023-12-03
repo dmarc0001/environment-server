@@ -21,6 +21,13 @@ namespace EnvServer
   bool StatusObject::isBrownout{ false };         //! is voltage too low
   bool StatusObject::isLowAcku{ false };          //! is low acku
   bool StatusObject::isFilesystemcheck{ false };  // is an filesystemcheck running or requested
+  size_t StatusObject::todayFileSize{ 0 };        // filesize of the today.json file
+  size_t StatusObject::weekFileSize{ 0 };         // filesize of the week.json file
+  size_t StatusObject::monthFileSize{ 0 };        // filesize of the month.json file
+  size_t StatusObject::ackuFileSize{ 0 };         //! filesize acku trace file
+  size_t StatusObject::fsTotalSpace{ 0 };         //! filesystem total Space
+  size_t StatusObject::fsUsedSpace{ 0 };          //! filesystem free Space
+
   WlanState StatusObject::wlanState{ WlanState::DISCONNECTED };
   MeasureState StatusObject::msgState{ MeasureState::MEASURE_UNKNOWN };
   bool StatusObject::http_active{ false };
@@ -227,6 +234,7 @@ namespace EnvServer
               jsonString += "\n";
               fh.print( jsonString );
               fh.flush();
+              StatusObject::setTodayFileSize( fh.size() );
               fh.close();
               cJSON_Delete( dataSetObj );
               cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
