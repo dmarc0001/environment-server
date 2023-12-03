@@ -281,6 +281,9 @@ namespace EnvServer
     // first open a fresh temfile
     //
     bool retVal{ true };
+    bool needFirstAddCommaBecauseDestAppend{ false };
+    bool needFirstAddCommaBecauseSourceFirstLine{ true };
+    bool itsFirstLineInTemp{ true };
     String tempFile( Prefs::WEB_TEMP_FILE );
     File fdTemp;
     File fdFrom;
@@ -318,10 +321,27 @@ namespace EnvServer
         fdDest = SPIFFS.open( toFile, "a", false );
         if ( !fdDest )
         {
+          needFirstAddCommaBecauseDestAppend = false;
           elog.log( ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile.c_str() );
-          fdTemp.close();
-          fdFrom.close();
-          retVal = false;
+          elog.log( INFO, "%s: try open and create destination file <%s>...", FsCheckObject::tag, fromFile.c_str() );
+          fdDest = SPIFFS.open( toFile, "a", true );
+          if ( !fdDest )
+          {
+            elog.log( ERROR, "%s: open and create destination file <%s> FAILED!", FsCheckObject::tag, fromFile.c_str() );
+            fdTemp.close();
+            fdFrom.close();
+            retVal = false;
+          }
+          else
+          {
+            needFirstAddCommaBecauseDestAppend = true;
+          }
+        }
+        else
+        {
+          // now check if the file is empty
+          if ( fdDest.size() == 0 )
+            needFirstAddCommaBecauseDestAppend = true;
         }
       }
 
@@ -359,21 +379,47 @@ namespace EnvServer
               if ( timestampStart > 1 && timestampEnd > 5 )
               {
                 String timestampString = line.substring( timestampStart, timestampEnd );
-                elog.log( DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );
-                // save ram
+                // elog.log( DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );
+                //  save ram
                 line.clear();
                 uint32_t timestamp = timestampString.toInt();
                 if ( timestamp < borderTimestamp )
                 {
                   // older data to destination
-                  elog.log( DEBUG, "%s: timestamp %s write to destfile", FsCheckObject::tag, timestampString.c_str() );
+                  // elog.log( DEBUG, "%s: timestamp %s write to destfile", FsCheckObject::tag, timestampString.c_str() );
+                  if ( needFirstAddCommaBecauseDestAppend && !needFirstAddCommaBecauseSourceFirstLine )
+                  {
+                    //
+                    // only if the destination file is new and not the first line in source
+                    //
+                    fdDest.write( ',' );
+                    needFirstAddCommaBecauseDestAppend = false;
+                  }
+                  if ( needFirstAddCommaBecauseSourceFirstLine && !needFirstAddCommaBecauseDestAppend )
+                  {
+                    //
+                    // if is it the first line in source but not the first in destination
+                    // it's need an comma before
+                    //
+                    fdDest.write( ',' );
+                    needFirstAddCommaBecauseDestAppend = false;
+                    needFirstAddCommaBecauseSourceFirstLine = false;
+                  }
                   fdDest.write( startPtr, len );
                 }
                 else
                 {
                   // younger data to temp, leave later in current file
-                  elog.log( DEBUG, "%s: timestamp %s write to tempfile", FsCheckObject::tag, timestampString.c_str() );
-                  fdTemp.write( startPtr, len );
+                  // elog.log( DEBUG, "%s: timestamp %s write to tempfile", FsCheckObject::tag, timestampString.c_str() );
+                  if ( itsFirstLineInTemp && *startPtr == static_cast< uint8_t >( ',' ) )
+                  {
+                    fdTemp.write( startPtr + 1, len - 1 );
+                  }
+                  else
+                  {
+                    fdTemp.write( startPtr, len );
+                  }
+                  itsFirstLineInTemp = false;
                 }
               }
               else

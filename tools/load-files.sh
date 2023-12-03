@@ -4,7 +4,7 @@
 
 THOST=env-sensor.fritz.box
 
-DATAFILES="acku.jdata last_fscheck.dat today.jdata month.jdata"
+DATAFILES="acku.jdata last_fscheck.dat today.jdata week.jdata month.jdata"
 
 for DFILE in $DATAFILES ; 
 do
