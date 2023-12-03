@@ -119,6 +119,7 @@ namespace EnvServer
     {
       request->send( 300, "text/plain", "fail api call v1 for <" + parameter + ">" );
     }
+    // TODO: implement loglevel change (Elog::globalSettings)
   }
 
   /**
@@ -266,7 +267,7 @@ namespace EnvServer
 
   void EnvWebServer::handleNotPhysicFileSources( String &filePath, AsyncWebServerRequest *request )
   {
-    // TODO: implemtieren von virtuellen daten
+    // TODO: implemtieren von virtuellen datenpdaden
     EnvWebServer::onNotFound( request );
   }
 
