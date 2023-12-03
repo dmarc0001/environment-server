@@ -385,7 +385,7 @@ function getDataFromController() {
       // first add json start and end sign
       // easier as in the controller
       //
-      let cEnvData="[\n" + xhr.responseText + "\n]";
+      let cEnvData="[\n" + xhr.responseText.substring(1) + "\n]";
       let retValue = prepareJsonData(envData, cEnvData);
       if (retValue) {
         setErrorMessage("");
