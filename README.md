@@ -1,7 +1,7 @@
 # environment sensor esp32
 
 - simple web gui with graphs over 2 ore 24 hours
-- led status (rgb led)
+- led status (rgb led, 3 pieces WS2811 controlled)
 - small api for requests (return json)
   - /api/v1/today : measure data for round about 24 hours ago
   - /api/v1/week : for round a week
