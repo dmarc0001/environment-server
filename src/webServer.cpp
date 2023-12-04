@@ -119,9 +119,6 @@ namespace EnvServer
     {
       EnvWebServer::apiRestFilesystemStatus( request );
     }
-
-    // TODO: implement request file sizes
-    //  and return as json
     else
     {
       request->send( 300, "text/plain", "fail api call v1 for <" + parameter + ">" );
