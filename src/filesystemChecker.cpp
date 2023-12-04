@@ -51,6 +51,11 @@ namespace EnvServer
     File fd;
     String fileName;
     elog.log( DEBUG, "%s: get file infos...", FsCheckObject::tag );
+    StatusObject::setFsTotalSpace( SPIFFS.totalBytes() );
+    elog.log( DEBUG, "%s: total SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsTotalSpace() );
+    StatusObject::setFsUsedSpace( SPIFFS.usedBytes() );
+    elog.log( DEBUG, "%s: total SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsUsedSpace() );
+
     if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
     {
       // dayly file
@@ -61,7 +66,7 @@ namespace EnvServer
         elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setTodayFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getTodayFilseSize() );
+        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getTodayFilseSize() );
       }
       else
         elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
@@ -73,7 +78,7 @@ namespace EnvServer
         elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setWeekFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getWeekFilseSize() );
+        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getWeekFilseSize() );
       }
       else
         elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
@@ -85,7 +90,7 @@ namespace EnvServer
         elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setMonthFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getMonthFilseSize() );
+        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getMonthFilseSize() );
       }
       else
         elog.log( DEBUG, "%s: file %d can't open!", FsCheckObject::tag, fileName.c_str() );
@@ -103,15 +108,13 @@ namespace EnvServer
         elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setAckuFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getAckuFilseSize() );
+        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getAckuFilseSize() );
       }
       else
         elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
       // semaphore release
       xSemaphoreGive( StatusObject::ackuFileSem );
     }
-    StatusObject::setFsTotalSpace( SPIFFS.totalBytes() );
-    StatusObject::setFsUsedSpace( SPIFFS.usedBytes() );
     elog.log( DEBUG, "%s: get file infos...OK", FsCheckObject::tag );
   }
 
