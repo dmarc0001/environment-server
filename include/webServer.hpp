@@ -29,10 +29,12 @@ namespace EnvServer
     static void apiRestHandlerInterval( AsyncWebServerRequest * );                //! deliver measure interval
     static void apiRestHandlerCurrent( AsyncWebServerRequest * );                 //! deliver acku current
     static void apiRestFilesystemCheck( AsyncWebServerRequest * );                //! trigger the filesystem checker...
+    static void apiRestFilesystemStatus( AsyncWebServerRequest * );               //! get an overview for filesystem as json
     static void deliverFileToHttpd( String &, AsyncWebServerRequest * );          //! deliver content file via http
     static void handleNotPhysicFileSources( String &, AsyncWebServerRequest * );  //! handle virtual files/paths
     static String setContentTypeFromFile( String &, const String & );             //! find content type
-    static void onNotFound( AsyncWebServerRequest * );
+    static void onNotFound( AsyncWebServerRequest * );                            //! if page not found
+    static void onServerError( AsyncWebServerRequest *, int, const String & );    //! if server error
   };
 
 }  // namespace EnvServer

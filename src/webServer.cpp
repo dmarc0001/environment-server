@@ -115,6 +115,13 @@ namespace EnvServer
     {
       EnvWebServer::apiRestFilesystemCheck( request );
     }
+    else if ( parameter.equals( "fsstat" ) )
+    {
+      EnvWebServer::apiRestFilesystemStatus( request );
+    }
+
+    // TODO: implement request file sizes
+    //  and return as json
     else
     {
       request->send( 300, "text/plain", "fail api call v1 for <" + parameter + ">" );
@@ -127,10 +134,19 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetTodayData( AsyncWebServerRequest *request )
   {
-    String file( Prefs::WEB_DAYLY_FILE );
     elog.log( DEBUG, "%s: getTodayData...", EnvWebServer::tag );
-    return EnvWebServer::deliverFileToHttpd( file, request );
-    // deliverJdataFilesToHttpd( file, request );
+    //
+    // maybe ther are write accesses
+    //
+    if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
+    {
+      String file( Prefs::WEB_DAYLY_FILE );
+      EnvWebServer::deliverFileToHttpd( file, request );
+      xSemaphoreGive( StatusObject::measureFileSem );
+      return;
+    }
+    String msg = "Can't take semaphore!";
+    EnvWebServer::onServerError( request, 303, msg );
   }
 
   /**
@@ -138,8 +154,18 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetWeekData( AsyncWebServerRequest *request )
   {
-    String file( Prefs::WEB_DAYLY_FILE );
-    return EnvWebServer::deliverFileToHttpd( file, request );
+    //
+    // maybe ther are write accesses
+    //
+    if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
+    {
+      String file( Prefs::WEB_DAYLY_FILE );
+      EnvWebServer::deliverFileToHttpd( file, request );
+      xSemaphoreGive( StatusObject::measureFileSem );
+      return;
+    }
+    String msg = "Can't take semaphore!";
+    EnvWebServer::onServerError( request, 303, msg );
   }
 
   /**
@@ -147,8 +173,18 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetMonthData( AsyncWebServerRequest *request )
   {
-    String file( Prefs::WEB_DAYLY_FILE );
-    return EnvWebServer::deliverFileToHttpd( file, request );
+    //
+    // maybe ther are write accesses
+    //
+    if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
+    {
+      String file( Prefs::WEB_DAYLY_FILE );
+      EnvWebServer::deliverFileToHttpd( file, request );
+      xSemaphoreGive( StatusObject::measureFileSem );
+      return;
+    }
+    String msg = "Can't take semaphore!";
+    EnvWebServer::onServerError( request, 303, msg );
   }
 
   void EnvWebServer::apiSystemInfoGetHandler( AsyncWebServerRequest *request )
@@ -225,6 +261,36 @@ namespace EnvServer
     request->send( 200, "application/json", "OK" );
   }
 
+  void EnvWebServer::apiRestFilesystemStatus( AsyncWebServerRequest *request )
+  {
+    elog.log( DEBUG, "%s: request filesystem status...", EnvWebServer::tag );
+    cJSON *root = cJSON_CreateObject();
+    // total
+    String val = String( StatusObject::getFsTotalSpace(), DEC );
+    cJSON_AddStringToObject( root, "total", val.c_str() );
+    // used space
+    val = String( StatusObject::getFsUsedSpace() );
+    cJSON_AddStringToObject( root, "used", val.c_str() );
+    // dayly file
+    val = String( StatusObject::getTodayFilseSize() );
+    cJSON_AddStringToObject( root, "today", val.c_str() );
+    // weekly
+    val = String( StatusObject::getWeekFilseSize() );
+    cJSON_AddStringToObject( root, "week", val.c_str() );
+    // month
+    val = String( StatusObject::getMonthFilseSize() );
+    cJSON_AddStringToObject( root, "month", val.c_str() );
+    // weekly
+    val = String( StatusObject::getAckuFilseSize() );
+    cJSON_AddStringToObject( root, "acku", val.c_str() );
+    char *tmp_info = cJSON_PrintUnformatted( root );  // cJSON_Print(root);
+    String info( tmp_info );
+    request->send( 200, "application/json", info );
+    cJSON_Delete( root );
+    cJSON_free( tmp_info );  //!!!! important, memory leak
+    elog.log( DEBUG, "%s: request filesystem status...OK", EnvWebServer::tag );
+  }
+
   /**
    * deliver a file (physic pathname on the controller) via http
    */
@@ -265,12 +331,29 @@ namespace EnvServer
     request->send( response );
   }
 
+  /**
+   * handle non-physical files
+   */
   void EnvWebServer::handleNotPhysicFileSources( String &filePath, AsyncWebServerRequest *request )
   {
     // TODO: implemtieren von virtuellen datenpdaden
     EnvWebServer::onNotFound( request );
   }
 
+  /**
+   * if there is an server error
+   */
+  void EnvWebServer::onServerError( AsyncWebServerRequest *request, int errNo, const String &msg )
+  {
+    StatusObject::setHttpActive( true );
+    String myUrl( request->url() );
+    elog.log( ERROR, "%s: Server ERROR: %03d - %s", EnvWebServer::tag, errNo, msg.c_str() );
+    request->send( errNo, "text/plain", msg );
+  }
+
+  /**
+   * File-Not-Fopuind Errormessage
+   */
   void EnvWebServer::onNotFound( AsyncWebServerRequest *request )
   {
     StatusObject::setHttpActive( true );
