@@ -102,6 +102,7 @@ namespace EnvServer
             jsonString += "\n";
             fh.print( jsonString );
             fh.flush();
+            StatusObject::setAckuFileSize( fh.size() );
             fh.close();
             cJSON_Delete( dataSetObj );
             cJSON_free( jsonPrintString );  // !!!!!!!
