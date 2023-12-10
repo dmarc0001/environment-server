@@ -1,3 +1,4 @@
+#include <Esp.h>
 #include "wifiConfig.hpp"
 #include "statusObject.hpp"
 
@@ -10,8 +11,11 @@ namespace EnvServer
 
   void WifiConfig::init()
   {
+    char hostname[32];
     elog.log( INFO, "%s: initialize wifi...", WifiConfig::tag );
-    WiFi.setHostname( Prefs::WIFI_DEFAULT_HOSTNAME );
+    uint16_t chip = static_cast<uint16_t>(ESP.getEfuseMac() >> 32);
+    snprintf(hostname, 32, "%s-%08X", Prefs::WIFI_DEFAULT_HOSTNAME, chip);
+    WiFi.setHostname( hostname );
     WiFi.mode( WIFI_STA );
     WiFi.onEvent( WifiConfig::wifiEventCallback );
     // reset settings - wipe credentials for testing
