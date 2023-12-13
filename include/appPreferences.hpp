@@ -64,7 +64,7 @@ namespace Prefs
   constexpr const char *ACKU_LOG_FILE_01{ "/acku.jdata" };       //! virtual path for acku log
   constexpr int ACKU_BROWNOUT_VALUE = 2700;                      //! mV: voltage when brownout => no SPIFFS writings!
   constexpr int ACKU_BROWNOUT_LOWEST = 1800;                     //! mV: voltage when esp not running => invalid measure!
-  constexpr int ACKU_LOWER_VALUE = 3100;                         //! mV: lower than this, LED minimum
+  constexpr int ACKU_LOWER_VALUE = 2950;                         //! mV: lower than this, LED minimum
   constexpr uint32_t ACKU_CURRENT_SMOOTH_COUNT = 5U;             //! smooting vlaue for acku value
   constexpr const char *FILE_CHECK_FILE_NAME{ "/fscheck.dat" };  //! timestamps for time check
   constexpr uint32_t FILESYS_CHECK_INTERVAL = 24U * 60U * 60U;   //! interval between two checks

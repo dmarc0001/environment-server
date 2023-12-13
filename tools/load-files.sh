@@ -2,7 +2,7 @@
 #
 # hole messdaten aktuell
 
-THOST=env-sensor.fritz.box
+THOST=env-sensor-0000E8D9.fritz.box
 
 DATAFILES="acku.jdata last_fscheck.dat today.jdata week.jdata month.jdata"
 
