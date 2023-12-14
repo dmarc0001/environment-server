@@ -11,10 +11,10 @@ namespace EnvServer
 
   void WifiConfig::init()
   {
-    char hostname[32];
+    char hostname[ 32 ];
     elog.log( INFO, "%s: initialize wifi...", WifiConfig::tag );
-    uint16_t chip = static_cast<uint16_t>(ESP.getEfuseMac() >> 32);
-    snprintf(hostname, 32, "%s-%08X", Prefs::WIFI_DEFAULT_HOSTNAME, chip);
+    uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
+    snprintf( hostname, 32, "%s-%08X", Prefs::WIFI_DEFAULT_HOSTNAME, chip );
     WiFi.setHostname( hostname );
     WiFi.mode( WIFI_STA );
     WiFi.onEvent( WifiConfig::wifiEventCallback );
@@ -62,16 +62,27 @@ namespace EnvServer
         break;
       case SYSTEM_EVENT_AP_STADISCONNECTED:
         elog.log( INFO, "%s: WIFI client disconnected...", WifiConfig::tag );
+        sntp_stop();
+        WifiConfig::is_sntp_init = false;
         break;
       case SYSTEM_EVENT_STA_GOT_IP:
         elog.log( INFO, "%s: device got ip <%s>...", WifiConfig::tag, WiFi.localIP().toString().c_str() );
         if ( StatusObject::getWlanState() == WlanState::DISCONNECTED )
           StatusObject::setWlanState( WlanState::CONNECTED );
-        sntp_init();
+        // sntp_init();
+        if ( WifiConfig::is_sntp_init )
+          sntp_restart();
+        else
+        {
+          sntp_init();
+          WifiConfig::is_sntp_init = true;
+        }
         break;
       case SYSTEM_EVENT_STA_LOST_IP:
         elog.log( INFO, "%s: device lost ip...", WifiConfig::tag );
         StatusObject::setWlanState( WlanState::DISCONNECTED );
+        sntp_stop();
+        WifiConfig::is_sntp_init = false;
         break;
       default:
         break;
@@ -106,6 +117,13 @@ namespace EnvServer
         if ( StatusObject::getWlanState() == WlanState::TIMESYNCED )
         {
           StatusObject::setWlanState( WlanState::CONNECTED );
+          if ( WifiConfig::is_sntp_init )
+            sntp_restart();
+          else
+          {
+            sntp_init();
+            WifiConfig::is_sntp_init = true;
+          }
         }
     }
   }

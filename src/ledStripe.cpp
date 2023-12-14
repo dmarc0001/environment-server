@@ -10,7 +10,7 @@ namespace EnvServer
   //
   // timer definitions
   //
-  constexpr int64_t WLANlongActionDist = 10000000LL;
+  constexpr int64_t WLANlongActionDist = 5000000LL;
   constexpr int64_t WLANshortActionDist = 20000LL;
   constexpr int64_t MeasureActionFlushDist = 40000LL;
   constexpr int64_t MeasureLongActionDist = 10100000LL;
