@@ -25,6 +25,8 @@ namespace EnvServer
 
   void TempMeasure::measureTask( void *pvParameter )
   {
+    using namespace logger;
+
     int warning_rounds_count = 0;
     uint8_t sensors_count = 0;
     int64_t measure_interval = static_cast< int64_t >( Prefs::MEASURE_INTERVAL_SEC ) * 1000000LL;
@@ -207,8 +209,8 @@ namespace EnvServer
     // devices found?
     TempMeasure::oneWire.reset_search();
     uint8_t sensors_count = TempMeasure::sensors.getDS18Count();
-    elog.log( DEBUG, "%s: %03d DS18x20 devices found...", TempMeasure::tag, sensors_count );
-    elog.log( DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag, sensors.isParasitePowerMode() ? "true" : "false" );
+    elog.log( logger::DEBUG, "%s: %03d DS18x20 devices found...", TempMeasure::tag, sensors_count );
+    elog.log( logger::DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag, sensors.isParasitePowerMode() ? "true" : "false" );
     return ( sensors_count );
   }
 
@@ -217,7 +219,7 @@ namespace EnvServer
    */
   void TempMeasure::start()
   {
-    elog.log( INFO, "%s: start measure task...", TempMeasure::tag );
+    elog.log( logger::INFO, "%s: start measure task...", TempMeasure::tag );
     if ( TempMeasure::taskHandle )
     {
       vTaskDelete( TempMeasure::taskHandle );

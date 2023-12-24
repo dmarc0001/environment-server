@@ -1,3 +1,3 @@
 #pragma once
 #include <Arduino.h>
-#include <Elog.h>
+#include "elog/eLog.hpp"

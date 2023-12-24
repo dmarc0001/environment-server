@@ -1,7 +1,7 @@
 /*
   main, hier startet es
 */
-#include <Elog.h>
+#include "elog/eLog.hpp"
 #include "common.hpp"
 #include "main.hpp"
 #include "statics.hpp"
@@ -20,11 +20,20 @@
 void setup()
 {
   using namespace EnvServer;
+  using namespace logger;
 
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
   elog.addSerialLogging( Serial, "MAIN", Prefs::LOG_LEVEL );  // Enable serial logging. We want only INFO or lower logleve.
+  IPAddress addr;
+  addr.fromString( Prefs::SYSLOG_IP );
+  elog.setUdpClient( udpClient, addr, Prefs::SYSLOG_PORT, Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME, Prefs::SYSLOG_PRIO,
+                     Prefs::SYSLOG_PROTO );
+  // elog.setUdpClient( udpClient, Prefs::SYSLOG_SRV, Prefs::SYSLOG_PORT, Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME,
+  //                    Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
+  elog.setSyslogOnline( false );
+  elog.addSyslogLogging( Prefs::LOG_LEVEL );
   elog.log( INFO, "main: start with logging..." );
   // set my timezone, i deal with timestamps
   elog.log( DEBUG, "main: set timezone (%s)...", Prefs::TIMEZONE );
@@ -47,6 +56,8 @@ void setup()
 void loop()
 {
   using namespace EnvServer;
+  using namespace logger;
+
   static uint16_t counter = 0;
   // next time logger time sync
   static unsigned long setNextTimeCorrect{ ( millis() * 1000UL * 21600UL ) };

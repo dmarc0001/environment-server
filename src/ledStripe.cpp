@@ -51,12 +51,12 @@ namespace EnvServer
     LEDStripe::setLed( Prefs::LED_ALL, false, true );
     // FastLED.show();
     LEDStripe::start();
-    elog.log( DEBUG, "%s: initialized...", LEDStripe::tag );
+    elog.log( logger::DEBUG, "%s: initialized...", LEDStripe::tag );
   }
 
   void LEDStripe::start()
   {
-    elog.log( INFO, "%s: LEDStripe Task start...", LEDStripe::tag );
+    elog.log( logger::INFO, "%s: LEDStripe Task start...", LEDStripe::tag );
 
     if ( LEDStripe::taskHandle )
     {
@@ -71,6 +71,8 @@ namespace EnvServer
 
   void LEDStripe::ledTask( void * )
   {
+    using namespace logger;
+
     elog.log( INFO, "%s: LEDStripe Task starting...", LEDStripe::tag );
     using namespace Prefs;
     int64_t nextWLANLedActionTime{ WLANlongActionDist };

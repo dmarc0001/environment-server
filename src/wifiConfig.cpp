@@ -4,6 +4,8 @@
 
 namespace EnvServer
 {
+  using namespace logger;
+
   const char *WifiConfig::tag{ "WifiConfig" };
   bool WifiConfig::is_sntp_init{ false };
   WiFiManager WifiConfig::wm;
@@ -49,6 +51,8 @@ namespace EnvServer
 
   void WifiConfig::wifiEventCallback( arduino_event_t *event )
   {
+    using namespace logger;
+
     switch ( event->event_id )
     {
       case SYSTEM_EVENT_STA_CONNECTED:
@@ -59,6 +63,7 @@ namespace EnvServer
       case SYSTEM_EVENT_STA_DISCONNECTED:
         elog.log( INFO, "%s: device disconnected from accesspoint...", WifiConfig::tag );
         StatusObject::setWlanState( WlanState::DISCONNECTED );
+        elog.setSyslogOnline( false );
         break;
       case SYSTEM_EVENT_AP_STADISCONNECTED:
         elog.log( INFO, "%s: WIFI client disconnected...", WifiConfig::tag );
@@ -77,12 +82,14 @@ namespace EnvServer
           sntp_init();
           WifiConfig::is_sntp_init = true;
         }
+        elog.setSyslogOnline( true );
         break;
       case SYSTEM_EVENT_STA_LOST_IP:
         elog.log( INFO, "%s: device lost ip...", WifiConfig::tag );
         StatusObject::setWlanState( WlanState::DISCONNECTED );
         sntp_stop();
         WifiConfig::is_sntp_init = false;
+        elog.setSyslogOnline( false );
         break;
       default:
         break;
@@ -91,6 +98,8 @@ namespace EnvServer
 
   void WifiConfig::timeSyncNotificationCallback( struct timeval * )
   {
+    using namespace logger;
+
     sntp_sync_status_t state = sntp_get_sync_status();
     switch ( state )
     {
@@ -130,6 +139,8 @@ namespace EnvServer
 
   void WifiConfig::configModeCallback( WiFiManager *myWiFiManager )
   {
+    using namespace logger;
+
     elog.log( INFO, "%s: config callback, enter config mode...", WifiConfig::tag );
     IPAddress apAddr = WiFi.softAPIP();
     elog.log( INFO, "%s: config callback: Access Point IP: <%s>...", WifiConfig::tag, apAddr.toString() );

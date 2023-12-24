@@ -29,6 +29,8 @@ namespace EnvServer
    */
   void EnvWebServer::start()
   {
+    using namespace logger;
+
     elog.log( INFO, "%s: start webserver...", EnvWebServer::tag );
     // Cache responses for 1 minutes (60 seconds)
     EnvWebServer::server.serveStatic( "/", SPIFFS, "/spiffs/" ).setCacheControl( "max-age=60" );
@@ -82,7 +84,7 @@ namespace EnvServer
   {
     StatusObject::setHttpActive( true );
     String parameter = request->pathArg( 0 );
-    elog.log( DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, parameter );
+    elog.log( logger::DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, parameter );
     if ( parameter.equals( "today" ) )
     {
       EnvWebServer::apiGetTodayData( request );
@@ -131,7 +133,7 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetTodayData( AsyncWebServerRequest *request )
   {
-    elog.log( DEBUG, "%s: getTodayData...", EnvWebServer::tag );
+    elog.log( logger::DEBUG, "%s: getTodayData...", EnvWebServer::tag );
     //
     // maybe ther are write accesses
     //
@@ -216,6 +218,8 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestHandlerInterval( AsyncWebServerRequest *request )
   {
+    using namespace logger;
+
     elog.log( DEBUG, "%s: request measure interval...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     char buffer[ 8 ];
@@ -234,6 +238,8 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestHandlerCurrent( AsyncWebServerRequest *request )
   {
+    using namespace logger;
+
     elog.log( DEBUG, "%s: request acku current...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     char buffer[ 16 ];
@@ -253,13 +259,15 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestFilesystemCheck( AsyncWebServerRequest *request )
   {
-    elog.log( DEBUG, "%s: request trigger filesystemckeck...", EnvWebServer::tag );
+    elog.log( logger::DEBUG, "%s: request trigger filesystemckeck...", EnvWebServer::tag );
     StatusObject::setFsCheckReq( true );
     request->send( 200, "application/json", "OK" );
   }
 
   void EnvWebServer::apiRestFilesystemStatus( AsyncWebServerRequest *request )
   {
+    using namespace logger;
+
     elog.log( DEBUG, "%s: request filesystem status...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     // total
@@ -293,6 +301,8 @@ namespace EnvServer
    */
   void EnvWebServer::deliverFileToHttpd( String &filePath, AsyncWebServerRequest *request )
   {
+    using namespace logger;
+
     String contentType( "text/plain" );
     String contentTypeMarker{ 0 };
 
@@ -344,7 +354,7 @@ namespace EnvServer
   {
     StatusObject::setHttpActive( true );
     String myUrl( request->url() );
-    elog.log( ERROR, "%s: Server ERROR: %03d - %s", EnvWebServer::tag, errNo, msg.c_str() );
+    elog.log( logger::ERROR, "%s: Server ERROR: %03d - %s", EnvWebServer::tag, errNo, msg.c_str() );
     request->send( errNo, "text/plain", msg );
   }
 
@@ -355,7 +365,7 @@ namespace EnvServer
   {
     StatusObject::setHttpActive( true );
     String myUrl( request->url() );
-    elog.log( WARNING, "%s: url not found <%s>", EnvWebServer::tag, myUrl.c_str() );
+    elog.log( logger::WARNING, "%s: url not found <%s>", EnvWebServer::tag, myUrl.c_str() );
     request->send( 404, "text/plain", "URL not found: <" + myUrl + ">" );
   }
 

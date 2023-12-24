@@ -41,6 +41,8 @@ namespace EnvServer
    */
   void StatusObject::init()
   {
+    using namespace logger;
+
     if ( StatusObject::is_init )
     {
       elog.log( DEBUG, "%s: always initialized... Igpore call", StatusObject::tag );
@@ -141,6 +143,8 @@ namespace EnvServer
    */
   void StatusObject::saveTask( void *ptr )
   {
+    using namespace logger;
+
     uint8_t errorCounter{ 0 };  // count if file semaphore not availible
     //
     elog.log( INFO, "%s: StatusObject Task started.", StatusObject::tag );
@@ -356,6 +360,8 @@ namespace EnvServer
    */
   void StatusObject::start()
   {
+    using namespace logger;
+
     elog.log( INFO, "%s: StatusObject Task start...", StatusObject::tag );
 
     if ( StatusObject::is_running )

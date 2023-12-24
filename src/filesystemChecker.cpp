@@ -25,7 +25,7 @@ namespace EnvServer
     }
     else
     {
-      elog.log( INFO, "%s: start filesystemchecker task...", FsCheckObject::tag );
+      elog.log( logger::INFO, "%s: start filesystemchecker task...", FsCheckObject::tag );
       // start the task, lowest priority
       xTaskCreate( FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, nullptr, tskIDLE_PRIORITY,
                    &FsCheckObject::taskHandle );
@@ -37,7 +37,7 @@ namespace EnvServer
    */
   void FsCheckObject::init()
   {
-    elog.log( INFO, "%s: init filesystemchecker task...", FsCheckObject::tag );
+    elog.log( logger::INFO, "%s: init filesystemchecker task...", FsCheckObject::tag );
     // nothing to do at this time ;-)
     FsCheckObject::is_init = true;
     FsCheckObject::getFileInfo();
@@ -48,6 +48,8 @@ namespace EnvServer
    */
   void FsCheckObject::getFileInfo()
   {
+    using namespace logger;
+
     File fd;
     String fileName;
     elog.log( DEBUG, "%s: get file infos...", FsCheckObject::tag );
@@ -123,6 +125,8 @@ namespace EnvServer
    */
   void FsCheckObject::filesystemTask( void * )
   {
+    using namespace logger;
+
     if ( !FsCheckObject::is_init )
       FsCheckObject::init();
     // for security, if init do nothing
@@ -205,6 +209,8 @@ namespace EnvServer
    */
   uint32_t FsCheckObject::getLastTimestamp( const String &fileName )
   {
+    using namespace logger;
+
     elog.log( DEBUG, "%s: marker file <%s> open......", FsCheckObject::tag, fileName.c_str() );
     auto fd = SPIFFS.open( fileName, "r", false );
     uint32_t lastTimestamp{ 0UL };
@@ -232,6 +238,8 @@ namespace EnvServer
    */
   bool FsCheckObject::updateStatFile( const String &fileName, uint32_t timestamp )
   {
+    using namespace logger;
+
     uint8_t buffer[ 32 ];
     char *cPtr = reinterpret_cast< char * >( &buffer[ 0 ] );
     elog.log( DEBUG, "%s: update marker file <%s>, open......", FsCheckObject::tag, fileName.c_str() );
@@ -266,7 +274,7 @@ namespace EnvServer
       // simulate start at midnight
       timestamp = FsCheckObject::getMidnight( timestamp );
       // File not exist, set midnight (GMT) as first marker
-      elog.log( DEBUG, "%s: create marker file <%s> DONE.", FsCheckObject::tag, fileName.c_str() );
+      elog.log( logger::DEBUG, "%s: create marker file <%s> DONE.", FsCheckObject::tag, fileName.c_str() );
       return FsCheckObject::updateStatFile( fileName, timestamp );
     }
     return true;
@@ -277,6 +285,8 @@ namespace EnvServer
    */
   bool FsCheckObject::renameFiles( const String &fromFileName, const String &toFileName, SemaphoreHandle_t _sem )
   {
+    using namespace logger;
+
     bool retVal{ false };
     elog.log( DEBUG, "%s: remove old and copy new file for <%s>...", FsCheckObject::tag, fromFileName.c_str() );
     if ( xSemaphoreTake( _sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
@@ -323,6 +333,8 @@ namespace EnvServer
    */
   void FsCheckObject::computeFilesysCheck( uint32_t timestamp )
   {
+    using namespace logger;
+
     //
     // at first make the weekly file
     // make an border timestamp for an border at a week (7 days)
@@ -372,6 +384,8 @@ namespace EnvServer
 
   bool FsCheckObject::separateFromBorder( String &fromFile, String &toFile, SemaphoreHandle_t sem, uint32_t borderTimestamp )
   {
+    using namespace logger;
+
     //
     // first open a fresh temfile
     //

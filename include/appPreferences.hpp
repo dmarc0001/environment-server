@@ -5,7 +5,8 @@
 #include <esp_wifi.h>
 #include <FastLED.h>
 #include <DHT.h>
-#include <Elog.h>
+#include <IPAddress.h>
+#include "elog/eLog.hpp"
 
 namespace Prefs
 {
@@ -13,7 +14,7 @@ namespace Prefs
   // some values are depend from compiling mode...
   //
 #ifdef BUILD_DEBUG
-  constexpr Loglevel D_LOG_LEVEL = DEBUG;
+  constexpr logger::Loglevel D_LOG_LEVEL = logger::DEBUG;
   constexpr int D_MININTERVAL = 600;
 #else
 #ifdef BUILD_RELEASE
@@ -24,7 +25,14 @@ namespace Prefs
   constexpr int D_MININTERVAL = 600;
 #endif
 #endif
-  constexpr const Loglevel LOG_LEVEL = D_LOG_LEVEL;              //! loglevel for App
+  constexpr const char *SYSLOG_SRV{ "rpi5.fritz.box" };          //! standart syslog Server
+  constexpr const char *SYSLOG_IP{ "192.168.1.44" };             //! standart syslog Server
+  constexpr const uint16_t SYSLOG_PORT{ 514 };                   //! standart syslog port
+  constexpr const char *SYSLOG_MYHOSTNAME{ "environment" };      //! own hostname
+  constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
+  constexpr const uint16_t SYSLOG_PRIO{ 0 };                     //! standart syslog prio (kernel)
+  constexpr const uint16_t SYSLOG_PROTO{ 0 };                    //! standart syslog protocol (IETF)
+  constexpr const logger::Loglevel LOG_LEVEL = D_LOG_LEVEL;      //! loglevel for App
   constexpr const char *TIMEZONE{ "CET-1" };                     //! my own timezone
   constexpr const char *MDNS_INSTANCE{ "esp rest server" };      //! instance nama of mdns process
   constexpr const char *WIFI_DEFAULT_HOSTNAME{ "env-sensor" };   //! default hostname network

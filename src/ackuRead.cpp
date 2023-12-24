@@ -11,6 +11,7 @@ namespace EnvServer
 
   void AckuVoltage::start()
   {
+    using namespace logger;
     AckuVoltage::adc.attach( Prefs::ACKU_MEASURE_GPIO );
     elog.log( DEBUG, "%s: ADC for acku initialized...", AckuVoltage::tag );
     elog.log( INFO, "%s: axcku tast started...", AckuVoltage::tag );
@@ -32,6 +33,7 @@ namespace EnvServer
   void AckuVoltage::ackuTask( void * )
   {
     using namespace Prefs;
+    using namespace logger;
 
     static uint32_t measures[ ACKU_CURRENT_SMOOTH_COUNT ];
     uint32_t idx = 0;
