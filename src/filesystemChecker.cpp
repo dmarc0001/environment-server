@@ -56,7 +56,7 @@ namespace EnvServer
     StatusObject::setFsTotalSpace( SPIFFS.totalBytes() );
     elog.log( DEBUG, "%s: total SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsTotalSpace() );
     StatusObject::setFsUsedSpace( SPIFFS.usedBytes() );
-    elog.log( DEBUG, "%s: total SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsUsedSpace() );
+    elog.log( DEBUG, "%s: used SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsUsedSpace() );
 
     if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
     {
