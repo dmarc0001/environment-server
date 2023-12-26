@@ -30,7 +30,7 @@ namespace Prefs
   constexpr const uint16_t SYSLOG_PORT{ 514 };                   //! standart syslog port
   constexpr const char *SYSLOG_MYHOSTNAME{ "environment" };      //! own hostname
   constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
-  constexpr const uint16_t SYSLOG_PRIO{ 0 };                     //! standart syslog prio (kernel)
+  constexpr const uint16_t SYSLOG_PRIO{ 8 };                     //! standart syslog prio (user)
   constexpr const uint16_t SYSLOG_PROTO{ 0 };                    //! standart syslog protocol (IETF)
   constexpr const logger::Loglevel LOG_LEVEL = D_LOG_LEVEL;      //! loglevel for App
   constexpr const char *TIMEZONE{ "CET-1" };                     //! my own timezone
