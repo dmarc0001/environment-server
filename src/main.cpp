@@ -25,6 +25,7 @@ void setup()
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
+  Prefs::locPrefs.begin(Prefs::APPNAME, false); 
   elog.addSerialLogging( Serial, "MAIN", Prefs::LOG_LEVEL );  // Enable serial logging. We want only INFO or lower logleve.
   IPAddress addr;
   addr.fromString( Prefs::SYSLOG_IP );

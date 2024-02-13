@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <driver/rtc_io.h>
 #include <esp_wifi.h>
+#include <Preferences.h>
 #include <FastLED.h>
 #include <DHT.h>
 #include <IPAddress.h>
@@ -30,6 +31,7 @@ namespace Prefs
   constexpr const uint16_t SYSLOG_PORT{ 514 };                   //! standart syslog port
   constexpr const char *SYSLOG_MYHOSTNAME{ "environment" };      //! own hostname
   constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
+  constexpr const char *APPNAME{ "en-app" };                     //! app name 
   constexpr const uint16_t SYSLOG_PRIO{ 8 };                     //! standart syslog prio (user)
   constexpr const uint16_t SYSLOG_PROTO{ 0 };                    //! standart syslog protocol (IETF)
   constexpr const logger::Loglevel LOG_LEVEL = D_LOG_LEVEL;      //! loglevel for App
@@ -79,6 +81,10 @@ namespace Prefs
   constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 8121;         //! sleeptime für filecheck
   constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MULTIPLIER = 64;   //! multipiler for sleep ms
 
+  class localPreferences
+  {
+
+  }
 }  // namespace Prefs
 
 #include "appStructs.hpp"
