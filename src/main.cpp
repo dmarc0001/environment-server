@@ -25,17 +25,21 @@ void setup()
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
-  Prefs::locPrefs.begin(Prefs::APPNAME, false); 
+  delay( 2000 );
   elog.addSerialLogging( Serial, "MAIN", Prefs::LOG_LEVEL );  // Enable serial logging. We want only INFO or lower logleve.
-  IPAddress addr;
-  addr.fromString( Prefs::SYSLOG_IP );
-  elog.setUdpClient( udpClient, addr, Prefs::SYSLOG_PORT, Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME, Prefs::SYSLOG_PRIO,
-                     Prefs::SYSLOG_PROTO );
-  // elog.setUdpClient( udpClient, Prefs::SYSLOG_SRV, Prefs::SYSLOG_PORT, Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME,
-  //                    Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
   elog.setSyslogOnline( false );
   elog.addSyslogLogging( Prefs::LOG_LEVEL );
   elog.log( INFO, "main: start with logging..." );
+  delay( 3000 );
+  elog.log( INFO, "init local preferences..." );
+  delay( 1000 );
+  Prefs::LocalPrefs::init();
+  delay( 2000 );
+  IPAddress addr( Prefs::LocalPrefs::getSyslogServer() );
+  elog.setUdpClient( udpClient, addr, Prefs::LocalPrefs::getSyslogPort(), Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME,
+                     Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
+  // elog.setUdpClient( udpClient, Prefs::SYSLOG_SRV, Prefs::SYSLOG_PORT, Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME,
+  //                    Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
   // set my timezone, i deal with timestamps
   elog.log( DEBUG, "main: set timezone (%s)...", Prefs::TIMEZONE );
   setenv( "TZ", Prefs::TIMEZONE, 1 );

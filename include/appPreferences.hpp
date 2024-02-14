@@ -1,13 +1,13 @@
 #pragma once
-#include <string>
-#include <stdint.h>
+#include <DHT.h>
+#include <FastLED.h>
+#include <IPAddress.h>
 #include <driver/rtc_io.h>
 #include <esp_wifi.h>
-#include <Preferences.h>
-#include <FastLED.h>
-#include <DHT.h>
-#include <IPAddress.h>
+#include <stdint.h>
+#include <string>
 #include "elog/eLog.hpp"
+#include <Preferences.h>
 
 namespace Prefs
 {
@@ -26,12 +26,12 @@ namespace Prefs
   constexpr int D_MININTERVAL = 600;
 #endif
 #endif
-  constexpr const char *SYSLOG_SRV{ "rpi5.fritz.box" };          //! standart syslog Server
-  constexpr const char *SYSLOG_IP{ "192.168.1.44" };             //! standart syslog Server
-  constexpr const uint16_t SYSLOG_PORT{ 514 };                   //! standart syslog port
+  constexpr const char *DEFAULT_SYSLOG_SRV{ "rpi5.fritz.box" };  //! standard syslog Server
+  constexpr const char *DEFAULT_SYSLOG_IP{ "192.168.1.44" };     //! standard syslog Server
+  constexpr const uint16_t DEFAULT_SYSLOG_PORT{ 514 };           //! standard syslog port
   constexpr const char *SYSLOG_MYHOSTNAME{ "environment" };      //! own hostname
   constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
-  constexpr const char *APPNAME{ "en-app" };                     //! app name 
+  constexpr const char *APPNAME{ "en-app" };                     //! app name
   constexpr const uint16_t SYSLOG_PRIO{ 8 };                     //! standart syslog prio (user)
   constexpr const uint16_t SYSLOG_PROTO{ 0 };                    //! standart syslog protocol (IETF)
   constexpr const logger::Loglevel LOG_LEVEL = D_LOG_LEVEL;      //! loglevel for App
@@ -81,10 +81,29 @@ namespace Prefs
   constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MS = 8121;         //! sleeptime für filecheck
   constexpr uint32_t FILESYS_CHECK_SLEEP_TIME_MULTIPLIER = 64;   //! multipiler for sleep ms
 
-  class localPreferences
+  class LocalPrefs
   {
+    private:
+    static const char *tag;    //! logging tag
+    static bool wasInit;       //! was the prefs object initialized?
+    static Preferences lPref;  // static preferences object
 
-  }
+    public:
+    static void init();                          //! init the preferences Object and Preferences
+    static IPAddress getSyslogServer();          //! get syslog server ip
+    static uint16_t getSyslogPort();             //! get syslog pornum
+    static bool setSyslogServer( IPAddress & );  //! set syslog server ipo
+    static bool setSyslogPort( uint16_t );       //! set syslog portnum
+    static IPAddress getDataServer();            //! get dataserver ip
+    static uint16_t getDataServerPort();         //! get dataserver port
+    static bool setDataServer( IPAddress & );    //! set dataserver ip
+    static String getTimeZone();                 //! get my timezone
+    static bool setTimeZone( String & );         //! set my timezone
+
+    private:
+    static bool getIfPrefsInit();        //! internal, is preferences initialized?
+    static bool setIfPrefsInit( bool );  //! internal, set preferences initialized?
+  };
 }  // namespace Prefs
 
 #include "appStructs.hpp"
