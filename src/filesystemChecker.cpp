@@ -480,7 +480,7 @@ namespace EnvServer
               //
               // area in that the result is correct
               //
-              if ( timestampStart < timestampEnd && timestampStart > 1 && timestampStart < 5 && timestampEnd > 4  && timestampEnd < 24 )
+              if ( timestampStart < timestampEnd && timestampStart > 1 && timestampStart < 5 && timestampEnd > 4 && timestampEnd < 24 )
               {
                 String timestampString = line.substring( timestampStart, timestampEnd );
                 // elog.log( DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );

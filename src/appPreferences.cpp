@@ -11,6 +11,7 @@ namespace Prefs
   constexpr const char *DATASRV{ "dataServer" };
   constexpr const char *DATASRVPORT{ "dataPort" };
   constexpr const char *LOCAL_TIMEZONE{ "timeZone" };
+  constexpr const char *LOCAL_HOSTNAME{ "hostName" };
 
   Preferences LocalPrefs::lPref;
   bool LocalPrefs::wasInit{ false };
@@ -29,13 +30,18 @@ namespace Prefs
     if ( !LocalPrefs::getIfPrefsInit() )
     {
       elog.log( DEBUG, "%s: first-time-init preferences...", LocalPrefs::tag );
+      char hostname[ 32 ];
+      elog.log( INFO, "main: get hostname..." );
+      uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
+      snprintf( hostname, 32, "%s-%08X", Prefs::WIFI_DEFAULT_HOSTNAME, chip );
+      String hn( &hostname[ 0 ] );
       LocalPrefs::lPref.putUInt( SYSLOGSRV, 0U );
       LocalPrefs::lPref.putUShort( SYSLOGPORT, ( uint16_t ) 514 );
       LocalPrefs::lPref.putUInt( DATASRV, 0U );
       LocalPrefs::lPref.putUShort( DATASRVPORT, ( uint16_t ) 0 );
       LocalPrefs::lPref.putString( LOCAL_TIMEZONE, "GMT" );
+      LocalPrefs::lPref.putString( LOCAL_HOSTNAME, hn );
       LocalPrefs::setIfPrefsInit( true );
-
       elog.log( DEBUG, "%s: first-time-init preferences...DONE", LocalPrefs::tag );
     }
     elog.log( INFO, "%s: init...DONE", LocalPrefs::tag );
@@ -85,7 +91,7 @@ namespace Prefs
   /**
    * get port from data server
    */
-  uint16_t LocalPrefs::getDataServerPort()
+  uint16_t LocalPrefs::getDataPort()
   {
     return ( LocalPrefs::lPref.getUShort( DATASRVPORT ) );
   }
@@ -96,6 +102,14 @@ namespace Prefs
   bool LocalPrefs::setDataServer( IPAddress &_addr )
   {
     return ( LocalPrefs::lPref.putUInt( DATASRV, _addr ) == 4 );
+  }
+
+  /**
+   * set port for dataserver
+   */
+  bool LocalPrefs::setDataPort( uint16_t _port )
+  {
+    return ( LocalPrefs::lPref.putUShort( DATASRVPORT, _port ) == 2 );
   }
 
   /**
@@ -112,6 +126,22 @@ namespace Prefs
   bool LocalPrefs::setTimeZone( String &_zone )
   {
     return ( LocalPrefs::lPref.putString( LOCAL_TIMEZONE, _zone ) > 0 );
+  }
+
+  /**
+   * get the local hostname
+   */
+  String LocalPrefs::getHostName()
+  {
+    return ( LocalPrefs::lPref.getString( LOCAL_HOSTNAME, Prefs::WIFI_DEFAULT_HOSTNAME ) );
+  }
+
+  /**
+   * set the local hostname
+   */
+  bool LocalPrefs::setHostName( String &_hostname )
+  {
+    return ( LocalPrefs::lPref.putString( LOCAL_HOSTNAME, _hostname ) > 0 );
   }
 
   /**

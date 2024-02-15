@@ -39,7 +39,7 @@ namespace EnvServer
     //
     EnvWebServer::server.on( "/", HTTP_GET, EnvWebServer::onIndex );
     EnvWebServer::server.on( "/index\\.html", HTTP_GET, EnvWebServer::onIndex );
-    // EnvWebServer::server.on( "^\\/api\\/v1\\/(month|week|today|version|interval|current)$", HTTP_GET, EnvWebServer::onApiV1 );
+    EnvWebServer::server.on( "^\\/api\\/v1\\/set-(.*)\?(.*)$", HTTP_GET, EnvWebServer::onApiV1Set );
     EnvWebServer::server.on( "^\\/api\\/v1\\/(.*)$", HTTP_GET, EnvWebServer::onApiV1 );
     EnvWebServer::server.on( "^\\/.*$", HTTP_GET, EnvWebServer::onFilesReq );
     EnvWebServer::server.onNotFound( EnvWebServer::onNotFound );
@@ -128,6 +128,81 @@ namespace EnvServer
     // TODO: implement loglevel change (Elog::globalSettings)
   }
 
+  /**
+   * compute set commands via API
+   */
+  void EnvWebServer::onApiV1Set( AsyncWebServerRequest *request )
+  {
+    StatusObject::setHttpActive( true );
+    String verb = request->pathArg( 0 );
+    String server, port;
+
+    elog.log( logger::DEBUG, "%s: api version 1 call set-%s", EnvWebServer::tag, verb );
+    //
+    // timezone set?
+    //
+    if ( verb.equals( "timezone" ) )
+    {
+      // TODO: timezone parameter find
+      String timezone;
+      if ( request->hasParam( "timezone" ) )
+        timezone = request->getParam( "timezone" )->value();
+      elog.log( logger::DEBUG, "%s: set-timezone, param: %s", EnvWebServer::tag, timezone.c_str() );
+      Prefs::LocalPrefs::setTimeZone( timezone );
+      request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
+      setenv( "TZ", timezone.c_str(), 1 );
+      tzset();
+      return;
+    }
+    //
+    // server/port set?
+    //
+    if ( request->hasParam( "server" ) )
+      server = request->getParam( "server" )->value();
+    if ( request->hasParam( "port" ) )
+      port = request->getParam( "port" )->value();
+    //
+    if ( server.isEmpty() || port.isEmpty() )
+    {
+      //
+      // not set, i can't compute this
+      //
+      request->send( 300, "text/plain", "fail api call v1 for <set-" + verb + "> - no server/port params" );
+      return;
+    }
+    //
+    // params to usable objects
+    //
+    IPAddress srv;
+    srv.fromString( server );
+    uint16_t srvport = static_cast< uint16_t >( port.toInt() );
+    //
+    // which command?
+    //
+    if ( verb.equals( "syslog" ) )
+    {
+      elog.log( logger::DEBUG, "%s: set-syslog, params: %s, %s", EnvWebServer::tag, server.c_str(), port.c_str() );
+      Prefs::LocalPrefs::setSyslogServer( srv );
+      Prefs::LocalPrefs::setSyslogPort( srvport );
+      // reboot then
+    }
+    else if ( verb.equals( "datalog" ) )
+    {
+      elog.log( logger::DEBUG, "%s: set-datalog, params: %s, %s", EnvWebServer::tag, server.c_str(), port.c_str() );
+      Prefs::LocalPrefs::setDataServer( srv );
+      Prefs::LocalPrefs::setDataPort( srvport );
+      // reboot then
+    }
+    else
+    {
+      request->send( 300, "text/plain", "fail api call v1 for <set-" + verb + ">" );
+      return;
+    }
+    request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + "> RESTART CONTROLLER" );
+    yield();
+    sleep( 2 );
+    ESP.restart();
+  }
   /**
    * request for environment data for today
    */

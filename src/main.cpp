@@ -25,29 +25,51 @@ void setup()
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
-  delay( 2000 );
+#ifdef BUILD_DEBUG
+  sleep( 2 );
+#endif
   elog.addSerialLogging( Serial, "MAIN", Prefs::LOG_LEVEL );  // Enable serial logging. We want only INFO or lower logleve.
   elog.setSyslogOnline( false );
   elog.addSyslogLogging( Prefs::LOG_LEVEL );
   elog.log( INFO, "main: start with logging..." );
-  delay( 3000 );
-  elog.log( INFO, "init local preferences..." );
-  delay( 1000 );
-  Prefs::LocalPrefs::init();
-  delay( 2000 );
-  IPAddress addr( Prefs::LocalPrefs::getSyslogServer() );
-  elog.setUdpClient( udpClient, addr, Prefs::LocalPrefs::getSyslogPort(), Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME,
-                     Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
-  // elog.setUdpClient( udpClient, Prefs::SYSLOG_SRV, Prefs::SYSLOG_PORT, Prefs::SYSLOG_MYHOSTNAME, Prefs::SYSLOG_APPNAME,
-  //                    Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
+  elog.log( INFO, "main: init local preferences..." );
   // set my timezone, i deal with timestamps
-  elog.log( DEBUG, "main: set timezone (%s)...", Prefs::TIMEZONE );
-  setenv( "TZ", Prefs::TIMEZONE, 1 );
+  elog.log( DEBUG, "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
+  setenv( "TZ", Prefs::LocalPrefs::getTimeZone().c_str(), 1 );
   tzset();
+  Prefs::LocalPrefs::init();
+#ifdef BUILD_DEBUG
+  sleep( 2 );
+#endif
+  static String hName( Prefs::LocalPrefs::getHostName() );
+  elog.log( INFO, "main: hostname: <%s>...", hName.c_str() );
+  //
+  // check if syslog and/or datalog present
+  //
+  IPAddress addr( Prefs::LocalPrefs::getSyslogServer() );
+  uint16_t port( Prefs::LocalPrefs::getSyslogPort() );
+  elog.log( INFO, "main: syslog %s:%d", addr.toString().c_str(), port );
+  if ( ( addr > 0 ) && ( port > 0 ) )
+  {
+    elog.log( INFO, "main: init syslog protocol to %s:%d...", addr.toString().c_str(), port );
+    elog.setUdpClient( udpClient, addr, port, hName.c_str(), Prefs::SYSLOG_APPNAME, Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
+  }
   elog.log( DEBUG, "main: init LED Stripe..." );
   LEDStripe::init();
   elog.log( DEBUG, "main: init statusobject..." );
   StatusObject::init();
+  //
+  // check if config for data server peresent
+  //
+  addr = Prefs::LocalPrefs::getDataServer();
+  port = Prefs::LocalPrefs::getDataPort();
+  elog.log( INFO, "main: datalog %s:%d", addr.toString().c_str(), port );
+  if ( ( addr > 0 ) && ( port > 0 ) )
+  {
+    elog.log( INFO, "main: init data log protocol to %s:%d...", addr.toString().c_str(), port );
+    dataLog.setUdpDataLog( udpClient, addr, port, hName.c_str(), Prefs::SYSLOG_APPNAME );
+    StatusObject::setIsDataSend( true );
+  }
   elog.log( DEBUG, "main: init acku watch..." );
   AckuVoltage::start();
   elog.log( DEBUG, "main: start sensor watching..." );

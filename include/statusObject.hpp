@@ -8,6 +8,30 @@
 
 namespace EnvServer
 {
+  /*
+  ### json object ###
+  {
+    "ti":"1707679021",
+    "da":
+    [
+      {
+        "id":"28FF07A1A11603C6",
+        "te":"20.8",
+        "hu":"-100.0"
+      },
+      {
+        "id":"28FF7F689316042D",
+        "te":"20.7",
+        "hu":"-100.0"
+      },
+      {
+        "id":"HUM",
+        "te":"21.0",
+        "hu":"52.0"
+      }
+    ]
+    }
+  */
   class StatusObject
   {
     private:
@@ -22,6 +46,7 @@ namespace EnvServer
     static bool isBrownout;         //! is voltage too low
     static bool isLowAcku;          //! is low acku
     static bool isFilesystemcheck;  // is an filesystemcheck running or requested
+    static bool isDataSend;         //! should data send to a server
     static size_t todayFileSize;    // filesize of the today.json file
     static size_t weekFileSize;     // filesize of the weekly.json file
     static size_t monthFileSize;    // filesize of the month.json file
@@ -58,6 +83,14 @@ namespace EnvServer
     static bool getFsCheckReq()
     {
       return StatusObject::isFilesystemcheck;
+    }
+    static void setIsDataSend( bool _set )
+    {
+      StatusObject::isDataSend = _set;
+    }
+    static bool getIsDataSend()
+    {
+      return StatusObject::isDataSend;
     }
     static void setTodayFileSize( size_t _size )
     {

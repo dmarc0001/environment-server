@@ -21,6 +21,7 @@ namespace EnvServer
   bool StatusObject::isBrownout{ false };         //! is voltage too low
   bool StatusObject::isLowAcku{ false };          //! is low acku
   bool StatusObject::isFilesystemcheck{ false };  // is an filesystemcheck running or requested
+  bool StatusObject::isDataSend{ false };         // sould data send to a server
   size_t StatusObject::todayFileSize{ 0 };        // filesize of the today.json file
   size_t StatusObject::weekFileSize{ 0 };         // filesize of the week.json file
   size_t StatusObject::monthFileSize{ 0 };        // filesize of the month.json file
@@ -238,10 +239,26 @@ namespace EnvServer
               jsonString += "\n";
               fh.print( jsonString );
               fh.flush();
+              jsonString.clear();
+              cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
               StatusObject::setTodayFileSize( fh.size() );
               fh.close();
+              //
+              // if datasend active
+              //
+              if ( StatusObject::getIsDataSend() )
+              {
+                cJSON_AddItemToObject( dataSetObj, Prefs::JSON_DEVICE_NAME,
+                                       cJSON_CreateString( Prefs::LocalPrefs::getHostName().c_str() ) );
+                char *dataJsonPrintString = cJSON_PrintUnformatted( dataSetObj );
+                jsonString = String( dataJsonPrintString );
+                jsonString += "\n";
+                // SEND to Server
+                dataLog.sendMeasure( jsonString );
+                jsonString.clear();
+                cJSON_free( dataJsonPrintString );  // !!!!!!! memory leak if not
+              }
               cJSON_Delete( dataSetObj );
-              cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
               elog.log( INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );
             }
             else
