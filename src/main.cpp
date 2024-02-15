@@ -25,22 +25,22 @@ void setup()
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
-#ifdef BUILD_DEBUG
-  sleep( 2 );
-#endif
+  // #ifdef BUILD_DEBUG
+  //   sleep( 2 );
+  // #endif
   elog.addSerialLogging( Serial, "MAIN", Prefs::LOG_LEVEL );  // Enable serial logging. We want only INFO or lower logleve.
   elog.setSyslogOnline( false );
   elog.addSyslogLogging( Prefs::LOG_LEVEL );
   elog.log( INFO, "main: start with logging..." );
   elog.log( INFO, "main: init local preferences..." );
+  Prefs::LocalPrefs::init();
   // set my timezone, i deal with timestamps
   elog.log( DEBUG, "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
   setenv( "TZ", Prefs::LocalPrefs::getTimeZone().c_str(), 1 );
   tzset();
-  Prefs::LocalPrefs::init();
-#ifdef BUILD_DEBUG
-  sleep( 2 );
-#endif
+  // #ifdef BUILD_DEBUG
+  //   sleep( 2 );
+  // #endif
   static String hName( Prefs::LocalPrefs::getHostName() );
   elog.log( INFO, "main: hostname: <%s>...", hName.c_str() );
   //
@@ -67,7 +67,7 @@ void setup()
   if ( ( addr > 0 ) && ( port > 0 ) )
   {
     elog.log( INFO, "main: init data log protocol to %s:%d...", addr.toString().c_str(), port );
-    dataLog.setUdpDataLog( udpClient, addr, port, hName.c_str(), Prefs::SYSLOG_APPNAME );
+    dataLog.setUdpDataLog( udpDataClient, addr, port, Prefs::SYSLOG_APPNAME );
     StatusObject::setIsDataSend( true );
   }
   elog.log( DEBUG, "main: init acku watch..." );

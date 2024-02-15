@@ -7,5 +7,6 @@ namespace EnvServer
 {
   logger::Elog elog;
   WiFiUDP udpClient;
-  UDBDataLog dataLog;
+  WiFiUDP udpDataClient;
+  UDPDataLog dataLog;
 }  // namespace EnvServer

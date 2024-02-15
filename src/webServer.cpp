@@ -143,7 +143,7 @@ namespace EnvServer
     //
     if ( verb.equals( "timezone" ) )
     {
-      // TODO: timezone parameter find
+      // timezone parameter find
       String timezone;
       if ( request->hasParam( "timezone" ) )
         timezone = request->getParam( "timezone" )->value();
@@ -152,6 +152,9 @@ namespace EnvServer
       request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
       setenv( "TZ", timezone.c_str(), 1 );
       tzset();
+      yield();
+      sleep( 2 );
+      ESP.restart();
       return;
     }
     //

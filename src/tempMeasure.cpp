@@ -193,8 +193,13 @@ namespace EnvServer
             warning_rounds_count = 0;
           }
         }
-        elog.log( DEBUG, "%s: dataset send to queue...", TempMeasure::tag );
+        elog.log( DEBUG, "%s: dataset send to file queue...", TempMeasure::tag );
         StatusObject::dataset->push_back( current_measure );
+        if ( StatusObject::getIsDataSend() )
+        {
+          elog.log( DEBUG, "%s: dataset send to udp datasend queue...", TempMeasure::tag );
+          UDPDataLog::dataset->push_back( current_measure );
+        }
         delay( 50 );
       }
       delay( 500 );

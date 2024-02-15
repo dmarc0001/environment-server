@@ -243,21 +243,6 @@ namespace EnvServer
               cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
               StatusObject::setTodayFileSize( fh.size() );
               fh.close();
-              //
-              // if datasend active
-              //
-              if ( StatusObject::getIsDataSend() )
-              {
-                cJSON_AddItemToObject( dataSetObj, Prefs::JSON_DEVICE_NAME,
-                                       cJSON_CreateString( Prefs::LocalPrefs::getHostName().c_str() ) );
-                char *dataJsonPrintString = cJSON_PrintUnformatted( dataSetObj );
-                jsonString = String( dataJsonPrintString );
-                jsonString += "\n";
-                // SEND to Server
-                dataLog.sendMeasure( jsonString );
-                jsonString.clear();
-                cJSON_free( dataJsonPrintString );  // !!!!!!! memory leak if not
-              }
               cJSON_Delete( dataSetObj );
               elog.log( INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );
             }

@@ -10,7 +10,7 @@ namespace Prefs
   constexpr const char *SYSLOGPORT{ "syslogPort" };
   constexpr const char *DATASRV{ "dataServer" };
   constexpr const char *DATASRVPORT{ "dataPort" };
-  constexpr const char *LOCAL_TIMEZONE{ "timeZone" };
+  constexpr const char *LOCAL_TIMEZONE{ "locTimeZone" };
   constexpr const char *LOCAL_HOSTNAME{ "hostName" };
 
   Preferences LocalPrefs::lPref;
