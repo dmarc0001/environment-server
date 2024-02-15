@@ -19,7 +19,7 @@ namespace Prefs
   constexpr int D_MININTERVAL = 600;
 #else
 #ifdef BUILD_RELEASE
-  constexpr Loglevel D_LOG_LEVEL = INFO;
+  constexpr logger::Loglevel D_LOG_LEVEL = logger::INFO;
   constexpr int D_MININTERVAL = 600;
 #else
   constexpr Loglevel D_LOG_LEVEL = WARNING;
