@@ -67,7 +67,7 @@ void setup()
   if ( ( addr > 0 ) && ( port > 0 ) )
   {
     elog.log( INFO, "main: init data log protocol to %s:%d...", addr.toString().c_str(), port );
-    dataLog.setUdpDataLog( udpDataClient, addr, port, Prefs::SYSLOG_APPNAME );
+    UDPDataLog::setUdpDataLog( udpDataClient, addr, port, Prefs::SYSLOG_APPNAME );
     StatusObject::setIsDataSend( true );
   }
   elog.log( DEBUG, "main: init acku watch..." );

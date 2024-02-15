@@ -9,6 +9,4 @@ namespace EnvServer
   extern logger::Elog elog;
   extern WiFiUDP udpClient;
   extern WiFiUDP udpDataClient;
-  extern UDPDataLog dataLog;
-
 }  // namespace EnvServer

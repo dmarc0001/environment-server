@@ -13,21 +13,19 @@ namespace EnvServer
     private:
     static const char *tag;
     static bool isRunning;
-    UDP *_client;
-    IPAddress _ip;
-    uint16_t _port;
-    const char *_appName;
+    static UDP *_client;
+    static IPAddress _ip;
+    static uint16_t _port;
+    static const char *_appName;
 
     public:
     static std::shared_ptr< env_dataset > dataset;  //! set of mesures
 
     public:
-    UDPDataLog();
-    UDPDataLog( UDP &client, const IPAddress, uint16_t, const char *appName = "-" );
-    void setUdpDataLog( UDP &client, const IPAddress, uint16_t, const char *appName = "-" );
+    static void setUdpDataLog( UDP &client, const IPAddress, uint16_t, const char *appName = "-" );
 
     private:
-    void start();
+    static void start();
     static void saveTask( void * );
   };
 }  // namespace EnvServer

@@ -1,3 +1,8 @@
+set syslog destination
 http://192.168.1.40/api/v1/set-datalog?server=192.168.1.44&port=63420
+
+set datalog destination
 http://192.168.1.40/api/v1/set-syslog?server=192.168.1.44&port=512
+
+set timezone
 http://192.168.1.40/api/v1/set-timezone?timezone=CET-1

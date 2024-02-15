@@ -9,23 +9,21 @@ namespace EnvServer
 {
   const char *UDPDataLog::tag{ "UDPDataLog" };
   bool UDPDataLog::isRunning{ false };
+  UDP *UDPDataLog::_client{ nullptr };
+  IPAddress UDPDataLog::_ip{ INADDR_NONE };
+  uint16_t UDPDataLog::_port{ 0 };
+  const char *UDPDataLog::_appName{ nullptr };
+
   std::shared_ptr< env_dataset > UDPDataLog::dataset = std::shared_ptr< env_dataset >( new env_dataset() );
-
-  UDPDataLog::UDPDataLog(){};
-
-  UDPDataLog::UDPDataLog( UDP &client, const IPAddress addr, uint16_t port, const char *appName )
-      : _client( &client ), _ip( addr ), _port( port ), _appName( appName )
-  {
-  }
 
   void UDPDataLog::setUdpDataLog( UDP &client, const IPAddress addr, uint16_t port, const char *appName )
   {
     StatusObject::init();
-    _client = &client;
-    _ip = addr;
-    _port = port;
-    _appName = appName;
-    this->start();
+    UDPDataLog::_client = &client;
+    UDPDataLog::_ip = addr;
+    UDPDataLog::_port = port;
+    UDPDataLog::_appName = appName;
+    UDPDataLog::start();
   }
 
   /**
@@ -96,9 +94,16 @@ namespace EnvServer
         String jsonString( jsonPrintString );
         jsonString += "\n";
 
+        elog.log( DEBUG, "%s: sending...", UDPDataLog::tag );
+        if ( UDPDataLog::_ip == INADDR_NONE || UDPDataLog::_port == 0 )
+          continue;
+        if ( UDPDataLog::_client->beginPacket( UDPDataLog::_ip, UDPDataLog::_port ) != 1 )
+          continue;
+        UDPDataLog::_client->print( jsonString );
+        UDPDataLog::_client->endPacket();
+        jsonString.clear();
         cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
         cJSON_Delete( dataSetObj );
-
         elog.log( INFO, "%s: dataset sent...", UDPDataLog::tag );
       }
     }
