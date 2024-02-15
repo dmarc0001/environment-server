@@ -44,7 +44,7 @@ namespace Prefs
   constexpr const char *WEB_TEMP_FILE{ "/temporary.jdata" };     //! virtual path workerfile
   constexpr const char *WEB_PARTITION_LABEL{ "mydata" };         //! label of the spiffs or null
   constexpr const char *JSON_TIMESTAMP_NAME{ "ti" };             //! timestamp name in json
-  constexpr const char *JSON_DEVICE_NAME{ "de" };                //! device name for data recorder
+  constexpr const char *JSON_DEVICE_NAME{ "dev" };               //! device name for data recorder
   constexpr const char *JSON_TEMPERATURE_NAME{ "te" };           //! temperature name in json
   constexpr const char *JSON_HUMIDY_NAME{ "hu" };                //! humidy name in json
   constexpr const char *JSON_SENSOR_ID_NAME{ "id" };             //! sensor id name in json
