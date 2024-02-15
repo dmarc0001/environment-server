@@ -26,17 +26,12 @@ namespace Prefs
   constexpr int D_MININTERVAL = 600;
 #endif
 #endif
-  constexpr const char *DEFAULT_SYSLOG_SRV{ "rpi5.fritz.box" };  //! standard syslog Server
-  constexpr const char *DEFAULT_SYSLOG_IP{ "192.168.1.44" };     //! standard syslog Server
-  constexpr const uint16_t DEFAULT_SYSLOG_PORT{ 514 };           //! standard syslog port
-  constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
+  constexpr const char *DEFAULT_HOSTNAME{ "sensor" };            //! default hostname network
   constexpr const char *APPNAME{ "en-app" };                     //! app name
+  constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
   constexpr const uint16_t SYSLOG_PRIO{ 8 };                     //! standart syslog prio (user)
   constexpr const uint16_t SYSLOG_PROTO{ 0 };                    //! standart syslog protocol (IETF)
   constexpr const logger::Loglevel LOG_LEVEL = D_LOG_LEVEL;      //! loglevel for App
-  constexpr const char *TIMEZONE{ "CET-1" };                     //! my own timezone
-  constexpr const char *MDNS_INSTANCE{ "esp rest server" };      //! instance nama of mdns process
-  constexpr const char *WIFI_DEFAULT_HOSTNAME{ "sensor" };       //! default hostname network
   constexpr const char *WEB_PATH{ "/spiffs" };                   //! virtual path wegserver
   constexpr const char *WEB_DAYLY_FILE{ "/today.jdata" };        //! virtual path today's file (round about 24 hours)
   constexpr const char *WEB_WEEKLY_FILE{ "/week.jdata" };        //! virtual path 7 day-history file

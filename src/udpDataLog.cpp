@@ -109,6 +109,9 @@ namespace EnvServer
     }
   }
 
+  /**
+   * start hos own task
+   */
   void UDPDataLog::start()
   {
     using namespace logger;

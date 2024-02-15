@@ -16,7 +16,7 @@ namespace EnvServer
     char hostname[ 32 ];
     elog.log( INFO, "%s: initialize wifi...", WifiConfig::tag );
     uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
-    snprintf( hostname, 32, "%s-%08X", Prefs::WIFI_DEFAULT_HOSTNAME, chip );
+    snprintf( hostname, 32, "%s-%08X", Prefs::DEFAULT_HOSTNAME, chip );
     WiFi.setHostname( hostname );
     WiFi.mode( WIFI_STA );
     WiFi.onEvent( WifiConfig::wifiEventCallback );

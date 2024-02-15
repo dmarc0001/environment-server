@@ -33,7 +33,7 @@ namespace Prefs
       char hostname[ 32 ];
       elog.log( INFO, "main: get hostname..." );
       uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
-      snprintf( hostname, 32, "%s-%08X", Prefs::WIFI_DEFAULT_HOSTNAME, chip );
+      snprintf( hostname, 32, "%s-%08X", Prefs::DEFAULT_HOSTNAME, chip );
       String hn( &hostname[ 0 ] );
       LocalPrefs::lPref.putUInt( SYSLOGSRV, 0U );
       LocalPrefs::lPref.putUShort( SYSLOGPORT, ( uint16_t ) 514 );
@@ -133,7 +133,7 @@ namespace Prefs
    */
   String LocalPrefs::getHostName()
   {
-    return ( LocalPrefs::lPref.getString( LOCAL_HOSTNAME, Prefs::WIFI_DEFAULT_HOSTNAME ) );
+    return ( LocalPrefs::lPref.getString( LOCAL_HOSTNAME, Prefs::DEFAULT_HOSTNAME ) );
   }
 
   /**
