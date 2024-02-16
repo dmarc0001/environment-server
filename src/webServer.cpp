@@ -144,18 +144,47 @@ namespace EnvServer
     if ( verb.equals( "timezone" ) )
     {
       // timezone parameter find
-      String timezone;
       if ( request->hasParam( "timezone" ) )
-        timezone = request->getParam( "timezone" )->value();
-      elog.log( logger::DEBUG, "%s: set-timezone, param: %s", EnvWebServer::tag, timezone.c_str() );
-      Prefs::LocalPrefs::setTimeZone( timezone );
-      request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
-      setenv( "TZ", timezone.c_str(), 1 );
-      tzset();
-      yield();
-      sleep( 2 );
-      ESP.restart();
-      return;
+      {
+        String timezone = request->getParam( "timezone" )->value();
+        elog.log( logger::DEBUG, "%s: set-timezone, param: %s", EnvWebServer::tag, timezone.c_str() );
+        Prefs::LocalPrefs::setTimeZone( timezone );
+        request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
+        setenv( "TZ", timezone.c_str(), 1 );
+        tzset();
+        yield();
+        sleep( 1 );
+        ESP.restart();
+        return;
+      }
+      else
+      {
+        elog.log( logger::ERROR, "%s: set-timezone, param not found!", EnvWebServer::tag );
+        request->send( 300, "text/plain", "api call v1 for <set-" + verb + "> param not found!" );
+        return;
+      }
+    }
+    else if ( verb.equals( "loglevel" ) )
+    {
+      // loglevel parameter find
+      if ( request->hasParam( "level" ) )
+      {
+        String level = request->getParam( "level" )->value();
+        elog.log( logger::DEBUG, "%s: set-loglevel, param: %s", EnvWebServer::tag, level.c_str() );
+        uint8_t numLevel = static_cast< uint8_t >( level.toInt() );
+        Prefs::LocalPrefs::setLogLevel( numLevel );
+        request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
+        yield();
+        sleep( 1 );
+        ESP.restart();
+        return;
+      }
+      else
+      {
+        elog.log( logger::ERROR, "%s: set-loglevel, param not found!", EnvWebServer::tag );
+        request->send( 300, "text/plain", "api call v1 for <set-" + verb + "> param not found!" );
+        return;
+      }
     }
     //
     // server/port set?

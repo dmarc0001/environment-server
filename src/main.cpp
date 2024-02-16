@@ -25,22 +25,19 @@ void setup()
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
-  // #ifdef BUILD_DEBUG
-  //   sleep( 2 );
-  // #endif
-  elog.addSerialLogging( Serial, "MAIN", Prefs::LOG_LEVEL );  // Enable serial logging. We want only INFO or lower logleve.
-  elog.setSyslogOnline( false );
-  elog.addSyslogLogging( Prefs::LOG_LEVEL );
-  elog.log( INFO, "main: start with logging..." );
-  elog.log( INFO, "main: init local preferences..." );
+  // read persistent config
+  Serial.println( "main: init local preferences..." );
   Prefs::LocalPrefs::init();
+  // correct loglevel
+  Loglevel level = static_cast< Loglevel >( Prefs::LocalPrefs::getLogLevel() );
+  elog.addSerialLogging( Serial, "MAIN", level );  // Enable serial logging. We want only INFO or lower logleve.
+  elog.setSyslogOnline( false );
+  elog.addSyslogLogging( level );
+  elog.log( INFO, "main: start with logging..." );
   // set my timezone, i deal with timestamps
   elog.log( DEBUG, "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
   setenv( "TZ", Prefs::LocalPrefs::getTimeZone().c_str(), 1 );
   tzset();
-  // #ifdef BUILD_DEBUG
-  //   sleep( 2 );
-  // #endif
   static String hName( Prefs::LocalPrefs::getHostName() );
   elog.log( INFO, "main: hostname: <%s>...", hName.c_str() );
   //

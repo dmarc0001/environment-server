@@ -1,6 +1,6 @@
 #include "appPreferences.hpp"
 #include "common.hpp"
-#include "statics.hpp"
+// #include "statics.hpp"
 
 namespace Prefs
 {
@@ -12,6 +12,7 @@ namespace Prefs
   constexpr const char *DATASRVPORT{ "dataPort" };
   constexpr const char *LOCAL_TIMEZONE{ "locTimeZone" };
   constexpr const char *LOCAL_HOSTNAME{ "hostName" };
+  constexpr const char *DEBUGSETTING{ "debugging" };
 
   Preferences LocalPrefs::lPref;
   bool LocalPrefs::wasInit{ false };
@@ -25,13 +26,11 @@ namespace Prefs
     using namespace EnvServer;
     using namespace logger;
 
-    elog.log( INFO, "%s: init...", LocalPrefs::tag );
     LocalPrefs::lPref.begin( APPNAME, false );
     if ( !LocalPrefs::getIfPrefsInit() )
     {
-      elog.log( DEBUG, "%s: first-time-init preferences...", LocalPrefs::tag );
+      Serial.println( "first-time-init preferences..." );
       char hostname[ 32 ];
-      elog.log( INFO, "main: get hostname..." );
       uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
       snprintf( hostname, 32, "%s-%08X", Prefs::DEFAULT_HOSTNAME, chip );
       String hn( &hostname[ 0 ] );
@@ -41,10 +40,10 @@ namespace Prefs
       LocalPrefs::lPref.putUShort( DATASRVPORT, ( uint16_t ) 0 );
       LocalPrefs::lPref.putString( LOCAL_TIMEZONE, "GMT" );
       LocalPrefs::lPref.putString( LOCAL_HOSTNAME, hn );
+      LocalPrefs::lPref.putUChar( DEBUGSETTING, logger::DEBUG );
       LocalPrefs::setIfPrefsInit( true );
-      elog.log( DEBUG, "%s: first-time-init preferences...DONE", LocalPrefs::tag );
+      Serial.println( "first-time-init preferences...DONE" );
     }
-    elog.log( INFO, "%s: init...DONE", LocalPrefs::tag );
     LocalPrefs::wasInit = true;
   }
 
@@ -142,6 +141,20 @@ namespace Prefs
   bool LocalPrefs::setHostName( String &_hostname )
   {
     return ( LocalPrefs::lPref.putString( LOCAL_HOSTNAME, _hostname ) > 0 );
+  }
+
+  uint8_t LocalPrefs::getLogLevel()
+  {
+#ifdef BUILD_DEBUG
+    return ( LocalPrefs::lPref.getUChar( DEBUGSETTING, logger::DEBUG ) );
+#else
+    return ( LocalPrefs::lPref.getUChar( DEBUGSETTING, logger::INFO ) );
+#endif
+  }
+
+  bool LocalPrefs::setLogLevel( uint8_t _set )
+  {
+    return ( LocalPrefs::lPref.putUChar( DEBUGSETTING, _set ) == 1 );
   }
 
   /**

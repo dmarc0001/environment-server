@@ -97,6 +97,8 @@ namespace Prefs
     static bool setTimeZone( String & );         //! set my timezone
     static String getHostName();                 //! get my own hostname
     static bool setHostName( String & );         //! set my Hostname
+    static uint8_t getLogLevel();                //! get Logging
+    static bool setLogLevel( uint8_t );          //! set Logging
 
     private:
     static bool getIfPrefsInit();        //! internal, is preferences initialized?
