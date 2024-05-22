@@ -477,11 +477,15 @@ namespace EnvServer
               uint timestampStart = line.indexOf( "\"ti\":\"" ) + 6;
               uint timestampEnd = line.indexOf( "\",\"da\"" );
               size_t len = currPtr - startPtr;
-              if ( timestampStart > 1 && timestampEnd > 5 )
+              //
+              // area in that the result is correct
+              //
+              if ( timestampStart < timestampEnd && timestampStart > 1 && timestampStart < 5 && timestampEnd > 4 && timestampEnd < 24 )
               {
                 String timestampString = line.substring( timestampStart, timestampEnd );
                 // elog.log( DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );
-                //  save ram
+                //
+                // save ram
                 line.clear();
                 uint32_t timestamp = timestampString.toInt();
                 if ( timestamp < borderTimestamp )

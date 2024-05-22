@@ -20,6 +20,7 @@ namespace EnvServer
     private:
     static void onIndex( AsyncWebServerRequest * );                               //! on index ("/" or "/index.html")
     static void onApiV1( AsyncWebServerRequest * );                               //! on url path "/api/v1/"
+    static void onApiV1Set( AsyncWebServerRequest * );                            //! on url path "/api/v1/set-*"
     static void onFilesReq( AsyncWebServerRequest * );                            //! on some file
     static void apiGetTodayData( AsyncWebServerRequest * );                       //! on api get today data
     static void apiGetWeekData( AsyncWebServerRequest * );                        //! on api get week data
