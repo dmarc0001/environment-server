@@ -192,7 +192,7 @@ namespace EnvServer
           }
         }
         logger.log( Prefs::LOGID, DEBUG, "%s: dataset send to file queue...", TempMeasure::tag );
-        StatusObject::dataset->push_back( current_measure );
+        StatusObject::putMeasureDataset( current_measure );
         delay( 50 );
       }
       delay( 500 );

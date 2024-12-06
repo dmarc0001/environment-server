@@ -51,9 +51,9 @@ namespace EnvServer
     static String todayAckuFileName;  //! the file from today
     static size_t fsTotalSpace;       //! total space in FS
     static size_t fsUsedSpace;        //! free Space in FS
+    static std::shared_ptr< env_dataset > dataset;  //! set of mesures
 
     public:
-    static std::shared_ptr< env_dataset > dataset;  //! set of mesures
     static SemaphoreHandle_t measureFileSem;        // is access to files busy
     static SemaphoreHandle_t ackuFileSem;           // is access to files busy
 
@@ -74,6 +74,10 @@ namespace EnvServer
     static void setVoltage( int );
     static int getVoltage();
     static bool getLowAcku();
+    static void putMeasureDataset(env_measure_t _set)
+    {
+      dataset->push_back( _set );
+    }
     static void setFsCheckReq( bool _fsc )
     {
       StatusObject::isFilesystemcheck = _fsc;
