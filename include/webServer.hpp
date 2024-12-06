@@ -23,8 +23,7 @@ namespace EnvServer
     static void onApiV1Set( AsyncWebServerRequest * );                            //! on url path "/api/v1/set-*"
     static void onFilesReq( AsyncWebServerRequest * );                            //! on some file
     static void apiGetTodayData( AsyncWebServerRequest * );                       //! on api get today data
-    static void apiGetWeekData( AsyncWebServerRequest * );                        //! on api get week data
-    static void apiGetMonthData( AsyncWebServerRequest * );                       //! on api get month data
+    static void apiGetRestDataFileFrom( AsyncWebServerRequest * );                //! get data file from date (if availible)
     static void apiSystemInfoGetHandler( AsyncWebServerRequest * );               //! deliver server info
     static void apiVersionInfoGetHandler( AsyncWebServerRequest * );              //! deliver esp infos
     static void apiRestHandlerInterval( AsyncWebServerRequest * );                //! deliver measure interval

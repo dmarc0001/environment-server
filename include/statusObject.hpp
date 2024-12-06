@@ -35,24 +35,22 @@ namespace EnvServer
   class StatusObject
   {
     private:
-    static const char *tag;         //! TAG for esp log
-    static bool is_init;            //! was object initialized
-    static bool is_running;         //! is save Task running?
-    static bool is_spiffs;          //! is fikesystem okay?
-    static WlanState wlanState;     //! is wlan disconnected, connected etc....
-    static MeasureState msgState;   //! which state ist the mesure
-    static bool http_active;        //! was an acces via http?
-    static int currentVoltage;      //! current voltage in mV
-    static bool isBrownout;         //! is voltage too low
-    static bool isLowAcku;          //! is low acku
-    static bool isFilesystemcheck;  // is an filesystemcheck running or requested
-    static bool isDataSend;         //! should data send to a server
-    static size_t todayFileSize;    // filesize of the today.json file
-    static size_t weekFileSize;     // filesize of the weekly.json file
-    static size_t monthFileSize;    // filesize of the month.json file
-    static size_t ackuFileSize;     //! filesize acku trace file
-    static size_t fsTotalSpace;     //! total space in FS
-    static size_t fsUsedSpace;      //! free Space in FS
+    static const char *tag;           //! TAG for esp log
+    static bool is_init;              //! was object initialized
+    static bool is_running;           //! is save Task running?
+    static bool is_spiffs;            //! is fikesystem okay?
+    static WlanState wlanState;       //! is wlan disconnected, connected etc....
+    static MeasureState msgState;     //! which state ist the mesure
+    static bool http_active;          //! was an acces via http?
+    static int currentVoltage;        //! current voltage in mV
+    static bool isBrownout;           //! is voltage too low
+    static bool isLowAcku;            //! is low acku
+    static bool isFilesystemcheck;    // is an filesystemcheck running or requested
+    static bool isDataSend;           //! should data send to a server
+    static String todayFileName;      //! the file from today
+    static String todayAckuFileName;  //! the file from today
+    static size_t fsTotalSpace;       //! total space in FS
+    static size_t fsUsedSpace;        //! free Space in FS
 
     public:
     static std::shared_ptr< env_dataset > dataset;  //! set of mesures
@@ -92,38 +90,6 @@ namespace EnvServer
     {
       return StatusObject::isDataSend;
     }
-    static void setTodayFileSize( size_t _size )
-    {
-      StatusObject::todayFileSize = _size;
-    }
-    static size_t getTodayFilseSize()
-    {
-      return StatusObject::todayFileSize;
-    }
-    static void setWeekFileSize( size_t _size )
-    {
-      StatusObject::weekFileSize = _size;
-    }
-    static size_t getWeekFilseSize()
-    {
-      return StatusObject::weekFileSize;
-    }
-    static void setMonthFileSize( size_t _size )
-    {
-      StatusObject::monthFileSize = _size;
-    }
-    static size_t getMonthFilseSize()
-    {
-      return StatusObject::monthFileSize;
-    }
-    static void setAckuFileSize( size_t _size )
-    {
-      StatusObject::ackuFileSize = _size;
-    }
-    static size_t getAckuFilseSize()
-    {
-      return StatusObject::ackuFileSize;
-    }
     static void setFsTotalSpace( size_t _size )
     {
       StatusObject::fsTotalSpace = _size;
@@ -139,6 +105,22 @@ namespace EnvServer
     static size_t getFsUsedSpace()
     {
       return StatusObject::fsUsedSpace;
+    }
+    static const String &getTodayFileName()
+    {
+      return StatusObject::todayFileName;
+    }
+    static void setTodayFileName( const String &_tdfn )
+    {
+      StatusObject::todayFileName = _tdfn;
+    }
+    static const String &getTodayAckuFileName()
+    {
+      return StatusObject::todayAckuFileName;
+    }
+    static void setTodayAckuFileName( const String &_tdfn )
+    {
+      StatusObject::todayAckuFileName = _tdfn;
     }
 
     private:

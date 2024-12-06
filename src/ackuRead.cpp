@@ -7,6 +7,7 @@ namespace EnvServer
 {
   const char *AckuVoltage::tag{ "AckuVoltage" };
   TaskHandle_t AckuVoltage::taskHandle{ nullptr };
+  int AckuVoltage::todayDay{ -1 };
 
   ESP32AnalogRead AckuVoltage::adc{};
 
@@ -65,7 +66,7 @@ namespace EnvServer
       }
       voltage = static_cast< uint32_t >( floor( voltage / ACKU_CURRENT_SMOOTH_COUNT ) );
       logger.log( Prefs::LOGID, DEBUG, "%s: acku smooth: %d mV (measured %d )", AckuVoltage::tag, static_cast< int >( voltage ),
-                static_cast< int >( m_value ) );
+                  static_cast< int >( m_value ) );
       StatusObject::setVoltage( voltage );
       ++idx;
       if ( idx >= ACKU_CURRENT_SMOOTH_COUNT )
@@ -78,7 +79,7 @@ namespace EnvServer
       if ( !StatusObject::getIsBrownout() && ( StatusObject::getWlanState() == WlanState::TIMESYNCED ) )
       {
         // write acku value to logfile
-        String fileName( Prefs::ACKU_LOG_FILE_01 );
+        String fileName( AckuVoltage::getTodayFileName() );
         logger.log( Prefs::LOGID, DEBUG, "%s: acku value to file <%s>", AckuVoltage::tag, fileName.c_str() );
         //
         // if filesystemchecker want to write, prevent this
@@ -103,7 +104,6 @@ namespace EnvServer
             jsonString += "\n";
             fh.print( jsonString );
             fh.flush();
-            StatusObject::setAckuFileSize( fh.size() );
             fh.close();
             cJSON_Delete( dataSetObj );
             cJSON_free( jsonPrintString );  // !!!!!!!
@@ -122,6 +122,23 @@ namespace EnvServer
       //
       delay( 132351 );
     }
+  }
+
+  /**
+   * get the filename for today
+   */
+  const String &AckuVoltage::getTodayFileName()
+  {
+    if ( AckuVoltage::todayDay != day() )
+    {
+      char buffer[ 28 ];
+      AckuVoltage::todayDay = day();
+      snprintf( buffer, 28, Prefs::WEB_DAYLY_ACKU_FILE_NAME, year(), month(), day() );
+      String fileName( Prefs::WEB_DATA_PATH );
+      fileName += String( buffer );
+      StatusObject::setTodayAckuFileName( fileName );
+    }
+    return StatusObject::getTodayAckuFileName();
   }
 
 }  // namespace EnvServer

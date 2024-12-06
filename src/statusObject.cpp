@@ -22,10 +22,8 @@ namespace EnvServer
   bool StatusObject::isLowAcku{ false };          //! is low acku
   bool StatusObject::isFilesystemcheck{ false };  // is an filesystemcheck running or requested
   bool StatusObject::isDataSend{ false };         // sould data send to a server
-  size_t StatusObject::todayFileSize{ 0 };        // filesize of the today.json file
-  size_t StatusObject::weekFileSize{ 0 };         // filesize of the week.json file
-  size_t StatusObject::monthFileSize{ 0 };        // filesize of the month.json file
-  size_t StatusObject::ackuFileSize{ 0 };         //! filesize acku trace file
+  String StatusObject::todayFileName{};           //! get the filename from today
+  String StatusObject::todayAckuFileName{};       //! get the filename from today
   size_t StatusObject::fsTotalSpace{ 0 };         //! filesystem total Space
   size_t StatusObject::fsUsedSpace{ 0 };          //! filesystem free Space
 
@@ -53,7 +51,7 @@ namespace EnvServer
     // init the filesystem for log and web
     //
     logger.log( Prefs::LOGID, DEBUG, "%s: init filesystem...", StatusObject::tag );
-    if ( !SPIFFS.begin( false, Prefs::WEB_PATH, 8, Prefs::WEB_PARTITION_LABEL ) )
+    if ( !SPIFFS.begin( false, Prefs::MOUNTPOINT, 10, Prefs::WEB_PARTITION_LABEL ) )
     {
       color = CRGB( Prefs::LED_COLOR_FORMATTING );
       LEDStripe::setLed( Prefs::LED_ALL, color );
@@ -157,8 +155,6 @@ namespace EnvServer
         //
         // there are data, try to save in file
         //
-        String daylyFileName( Prefs::WEB_DAYLY_FILE );
-
         if ( StatusObject::getIsBrownout() )
         {
           logger.log( Prefs::LOGID, WARNING, "%s: can't write data, voltage too low!", StatusObject::tag );
@@ -225,10 +221,11 @@ namespace EnvServer
             // We were able to obtain the semaphore and can now access the
             // shared resource.
             // open File mode append
-            auto fh = SPIFFS.open( daylyFileName, "a", true );
+            auto fh = SPIFFS.open( StatusObject::getTodayFileName(), "a", true );
             if ( fh )
             {
-              logger.log( Prefs::LOGID, DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
+              logger.log( Prefs::LOGID, DEBUG, "%s: datafile <%s> opened...", StatusObject::tag,
+                          StatusObject::getTodayFileName().c_str() );
               fh.print( "," );
               char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
               String jsonString( jsonPrintString );
@@ -237,10 +234,10 @@ namespace EnvServer
               fh.flush();
               jsonString.clear();
               cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
-              StatusObject::setTodayFileSize( fh.size() );
               fh.close();
               cJSON_Delete( dataSetObj );
-              logger.log( Prefs::LOGID, INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );
+              logger.log( Prefs::LOGID, INFO, "%s: datafile <%s> written and closed...", StatusObject::tag,
+                          StatusObject::getTodayFileName().c_str() );
             }
             else
             {
@@ -248,7 +245,8 @@ namespace EnvServer
               {
                 StatusObject::dataset->erase( StatusObject::dataset->begin() );
               }
-              logger.log( Prefs::LOGID, ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag, daylyFileName.c_str() );
+              logger.log( Prefs::LOGID, ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag,
+                          StatusObject::getTodayFileName().c_str() );
             }
             // We have finished accessing the shared resource.  Release the
             // semaphore.
@@ -263,7 +261,7 @@ namespace EnvServer
             ++errorCounter;
             //
             logger.log( Prefs::LOGID, ERROR, "%s: can't get the semaphore for write datafile, garbage collector running to long?",
-                      StatusObject::tag );
+                        StatusObject::tag );
             logger.log( Prefs::LOGID, ERROR, "%s: data may be lost!", StatusObject::tag );
             delay( 800 );
             if ( errorCounter > 10 )
@@ -275,7 +273,7 @@ namespace EnvServer
                 // maybe the whole system is bad
                 //
                 logger.log( Prefs::LOGID, ERROR, "%s: seems the SPIFFS filesystem hat an problem, restart controller!",
-                          StatusObject::tag );
+                            StatusObject::tag );
                 delay( 5000 );
                 esp_restart();
               }

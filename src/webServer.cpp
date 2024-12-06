@@ -87,13 +87,9 @@ namespace EnvServer
     {
       EnvWebServer::apiGetTodayData( request );
     }
-    else if ( parameter.equals( "week" ) )
+    else if ( parameter.equals( "data" ) )
     {
-      EnvWebServer::apiGetWeekData( request );
-    }
-    else if ( parameter.equals( "month" ) )
-    {
-      EnvWebServer::apiGetMonthData( request );
+      EnvWebServer::apiGetRestDataFileFrom( request );
     }
     else if ( parameter.equals( "interval" ) )
     {
@@ -205,7 +201,7 @@ namespace EnvServer
     //
     if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
     {
-      String file( Prefs::WEB_DAYLY_FILE );
+      String file( StatusObject::getTodayFileName() );
       EnvWebServer::deliverFileToHttpd( file, request );
       xSemaphoreGive( StatusObject::measureFileSem );
       return;
@@ -214,42 +210,43 @@ namespace EnvServer
     EnvWebServer::onServerError( request, 303, msg );
   }
 
-  /**
-   * get json data for last week
-   */
-  void EnvWebServer::apiGetWeekData( AsyncWebServerRequest *request )
+  void EnvWebServer::apiGetRestDataFileFrom( AsyncWebServerRequest *request )
   {
-    //
-    // maybe ther are write accesses
-    //
-    if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
     {
-      String file( Prefs::WEB_DAYLY_FILE );
-      EnvWebServer::deliverFileToHttpd( file, request );
-      xSemaphoreGive( StatusObject::measureFileSem );
-      return;
+      logger.log( Prefs::LOGID, DEBUG, "%s: apiGetRestDataFileFrom...", EnvWebServer::tag );
+      if ( request->hasParam( "from" ) )
+      {
+        String dateNameStr = request->getParam( "from" )->value().substring( 0, 10 );
+        String fileName( Prefs::WEB_DATA_PATH );
+        fileName += dateNameStr;
+        fileName += "-pressure.csv";
+        logger.log( Prefs::LOGID, DEBUG, "%s: apiGetRestDataFileFrom try to deliver <%s>...", EnvWebServer::tag, fileName.c_str() );
+        if ( SPIFFS.exists( fileName ) )
+        {
+          //
+          // maybe their are write accesses
+          if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
+          {
+            EnvWebServer::deliverFileToHttpd( fileName, request );
+            xSemaphoreGive( StatusObject::measureFileSem );
+            return;
+          }
+          String msg = "Can't take semaphore!";
+          EnvWebServer::onServerError( request, 303, msg );
+          return;
+        }
+        String msg = "File <";
+        msg += fileName.substring( 6 );
+        msg += "> don't exist!";
+        EnvWebServer::onServerError( request, 303, msg );
+        return;
+      }
+      else
+      {
+        String msg = "no param <from> sent!";
+        EnvWebServer::onServerError( request, 303, msg );
+      }
     }
-    String msg = "Can't take semaphore!";
-    EnvWebServer::onServerError( request, 303, msg );
-  }
-
-  /**
-   * get json data for last month
-   */
-  void EnvWebServer::apiGetMonthData( AsyncWebServerRequest *request )
-  {
-    //
-    // maybe ther are write accesses
-    //
-    if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
-    {
-      String file( Prefs::WEB_DAYLY_FILE );
-      EnvWebServer::deliverFileToHttpd( file, request );
-      xSemaphoreGive( StatusObject::measureFileSem );
-      return;
-    }
-    String msg = "Can't take semaphore!";
-    EnvWebServer::onServerError( request, 303, msg );
   }
 
   void EnvWebServer::apiSystemInfoGetHandler( AsyncWebServerRequest *request )
@@ -302,7 +299,6 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestHandlerCurrent( AsyncWebServerRequest *request )
   {
-
     logger.log( Prefs::LOGID, DEBUG, "%s: request acku current...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     char buffer[ 16 ];
@@ -337,18 +333,6 @@ namespace EnvServer
     // used space
     val = String( StatusObject::getFsUsedSpace() );
     cJSON_AddStringToObject( root, "used", val.c_str() );
-    // dayly file
-    val = String( StatusObject::getTodayFilseSize() );
-    cJSON_AddStringToObject( root, "today", val.c_str() );
-    // weekly
-    val = String( StatusObject::getWeekFilseSize() );
-    cJSON_AddStringToObject( root, "week", val.c_str() );
-    // month
-    val = String( StatusObject::getMonthFilseSize() );
-    cJSON_AddStringToObject( root, "month", val.c_str() );
-    // weekly
-    val = String( StatusObject::getAckuFilseSize() );
-    cJSON_AddStringToObject( root, "acku", val.c_str() );
     char *tmp_info = cJSON_PrintUnformatted( root );  // cJSON_Print(root);
     String info( tmp_info );
     request->send( 200, "application/json", info );
