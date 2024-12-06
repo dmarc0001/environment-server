@@ -1,8 +1,6 @@
 //
 // globale variablen für die charts
 //
-const month_url = '/api/v1/month';
-const week_url = '/api/v1/week';
 const today_url = '/api/v1/today';
 const current_url = '/api/v1/current';
 const interval_url = '/api/v1/interval';
@@ -11,10 +9,10 @@ const brownout_curent = 2.720;
 const warning_current = 2.850;
 const min_screen_em = 45;
 const axesColors = [
-  [ "rgba(255.0,0,0,1.0)", "rgba(255.0,0,0,.2)" ],
-  [ "rgba(255.0,255.0,0,1.0)", "rgba(255.0,255.0,0,.2)" ],
-  [ "rgba(0.0,120.255,0,.2)", "rgba(60.0,255.0,0,.2)" ],
-  [ "rgba(0.0,120.255,0,1.0)", "rgba(0.0,120.255,0,.2)" ]
+  ["rgba(255.0,0,0,1.0)", "rgba(255.0,0,0,.2)"],
+  ["rgba(255.0,255.0,0,1.0)", "rgba(255.0,255.0,0,.2)"],
+  ["rgba(0.0,120.255,0,.2)", "rgba(60.0,255.0,0,.2)"],
+  ["rgba(0.0,120.255,0,1.0)", "rgba(0.0,120.255,0,.2)"]
 ];
 
 let data_url = today_url;
@@ -29,26 +27,26 @@ let data_in_use = false;
 // options for Charts
 //
 const t_chart_options = {
-  responsive : true,
-  plugins : {
-    title : {
-      display : true,
+  responsive: true,
+  plugins: {
+    title: {
+      display: true,
     },
   },
-  interaction : {
-    intersect : false,
+  interaction: {
+    intersect: false,
   },
-  scales : {
-    x : {
-      display : true,
-      title : {display : true, text : "Differenz zu jetzt, Minuten"}
+  scales: {
+    x: {
+      display: true,
+      title: { display: true, text: "Differenz zu jetzt, Minuten" }
     },
-    y : {
-      display : true,
-      title : {display : true, text : "Temperatur °C", type : "linear"},
-      min : 4.0,
-      max : 45.0,
-      suggestedMax : 35,
+    y: {
+      display: true,
+      title: { display: true, text: "Temperatur °C", type: "linear" },
+      min: 4.0,
+      max: 45.0,
+      suggestedMax: 35,
     }
   }
 };
@@ -57,45 +55,45 @@ const t_chart_options = {
 // t_chart config
 //
 const t_chart_config = {
-  type : "line",
-  data : {
-    datasets : [ {
-      label : 'Sensor 1',
-      backgroundColor : "rgba(255.0,0,0,.2)",
-      borderColor : "rgba(255.0,0,0,1.0)",
-      fill : true,
-      cubicInterpolationMode : 'default',
-      pointStyle : 'line',
-      tension : 0.4
-    } ]
+  type: "line",
+  data: {
+    datasets: [{
+      label: 'Sensor 1',
+      backgroundColor: "rgba(255.0,0,0,.2)",
+      borderColor: "rgba(255.0,0,0,1.0)",
+      fill: true,
+      cubicInterpolationMode: 'default',
+      pointStyle: 'line',
+      tension: 0.4
+    }]
   },
-  options : t_chart_options
+  options: t_chart_options
 };
 
 //
 // humidy chart options
 //
 const h_chart_options = {
-  responsive : true,
-  plugins : {
-    title : {
-      display : true,
+  responsive: true,
+  plugins: {
+    title: {
+      display: true,
     },
   },
-  interaction : {
-    intersect : false,
+  interaction: {
+    intersect: false,
   },
-  scales : {
-    x : {
-      display : true,
-      title : {display : true, text : "Differenz zu jetzt, Minuten"}
+  scales: {
+    x: {
+      display: true,
+      title: { display: true, text: "Differenz zu jetzt, Minuten" }
     },
-    y : {
-      display : true,
-      title : {display : true, text : 'Relative Feuchtigkeit'},
-      suggestedMin : 0,
-      suggestedMax : 100,
-      min : 0.0,
+    y: {
+      display: true,
+      title: { display: true, text: 'Relative Feuchtigkeit' },
+      suggestedMin: 0,
+      suggestedMax: 100,
+      min: 0.0,
     }
   }
 };
@@ -104,21 +102,21 @@ const h_chart_options = {
 // humidy chart config
 //
 const h_chart_config = {
-  type : "line",
-  data : {
-    datasets : [ {
-      label : 'Sensor 1',
-      backgroundColor : "rgba(0,0,128.0,.6)",
-      borderColor : "rgba(0,0,255.0,1.0)",
-      fill : true,
-      cubicInterpolationMode : 'monotone',
-      pointStyle : 'circle',
-      pointRadius : 2,
-      pointHoverRadius : 6,
-      tension : 0.8
-    } ]
+  type: "line",
+  data: {
+    datasets: [{
+      label: 'Sensor 1',
+      backgroundColor: "rgba(0,0,128.0,.6)",
+      borderColor: "rgba(0,0,255.0,1.0)",
+      fill: true,
+      cubicInterpolationMode: 'monotone',
+      pointStyle: 'circle',
+      pointRadius: 2,
+      pointHoverRadius: 6,
+      tension: 0.8
+    }]
   },
-  options : h_chart_options
+  options: h_chart_options
 };
 
 /**** init the page and variables ****/
@@ -155,32 +153,32 @@ function init_page() {
   getIntervalFromController();
   // get version from controller
   setTimeout(
-      function() { getSoftwareVersionFromController(); }, 1500);
+    function () { getSoftwareVersionFromController(); }, 1500);
   // wait for settung interval
   // if interval setting make furter actions
   let waitForInterval = setInterval(
-      function() {
-        // until timeInterval is not set
-        if (timeInterval) {
-          clearInterval(waitForInterval);
-          // at first time init read values
-          getDataFromController();
-          getCurrentFromController();
-          if (timeInterval == 0) {
-            setErrorMessage("Kann intervall nicht vom controller lesen!");
-            console.error("data interval timeout!");
-          } else {
-            setErrorMessage("");
-            console.debug("data interval: " + timeInterval);
-          }
-          // set interval to recive data for chart
-          setInterval(
-              function() { getDataFromController(); }, 120000);
-          setInterval(
-              function() { getCurrentFromController(); }, 180000);
+    function () {
+      // until timeInterval is not set
+      if (timeInterval) {
+        clearInterval(waitForInterval);
+        // at first time init read values
+        getDataFromController();
+        getCurrentFromController();
+        if (timeInterval == 0) {
+          setErrorMessage("Kann intervall nicht vom controller lesen!");
+          console.error("data interval timeout!");
+        } else {
+          setErrorMessage("");
+          console.debug("data interval: " + timeInterval);
         }
-      },
-      500);
+        // set interval to recive data for chart
+        setInterval(
+          function () { getDataFromController(); }, 120000);
+        setInterval(
+          function () { getCurrentFromController(); }, 180000);
+      }
+    },
+    500);
   let vers_elem = document.getElementById('version-div');
   if (vers_elem) {
     vers_elem.hidden = true;
@@ -190,33 +188,19 @@ function init_page() {
 /**** handler for click on button, native, dirthy, small ****/
 function addEventHandlers() {
   document.getElementById("three_hours")
-      .addEventListener(
-          "click", function() { showTimeSpan(0); });
+    .addEventListener(
+      "click", function () { showTimeSpan(0); });
   document.getElementById("twenty_four_hours")
-      .addEventListener(
-          "click", function() { showTimeSpan(1); });
-  /*
-  document.getElementById("seven_days")
-      .addEventListener(
-          "click", function() { showTimeSpan(2); });
-  document.getElementById("thirty_days")
-      .addEventListener(
-          "click", function() { showTimeSpan(3); });
-  */
+    .addEventListener(
+      "click", function () { showTimeSpan(1); });
 }
 
 /**** time span to show ****/
 function showTimeSpan(_val) {
-  if (_val == 3) {
-    // 30 Tage
-    data_url = month_url;
-    data_from_minutes_back = 30 * 24 * 60;
-    console.debug("set timespan to 30 days...");
-  } else if (_val == 2) {
-    // 7 Tage
-    data_from_minutes_back = 7 * 24 * 60;
-    data_url = week_url;
-    console.debug("set timespan to 7 days...");
+  if (_val == 0) {
+    data_from_minutes_back = 3 * 60;
+    data_url = today_url;
+    console.debug("set timespan to 3 hours...");
   } else if (_val == 1) {
     // 1 Tage
     data_from_minutes_back = 1 * 24 * 60;
@@ -238,7 +222,7 @@ function getCurrentFromController() {
   console.debug("http request <" + current_url + ">...");
   xhr.open('GET', current_url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = function () {
     if (xhr.readyState == 4 && xhr.status == 200) {
       //
       // START if datatransfer done
@@ -247,7 +231,7 @@ function getCurrentFromController() {
       if (json) {
         if (json.current) {
           console.debug("controller current value is " + json.current +
-                        " V...");
+            " V...");
           let t_gauge = document.getElementById("temp_gauge");
           if (t_gauge) {
             let l_current = parseFloat(json.current);
@@ -274,7 +258,7 @@ function getSoftwareVersionFromController() {
   console.debug("http request <" + soft_version_url + ">...");
   xhr.open('GET', soft_version_url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = function () {
     if (xhr.readyState == 4 && xhr.status == 200) {
       //
       // START if datatransfer done
@@ -283,18 +267,18 @@ function getSoftwareVersionFromController() {
       if (json) {
         if (json.version) {
           console.debug("controller software version is <" + json.version +
-                        ">");
+            ">");
           let version_div_elem = document.getElementById("version-div");
           if (version_div_elem) {
             console.debug("set inner html...");
             version_div_elem.innerHTML = "Controller Version: " + json.version;
             version_div_elem.hidden = false;
             setTimeout(
-                function() {
-                  console.debug("hide version info, timeout...");
-                  version_div_elem.hidden = true;
-                },
-                12000);
+              function () {
+                console.debug("hide version info, timeout...");
+                version_div_elem.hidden = true;
+              },
+              12000);
           }
         }
       }
@@ -309,7 +293,7 @@ function getIntervalFromController() {
   console.debug("http request <" + interval_url + ">...");
   xhr.open('GET', interval_url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = function () {
     if (xhr.readyState == 4 && xhr.status == 200) {
       //
       // START if datatransfer done
@@ -320,7 +304,7 @@ function getIntervalFromController() {
           if (json.interval) {
             timeInterval = parseInt(json.interval);
             console.debug("controller interval value is " + timeInterval +
-                          " sec...")
+              " sec...")
           }
         }
       } catch (error) {
@@ -366,9 +350,9 @@ function getDataFromController() {
   const offset = yourDate.getTimezoneOffset();
   let xhr = new XMLHttpRequest();
   const xAxis = new Array();
-  const t_data_obj = {labels : xAxis, datasets : []};
+  const t_data_obj = { labels: xAxis, datasets: [] };
   const envData = new Object();
-  const h_data_obj = {labels : xAxis, datasets : []};
+  const h_data_obj = { labels: xAxis, datasets: [] };
   console.debug("http request <" + data_url + ">...");
   xhr.open('GET', data_url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -378,7 +362,7 @@ function getDataFromController() {
   t_chart.data = h_data_obj;
   t_chart.update();
   // prepare to read Data
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = function () {
     if (xhr.readyState == 4 && xhr.status == 200) {
       //
       // START if datatransfer done
@@ -386,13 +370,11 @@ function getDataFromController() {
       // easier as in the controller
       //
       let cEnvData;
-      if(xhr.responseText.length > 1)
-      {
-        cEnvData="[\n" + xhr.responseText.substring(1) + "\n]";
+      if (xhr.responseText.length > 1) {
+        cEnvData = "[\n" + xhr.responseText.substring(1) + "\n]";
       }
-      else
-      {
-        cEnvData="[\n" + xhr.responseText + "\n]";
+      else {
+        cEnvData = "[\n" + xhr.responseText + "\n]";
       }
       let retValue = prepareJsonData(envData, cEnvData);
       if (retValue) {
@@ -401,12 +383,12 @@ function getDataFromController() {
         // temperature
         //
         let t_timeout = setTimeout(
-            function() { makeTemperatureGraph(envData); }, 250);
+          function () { makeTemperatureGraph(envData); }, 250);
         //
         // humidy
         //
         let h_timeout = setTimeout(
-            function() { makeHumidyGraph(envData); }, 2500);
+          function () { makeHumidyGraph(envData); }, 2500);
       } else {
         console.error("axes not load!");
         // TODO: show error describe
@@ -446,7 +428,7 @@ function findSensors(json, envData, id_idx) {
         // new id found
         envData.ids[id] = id_idx;
         console.debug("new sensor id <" + id + "> with index <" + id_idx +
-                      ">...");
+          ">...");
         envData.axes[id_idx] = Array();  // new temp axis for sensor
         id_idx += 1;
       }
@@ -530,7 +512,7 @@ function prepareJsonData(envData, rawData) {
     if (readTimestamp < minBorder || readTimestamp > maxBorder) {
       let diff = Math.abs(readTimestamp - awaitedTimestamp);
       console.info("gap in dataset number " + readDatasetNumber +
-                   " diff: " + diff + "...");
+        " diff: " + diff + "...");
       let steps = diff / timeInterval;
       if (steps > .9) {
         // okay, the gab have to correct
@@ -542,7 +524,7 @@ function prepareJsonData(envData, rawData) {
         // fill in steps zero data datasets
         for (let step = 0; step < steps; step++) {
           console.info("fill in zero dataset step #" + step + " from " + steps +
-                       "...");
+            "...");
           wasForMinutes = formatTimestamp(nowTimeStamp - readTimestamp);
           // xAxis is axes[0]
           envData.axes[0][axesDatasetNumber] = wasForMinutes;
@@ -617,7 +599,7 @@ function prepareJsonData(envData, rawData) {
 function makeTemperatureGraph(envData) {
   // x-axis
   let xAxis = envData.axes[0];
-  const t_data_obj = {labels : xAxis, datasets : []};
+  const t_data_obj = { labels: xAxis, datasets: [] };
 
   // y-axes find....
   for (let yIdx = 2; yIdx < 6; yIdx += 1) {
@@ -626,14 +608,14 @@ function makeTemperatureGraph(envData) {
       let c_yAxis = envData.axes[yIdx];
       let c_label = "Sensor " + (yIdx - 2);
       let t_data = {
-        label : c_label,
-        borderColor : axesColors[yIdx - 2][0],
-        backgroundColor : axesColors[yIdx - 2][1],
-        data : c_yAxis,
-        fill : true,
-        cubicInterpolationMode : 'default',
-        pointStyle : 'line',
-        tension : 0.4
+        label: c_label,
+        borderColor: axesColors[yIdx - 2][0],
+        backgroundColor: axesColors[yIdx - 2][1],
+        data: c_yAxis,
+        fill: true,
+        cubicInterpolationMode: 'default',
+        pointStyle: 'line',
+        tension: 0.4
       };
       t_data_obj.datasets.push(t_data);
       if (inner_width <= min_screen_em) {
@@ -657,20 +639,20 @@ function makeTemperatureGraph(envData) {
 function makeHumidyGraph(envData) {
   // x-axis
   let xAxis = envData.axes[0];
-  const h_data_obj = {labels : xAxis, datasets : []};
+  const h_data_obj = { labels: xAxis, datasets: [] };
 
   // dataset sensor 01
   let h_data00 = {
-    label : 'Feuchte Sensor 1',
-    backgroundColor : "rgba(0,0,128.0,.6)",
-    borderColor : "rgba(0,0,255.0,1.0)",
-    data : envData.axes[1],
-    fill : true,
-    cubicInterpolationMode : 'monotone',
-    pointStyle : 'circle',
-    pointRadius : 4,
-    pointHoverRadius : 6,
-    tension : 0.8
+    label: 'Feuchte Sensor 1',
+    backgroundColor: "rgba(0,0,128.0,.6)",
+    borderColor: "rgba(0,0,255.0,1.0)",
+    data: envData.axes[1],
+    fill: true,
+    cubicInterpolationMode: 'monotone',
+    pointStyle: 'circle',
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    tension: 0.8
   };
   //
   // push data into datasets

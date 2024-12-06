@@ -71,7 +71,7 @@ void Elog::log(uint8_t logId, uint8_t logLevel, const char* format, ...)
         va_end(args); /**< end the list */
 
         LogLineEntry logLineEntry;
-        logLineEntry.timestamp = millis();
+        logLineEntry.timestamp = (unsigned long) (esp_timer_get_time() / 1000ULL); // DEBUG:millis();
         logLineEntry.logId = logId;
         logLineEntry.logLevel = logLevel;
         logLineEntry.internalLogDevice = nullptr;

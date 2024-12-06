@@ -129,13 +129,18 @@ namespace EnvServer
    */
   const String &AckuVoltage::getTodayFileName()
   {
-    if ( AckuVoltage::todayDay != day() )
+    //  ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec
+    struct tm ti;
+    getLocalTime( &ti );
+    if ( AckuVoltage::todayDay != ti.tm_mday )
     {
+      logger.log( Prefs::LOGID, DEBUG, "%s: create acku today file name!", AckuVoltage::tag );
       char buffer[ 28 ];
-      AckuVoltage::todayDay = day();
-      snprintf( buffer, 28, Prefs::WEB_DAYLY_ACKU_FILE_NAME, year(), month(), day() );
+      AckuVoltage::todayDay = ti.tm_mday;
+      snprintf( buffer, 28, Prefs::WEB_DAYLY_ACKU_FILE_NAME, ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday );
       String fileName( Prefs::WEB_DATA_PATH );
       fileName += String( buffer );
+      logger.log( Prefs::LOGID, DEBUG, "%s: acku today file name <%s>", AckuVoltage::tag, fileName.c_str() );
       StatusObject::setTodayAckuFileName( fileName );
     }
     return StatusObject::getTodayAckuFileName();

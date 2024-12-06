@@ -112,7 +112,7 @@ namespace EnvServer
     }
     static void setTodayFileName( const String &_tdfn )
     {
-      StatusObject::todayFileName = _tdfn;
+      StatusObject::todayFileName = String(_tdfn);
     }
     static const String &getTodayAckuFileName()
     {

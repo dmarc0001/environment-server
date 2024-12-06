@@ -30,10 +30,10 @@ void setup()
   LogLevel level = static_cast< LogLevel >( Prefs::LocalPrefs::getLogLevel() );
   // LogLevel level = DEBUG;
   // elog = Elog::getInstance();
-  logger.registerSerial( Prefs::LOGID, level, "ENV", Serial, FLAG_TIME_SHORT|FLAG_SERVICE_LONG );
+  logger.registerSerial( Prefs::LOGID, level, "ENV", Serial, FLAG_TIME_LONG | FLAG_SERVICE_LONG );
   logger.log( Prefs::LOGID, INFO, "main: start with logging..." );
   // set my timezone, i deal with timestamps
-  logger.log( Prefs::LOGID, DEBUG,  "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
+  logger.log( Prefs::LOGID, DEBUG, "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
   setenv( "TZ", Prefs::LocalPrefs::getTimeZone().c_str(), 1 );
   tzset();
   static String hName( Prefs::LocalPrefs::getHostName() );
@@ -60,6 +60,7 @@ void loop()
   // next time logger time sync
   static unsigned long setNextTimeCorrect{ ( millis() * 1000UL * 21600UL ) };
   static auto connected = WlanState::DISCONNECTED;
+
   //
   // for webserver
   //
@@ -80,6 +81,8 @@ void loop()
     {
       logger.log( Prefs::LOGID, DEBUG, "main: gotten system time!" );
       logger.provideTime( ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
+      logger.log( Prefs::LOGID, DEBUG, "main: <%04d-%02d-%02d %02d:%02d:%02d>", ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday,
+                  ti.tm_hour, ti.tm_min, ti.tm_sec );
       logger.log( Prefs::LOGID, DEBUG, "main: logger time correction...OK" );
     }
   }

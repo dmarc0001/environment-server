@@ -31,7 +31,7 @@ namespace EnvServer
   {
     logger.log( Prefs::LOGID, INFO, "%s: start webserver...", EnvWebServer::tag );
     // Cache responses for 1 minutes (60 seconds)
-    EnvWebServer::server.serveStatic( "/", SPIFFS, "/spiffs/" ).setCacheControl( "max-age=60" );
+    EnvWebServer::server.serveStatic( "/", SPIFFS, Prefs::WEB_SITE_PATH ).setCacheControl( "max-age=60" );
     //
     // response filters
     //
@@ -59,7 +59,7 @@ namespace EnvServer
    */
   void EnvWebServer::onIndex( AsyncWebServerRequest *request )
   {
-    String file( "/index.html" );
+    String file( "/www/index.html" );
     StatusObject::setHttpActive( true );
     EnvWebServer::deliverFileToHttpd( file, request );
     // request->send( 200, "text/plain", "Hello, INDEX" );
@@ -70,6 +70,7 @@ namespace EnvServer
    */
   void EnvWebServer::onFilesReq( AsyncWebServerRequest *request )
   {
+
     StatusObject::setHttpActive( true );
     String file( request->url() );
     EnvWebServer::deliverFileToHttpd( file, request );

@@ -67,6 +67,14 @@ namespace EnvServer
     // infinity
     while ( true )
     {
+      if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
+      {
+        //
+        // no timesync, no time for compare, next round....
+        //
+        continue;
+      }
+      FsCheckObject::getTodayFileName();
       // wait for next garbage disposal or request
       for ( uint8_t i = 0; i < Prefs::FILESYS_CHECK_SLEEP_TIME_MULTIPLIER; ++i )
       {
@@ -78,13 +86,6 @@ namespace EnvServer
           break;
         }
         delay( Prefs::FILESYS_CHECK_SLEEP_TIME_MS );
-      }
-      if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
-      {
-        //
-        // no timesync, no time for compare, next round....
-        //
-        continue;
       }
       if ( StatusObject::getIsBrownout() )
       {
@@ -323,19 +324,24 @@ namespace EnvServer
    */
   const String &FsCheckObject::getTodayFileName()
   {
-    if ( FsCheckObject::todayDay != day() )
+      //  ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec 
+      struct tm ti;
+      getLocalTime( &ti );
+    if ( FsCheckObject::todayDay != ti.tm_mday )
     {
+      logger.log( Prefs::LOGID, DEBUG, "%s: create measure today file name!", FsCheckObject::tag );
       char buffer[ 28 ];
-      FsCheckObject::todayDay = day();
-      snprintf( buffer, 28, Prefs::WEB_DAYLY_MEASURE_FILE_NAME, year(), month(), day() );
+      FsCheckObject::todayDay = ti.tm_mday;
+      snprintf( buffer, 28, Prefs::WEB_DAYLY_MEASURE_FILE_NAME, ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday );
       String fileName( Prefs::WEB_DATA_PATH );
       fileName += String( buffer );
       StatusObject::setTodayFileName( fileName );
+      logger.log( Prefs::LOGID, DEBUG, "%s: measure today file name <%s>", FsCheckObject::tag, fileName.c_str() );
     }
     return StatusObject::getTodayFileName();
   }
 
-/**
+  /**
    * what is the time from last midnight?
    */
   uint32_t FsCheckObject::getMidnight( uint32_t timestamp )
@@ -345,6 +351,6 @@ namespace EnvServer
     // midnight timestamp
     uint32_t midnightTime = timestamp - sinceMidnight;
     return midnightTime;
-  }  
+  }
 
 }  // namespace EnvServer

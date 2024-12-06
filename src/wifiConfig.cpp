@@ -27,7 +27,8 @@ namespace EnvServer
     WifiConfig::wm.setConfigPortalTimeout( 120 );  // 2 minutes up to auto connect again
     sntp_set_sync_mode( SNTP_SYNC_MODE_IMMED );
     sntp_setoperatingmode( SNTP_OPMODE_POLL );
-    sntp_setservername( 1, "pool.ntp.org" );
+    sntp_setservername( 1, Prefs::NTP_POOL_EUROPE_NAME );
+    sntp_setservername( 2, Prefs::NTP_POOL_GERMANY_NAME );
     sntp_set_time_sync_notification_cb( WifiConfig::timeSyncNotificationCallback );
     if ( WifiConfig::wm.autoConnect( "EnvServerConfigAP" ) )
     {
@@ -112,6 +113,8 @@ namespace EnvServer
         {
           logger.log( Prefs::LOGID, DEBUG, "%s: gotten system time!", WifiConfig::tag );
           logger.provideTime( ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
+          logger.log( Prefs::LOGID, DEBUG, "%s: <%04d-%02d-%02d %02d:%02d:%02d>", WifiConfig::tag, ti.tm_year + 1900, ti.tm_mon + 1,
+                      ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
         }
         break;
       default:

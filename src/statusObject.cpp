@@ -168,7 +168,14 @@ namespace EnvServer
           }
           continue;
         }
-        ESP_LOGI( StatusObject::tag, "data for save exist..." );
+        logger.log( Prefs::LOGID, DEBUG, "%s: data for save exist...", StatusObject::tag  );
+        String fileName( StatusObject::getTodayFileName() );
+        if( fileName.isEmpty())
+        {
+          logger.log( Prefs::LOGID, WARNING, "%s: there is not filename yet, wait...", StatusObject::tag  );
+          delay(200);
+          continue;
+        }
         //
         // while datsa exist
         //
@@ -221,11 +228,10 @@ namespace EnvServer
             // We were able to obtain the semaphore and can now access the
             // shared resource.
             // open File mode append
-            auto fh = SPIFFS.open( StatusObject::getTodayFileName(), "a", true );
+            auto fh = SPIFFS.open( fileName, "a", true );
             if ( fh )
             {
-              logger.log( Prefs::LOGID, DEBUG, "%s: datafile <%s> opened...", StatusObject::tag,
-                          StatusObject::getTodayFileName().c_str() );
+              logger.log( Prefs::LOGID, DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, fileName.c_str() );
               fh.print( "," );
               char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
               String jsonString( jsonPrintString );
@@ -236,8 +242,7 @@ namespace EnvServer
               cJSON_free( jsonPrintString );  // !!!!!!! memory leak if not
               fh.close();
               cJSON_Delete( dataSetObj );
-              logger.log( Prefs::LOGID, INFO, "%s: datafile <%s> written and closed...", StatusObject::tag,
-                          StatusObject::getTodayFileName().c_str() );
+              logger.log( Prefs::LOGID, INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, fileName.c_str() );
             }
             else
             {
@@ -245,8 +250,7 @@ namespace EnvServer
               {
                 StatusObject::dataset->erase( StatusObject::dataset->begin() );
               }
-              logger.log( Prefs::LOGID, ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag,
-                          StatusObject::getTodayFileName().c_str() );
+              logger.log( Prefs::LOGID, ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag, fileName.c_str() );
             }
             // We have finished accessing the shared resource.  Release the
             // semaphore.
