@@ -1,8 +1,8 @@
 #include <memory>
 #include <cJSON.h>
 #include <esp_chip_info.h>
+#include "common.hpp"
 #include "webServer.hpp"
-#include "statics.hpp"
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
 #include "version.hpp"
@@ -29,9 +29,7 @@ namespace EnvServer
    */
   void EnvWebServer::start()
   {
-    using namespace logger;
-
-    elog.log( INFO, "%s: start webserver...", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: start webserver...", EnvWebServer::tag );
     // Cache responses for 1 minutes (60 seconds)
     EnvWebServer::server.serveStatic( "/", SPIFFS, "/spiffs/" ).setCacheControl( "max-age=60" );
     //
@@ -44,7 +42,7 @@ namespace EnvServer
     EnvWebServer::server.on( "^\\/.*$", HTTP_GET, EnvWebServer::onFilesReq );
     EnvWebServer::server.onNotFound( EnvWebServer::onNotFound );
     EnvWebServer::server.begin();
-    elog.log( DEBUG, "%s: start webserver...OK", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: start webserver...OK", EnvWebServer::tag );
   }
 
   /**
@@ -84,7 +82,7 @@ namespace EnvServer
   {
     StatusObject::setHttpActive( true );
     String parameter = request->pathArg( 0 );
-    elog.log( logger::DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, parameter );
+    logger.log( Prefs::LOGID, DEBUG, "%s: api version 1 call <%s>", EnvWebServer::tag, parameter );
     if ( parameter.equals( "today" ) )
     {
       EnvWebServer::apiGetTodayData( request );
@@ -137,7 +135,7 @@ namespace EnvServer
     String verb = request->pathArg( 0 );
     String server, port;
 
-    elog.log( logger::DEBUG, "%s: api version 1 call set-%s", EnvWebServer::tag, verb );
+    logger.log( Prefs::LOGID, DEBUG, "%s: api version 1 call set-%s", EnvWebServer::tag, verb );
     //
     // timezone set?
     //
@@ -147,7 +145,7 @@ namespace EnvServer
       if ( request->hasParam( "timezone" ) )
       {
         String timezone = request->getParam( "timezone" )->value();
-        elog.log( logger::DEBUG, "%s: set-timezone, param: %s", EnvWebServer::tag, timezone.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: set-timezone, param: %s", EnvWebServer::tag, timezone.c_str() );
         Prefs::LocalPrefs::setTimeZone( timezone );
         request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
         setenv( "TZ", timezone.c_str(), 1 );
@@ -159,7 +157,7 @@ namespace EnvServer
       }
       else
       {
-        elog.log( logger::ERROR, "%s: set-timezone, param not found!", EnvWebServer::tag );
+        logger.log( Prefs::LOGID, ERROR, "%s: set-timezone, param not found!", EnvWebServer::tag );
         request->send( 300, "text/plain", "api call v1 for <set-" + verb + "> param not found!" );
         return;
       }
@@ -170,7 +168,7 @@ namespace EnvServer
       if ( request->hasParam( "level" ) )
       {
         String level = request->getParam( "level" )->value();
-        elog.log( logger::DEBUG, "%s: set-loglevel, param: %s", EnvWebServer::tag, level.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: set-loglevel, param: %s", EnvWebServer::tag, level.c_str() );
         uint8_t numLevel = static_cast< uint8_t >( level.toInt() );
         Prefs::LocalPrefs::setLogLevel( numLevel );
         request->send( 200, "text/plain", "OK api call v1 for <set-" + verb + ">" );
@@ -181,49 +179,10 @@ namespace EnvServer
       }
       else
       {
-        elog.log( logger::ERROR, "%s: set-loglevel, param not found!", EnvWebServer::tag );
+        logger.log( Prefs::LOGID, ERROR, "%s: set-loglevel, param not found!", EnvWebServer::tag );
         request->send( 300, "text/plain", "api call v1 for <set-" + verb + "> param not found!" );
         return;
       }
-    }
-    //
-    // server/port set?
-    //
-    if ( request->hasParam( "server" ) )
-      server = request->getParam( "server" )->value();
-    if ( request->hasParam( "port" ) )
-      port = request->getParam( "port" )->value();
-    //
-    if ( server.isEmpty() || port.isEmpty() )
-    {
-      //
-      // not set, i can't compute this
-      //
-      request->send( 300, "text/plain", "fail api call v1 for <set-" + verb + "> - no server/port params" );
-      return;
-    }
-    //
-    // params to usable objects
-    //
-    IPAddress srv;
-    srv.fromString( server );
-    uint16_t srvport = static_cast< uint16_t >( port.toInt() );
-    //
-    // which command?
-    //
-    if ( verb.equals( "syslog" ) )
-    {
-      elog.log( logger::DEBUG, "%s: set-syslog, params: %s, %s", EnvWebServer::tag, server.c_str(), port.c_str() );
-      Prefs::LocalPrefs::setSyslogServer( srv );
-      Prefs::LocalPrefs::setSyslogPort( srvport );
-      // reboot then
-    }
-    else if ( verb.equals( "datalog" ) )
-    {
-      elog.log( logger::DEBUG, "%s: set-datalog, params: %s, %s", EnvWebServer::tag, server.c_str(), port.c_str() );
-      Prefs::LocalPrefs::setDataServer( srv );
-      Prefs::LocalPrefs::setDataPort( srvport );
-      // reboot then
     }
     else
     {
@@ -240,7 +199,7 @@ namespace EnvServer
    */
   void EnvWebServer::apiGetTodayData( AsyncWebServerRequest *request )
   {
-    elog.log( logger::DEBUG, "%s: getTodayData...", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: getTodayData...", EnvWebServer::tag );
     //
     // maybe ther are write accesses
     //
@@ -325,9 +284,7 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestHandlerInterval( AsyncWebServerRequest *request )
   {
-    using namespace logger;
-
-    elog.log( DEBUG, "%s: request measure interval...", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request measure interval...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     char buffer[ 8 ];
     sprintf( &buffer[ 0 ], "%04d", Prefs::MEASURE_INTERVAL_SEC );
@@ -337,7 +294,7 @@ namespace EnvServer
     request->send( 200, "application/json", info );
     cJSON_Delete( root );
     cJSON_free( int_info );  //!!!! important, memory leak
-    elog.log( DEBUG, "%s: request interval  <%04d>...", EnvWebServer::tag, Prefs::MEASURE_INTERVAL_SEC );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request interval  <%04d>...", EnvWebServer::tag, Prefs::MEASURE_INTERVAL_SEC );
   }
 
   /**
@@ -345,9 +302,8 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestHandlerCurrent( AsyncWebServerRequest *request )
   {
-    using namespace logger;
 
-    elog.log( DEBUG, "%s: request acku current...", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request acku current...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     char buffer[ 16 ];
     float cValue{ static_cast< float >( StatusObject::getVoltage() ) / 1000.0F };
@@ -358,7 +314,7 @@ namespace EnvServer
     request->send( 200, "application/json", info );
     cJSON_Delete( root );
     cJSON_free( tmp_info );  //!!!! important, memory leak
-    elog.log( DEBUG, "%s: request acku current <%f> done...", EnvWebServer::tag, cValue );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request acku current <%f> done...", EnvWebServer::tag, cValue );
   }
 
   /**
@@ -366,16 +322,14 @@ namespace EnvServer
    */
   void EnvWebServer::apiRestFilesystemCheck( AsyncWebServerRequest *request )
   {
-    elog.log( logger::DEBUG, "%s: request trigger filesystemckeck...", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request trigger filesystemckeck...", EnvWebServer::tag );
     StatusObject::setFsCheckReq( true );
     request->send( 200, "application/json", "OK" );
   }
 
   void EnvWebServer::apiRestFilesystemStatus( AsyncWebServerRequest *request )
   {
-    using namespace logger;
-
-    elog.log( DEBUG, "%s: request filesystem status...", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request filesystem status...", EnvWebServer::tag );
     cJSON *root = cJSON_CreateObject();
     // total
     String val = String( StatusObject::getFsTotalSpace(), DEC );
@@ -400,7 +354,7 @@ namespace EnvServer
     request->send( 200, "application/json", info );
     cJSON_Delete( root );
     cJSON_free( tmp_info );  //!!!! important, memory leak
-    elog.log( DEBUG, "%s: request filesystem status...OK", EnvWebServer::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: request filesystem status...OK", EnvWebServer::tag );
   }
 
   /**
@@ -408,14 +362,12 @@ namespace EnvServer
    */
   void EnvWebServer::deliverFileToHttpd( String &filePath, AsyncWebServerRequest *request )
   {
-    using namespace logger;
-
     String contentType( "text/plain" );
     String contentTypeMarker{ 0 };
 
     if ( !StatusObject::getIsSpiffsOkay() )
     {
-      elog.log( WARNING, "%s: SPIFFS not initialized, send file ABORT!", EnvWebServer::tag );
+      logger.log( Prefs::LOGID, WARNING, "%s: SPIFFS not initialized, send file ABORT!", EnvWebServer::tag );
       request->send( 500, "text/plain", "SPIFFS not initialized" );
       return;
     }
@@ -432,7 +384,7 @@ namespace EnvServer
     // set content type of file
     //
     contentTypeMarker = EnvWebServer::setContentTypeFromFile( contentType, filePath );
-    elog.log( DEBUG, "%s: file <%s>: type: <%s>...", EnvWebServer::tag, filePath.c_str(), contentTypeMarker.c_str() );
+    logger.log( Prefs::LOGID, DEBUG, "%s: file <%s>: type: <%s>...", EnvWebServer::tag, filePath.c_str(), contentTypeMarker.c_str() );
     //
     // send via http server, he mak this chunked if need
     //
@@ -461,7 +413,7 @@ namespace EnvServer
   {
     StatusObject::setHttpActive( true );
     String myUrl( request->url() );
-    elog.log( logger::ERROR, "%s: Server ERROR: %03d - %s", EnvWebServer::tag, errNo, msg.c_str() );
+    logger.log( Prefs::LOGID, ERROR, "%s: Server ERROR: %03d - %s", EnvWebServer::tag, errNo, msg.c_str() );
     request->send( errNo, "text/plain", msg );
   }
 
@@ -472,7 +424,7 @@ namespace EnvServer
   {
     StatusObject::setHttpActive( true );
     String myUrl( request->url() );
-    elog.log( logger::WARNING, "%s: url not found <%s>", EnvWebServer::tag, myUrl.c_str() );
+    logger.log( Prefs::LOGID, WARNING, "%s: url not found <%s>", EnvWebServer::tag, myUrl.c_str() );
     request->send( 404, "text/plain", "URL not found: <" + myUrl + ">" );
   }
 

@@ -1,7 +1,6 @@
 #include <SPIFFS.h>
 #include <stdlib.h>
 #include "appPreferences.hpp"
-#include "statics.hpp"
 #include "statusObject.hpp"
 #include "filesystemChecker.hpp"
 
@@ -25,7 +24,7 @@ namespace EnvServer
     }
     else
     {
-      elog.log( logger::INFO, "%s: start filesystemchecker task...", FsCheckObject::tag );
+      logger.log( Prefs::LOGID, INFO, "%s: start filesystemchecker task...", FsCheckObject::tag );
       // start the task, lowest priority
       xTaskCreate( FsCheckObject::filesystemTask, "fs-check-task", configMINIMAL_STACK_SIZE * 4, nullptr, tskIDLE_PRIORITY,
                    &FsCheckObject::taskHandle );
@@ -37,7 +36,7 @@ namespace EnvServer
    */
   void FsCheckObject::init()
   {
-    elog.log( logger::INFO, "%s: init filesystemchecker task...", FsCheckObject::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: init filesystemchecker task...", FsCheckObject::tag );
     // nothing to do at this time ;-)
     FsCheckObject::is_init = true;
     FsCheckObject::getFileInfo();
@@ -48,15 +47,14 @@ namespace EnvServer
    */
   void FsCheckObject::getFileInfo()
   {
-    using namespace logger;
-
+    
     File fd;
     String fileName;
-    elog.log( DEBUG, "%s: get file infos...", FsCheckObject::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: get file infos...", FsCheckObject::tag );
     StatusObject::setFsTotalSpace( SPIFFS.totalBytes() );
-    elog.log( DEBUG, "%s: total SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsTotalSpace() );
+    logger.log( Prefs::LOGID, DEBUG, "%s: total SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsTotalSpace() );
     StatusObject::setFsUsedSpace( SPIFFS.usedBytes() );
-    elog.log( DEBUG, "%s: used SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsUsedSpace() );
+    logger.log( Prefs::LOGID, DEBUG, "%s: used SPIFFS space: %07d", FsCheckObject::tag, StatusObject::getFsUsedSpace() );
 
     if ( xSemaphoreTake( StatusObject::measureFileSem, pdMS_TO_TICKS( 1500 ) ) == pdTRUE )
     {
@@ -65,37 +63,37 @@ namespace EnvServer
       fd = SPIFFS.open( fileName, "r", false );
       if ( fd )
       {
-        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setTodayFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getTodayFilseSize() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getTodayFilseSize() );
       }
       else
-        elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
       // weekly file
       fileName = String( Prefs::WEB_WEEKLY_FILE );
       fd = SPIFFS.open( fileName, "r", false );
       if ( fd )
       {
-        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setWeekFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getWeekFilseSize() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getWeekFilseSize() );
       }
       else
-        elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
       // month file
       fileName = String( Prefs::WEB_MONTHLY_FILE );
       fd = SPIFFS.open( fileName, "r", false );
       if ( fd )
       {
-        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setMonthFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getMonthFilseSize() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getMonthFilseSize() );
       }
       else
-        elog.log( DEBUG, "%s: file %d can't open!", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %d can't open!", FsCheckObject::tag, fileName.c_str() );
       // semaphore release
       xSemaphoreGive( StatusObject::measureFileSem );
     }
@@ -107,17 +105,17 @@ namespace EnvServer
       fd = SPIFFS.open( fileName, "r", false );
       if ( fd )
       {
-        elog.log( DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s opened, check size...", FsCheckObject::tag, fileName.c_str() );
         StatusObject::setAckuFileSize( fd.size() );
         fd.close();
-        elog.log( DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getAckuFilseSize() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s size is %07d...", FsCheckObject::tag, fileName.c_str(), StatusObject::getAckuFilseSize() );
       }
       else
-        elog.log( DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: file %s can't open!", FsCheckObject::tag, fileName.c_str() );
       // semaphore release
       xSemaphoreGive( StatusObject::ackuFileSem );
     }
-    elog.log( DEBUG, "%s: get file infos...OK", FsCheckObject::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: get file infos...OK", FsCheckObject::tag );
   }
 
   /**
@@ -125,7 +123,6 @@ namespace EnvServer
    */
   void FsCheckObject::filesystemTask( void * )
   {
-    using namespace logger;
 
     if ( !FsCheckObject::is_init )
       FsCheckObject::init();
@@ -134,7 +131,7 @@ namespace EnvServer
     //
     // construct filename for marker for last check
     //
-    elog.log( INFO, "%s: start filesystemchecker... runnning... ", FsCheckObject::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: start filesystemchecker... runnning... ", FsCheckObject::tag );
     String fileName( Prefs::FILE_CHECK_FILE_NAME );
     // at first, do nothing, let oher things at first
     delay( 32109 );
@@ -186,7 +183,7 @@ namespace EnvServer
       //
       if ( ( timestamp - lastTimestamp > Prefs::FILESYS_CHECK_INTERVAL ) || StatusObject::getFsCheckReq() )
       {
-        elog.log( INFO, "%s: make an garbage disposal...", FsCheckObject::tag );
+        logger.log( Prefs::LOGID, INFO, "%s: make an garbage disposal...", FsCheckObject::tag );
         //
         // make something
         //
@@ -195,7 +192,7 @@ namespace EnvServer
         //
         // mark the current timestamp
         //
-        elog.log( INFO, "%s: update marker file <%s> (when was the garbage disposal)......", FsCheckObject::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, INFO, "%s: update marker file <%s> (when was the garbage disposal)......", FsCheckObject::tag, fileName.c_str() );
         gettimeofday( &val, nullptr );
         timestamp = val.tv_sec;
         FsCheckObject::updateStatFile( fileName, timestamp );
@@ -209,9 +206,8 @@ namespace EnvServer
    */
   uint32_t FsCheckObject::getLastTimestamp( const String &fileName )
   {
-    using namespace logger;
 
-    elog.log( DEBUG, "%s: marker file <%s> open......", FsCheckObject::tag, fileName.c_str() );
+    logger.log( Prefs::LOGID, DEBUG, "%s: marker file <%s> open......", FsCheckObject::tag, fileName.c_str() );
     auto fd = SPIFFS.open( fileName, "r", false );
     uint32_t lastTimestamp{ 0UL };
     //
@@ -225,7 +221,7 @@ namespace EnvServer
       {
         // get time as unix timestamp
         lastTimestamp = static_cast< uint32_t >( line.toInt() );
-        elog.log( DEBUG, "%s: marker file <%s> countains <%s> (%d)...", FsCheckObject::tag, fileName.c_str(), line.c_str(),
+        logger.log( Prefs::LOGID, DEBUG, "%s: marker file <%s> countains <%s> (%d)...", FsCheckObject::tag, fileName.c_str(), line.c_str(),
                   lastTimestamp );
       }
       fd.close();
@@ -238,11 +234,10 @@ namespace EnvServer
    */
   bool FsCheckObject::updateStatFile( const String &fileName, uint32_t timestamp )
   {
-    using namespace logger;
 
     uint8_t buffer[ 32 ];
     char *cPtr = reinterpret_cast< char * >( &buffer[ 0 ] );
-    elog.log( DEBUG, "%s: update marker file <%s>, open......", FsCheckObject::tag, fileName.c_str() );
+    logger.log( Prefs::LOGID, DEBUG, "%s: update marker file <%s>, open......", FsCheckObject::tag, fileName.c_str() );
     auto fd = SPIFFS.open( fileName, "w", true );
     if ( fd )
     {
@@ -251,12 +246,12 @@ namespace EnvServer
       // get unix timestampand write as string
       fd.write( buffer, len );
       fd.close();
-      elog.log( DEBUG, "%s: update marker file <%s> DONE.", FsCheckObject::tag, fileName.c_str() );
+      logger.log( Prefs::LOGID, DEBUG, "%s: update marker file <%s> DONE.", FsCheckObject::tag, fileName.c_str() );
       return true;
     }
     else
     {
-      elog.log( ERROR, "%s: can't update marker file <%s>!", FsCheckObject::tag, fileName.c_str() );
+      logger.log( Prefs::LOGID, ERROR, "%s: can't update marker file <%s>!", FsCheckObject::tag, fileName.c_str() );
       return false;
     }
   }
@@ -274,7 +269,7 @@ namespace EnvServer
       // simulate start at midnight
       timestamp = FsCheckObject::getMidnight( timestamp );
       // File not exist, set midnight (GMT) as first marker
-      elog.log( logger::DEBUG, "%s: create marker file <%s> DONE.", FsCheckObject::tag, fileName.c_str() );
+      logger.log( Prefs::LOGID, DEBUG, "%s: create marker file <%s> DONE.", FsCheckObject::tag, fileName.c_str() );
       return FsCheckObject::updateStatFile( fileName, timestamp );
     }
     return true;
@@ -285,10 +280,9 @@ namespace EnvServer
    */
   bool FsCheckObject::renameFiles( const String &fromFileName, const String &toFileName, SemaphoreHandle_t _sem )
   {
-    using namespace logger;
 
     bool retVal{ false };
-    elog.log( DEBUG, "%s: remove old and copy new file for <%s>...", FsCheckObject::tag, fromFileName.c_str() );
+    logger.log( Prefs::LOGID, DEBUG, "%s: remove old and copy new file for <%s>...", FsCheckObject::tag, fromFileName.c_str() );
     if ( xSemaphoreTake( _sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
     {
       //
@@ -296,24 +290,24 @@ namespace EnvServer
       //
       if ( SPIFFS.remove( toFileName ) )
       {
-        elog.log( DEBUG, "%s: removed <%s>, try to rename <%s> to <%s>......", FsCheckObject::tag, toFileName.c_str(),
+        logger.log( Prefs::LOGID, DEBUG, "%s: removed <%s>, try to rename <%s> to <%s>......", FsCheckObject::tag, toFileName.c_str(),
                   fromFileName.c_str(), toFileName.c_str() );
       }
       else
       {
-        elog.log( INFO, "%s: remove file <%s> failed (not exist?)......", FsCheckObject::tag, toFileName.c_str() );
+        logger.log( Prefs::LOGID, INFO, "%s: remove file <%s> failed (not exist?)......", FsCheckObject::tag, toFileName.c_str() );
       }
       //
       // move file to old file
       //
       if ( SPIFFS.rename( fromFileName, toFileName ) )
       {
-        elog.log( DEBUG, "%s: move <%s> file to <%s> successful.", FsCheckObject::tag, fromFileName.c_str(), toFileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: move <%s> file to <%s> successful.", FsCheckObject::tag, fromFileName.c_str(), toFileName.c_str() );
         retVal = true;
       }
       else
       {
-        elog.log( ERROR, "%s: move <%s> file to <%s> failed! ABORT!.", FsCheckObject::tag, fromFileName.c_str(), toFileName.c_str() );
+        logger.log( Prefs::LOGID, ERROR, "%s: move <%s> file to <%s> failed! ABORT!.", FsCheckObject::tag, fromFileName.c_str(), toFileName.c_str() );
         retVal = false;
       }
       // semaphore release
@@ -322,7 +316,7 @@ namespace EnvServer
     }
     else
     {
-      elog.log( ERROR, "%s: can't obtain semaphore for filesystem check...", FsCheckObject::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: can't obtain semaphore for filesystem check...", FsCheckObject::tag );
     }
     return false;
   }
@@ -333,7 +327,6 @@ namespace EnvServer
    */
   void FsCheckObject::computeFilesysCheck( uint32_t timestamp )
   {
-    using namespace logger;
 
     //
     // at first make the weekly file
@@ -345,7 +338,7 @@ namespace EnvServer
     String toFile( Prefs::WEB_WEEKLY_FILE );
     if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::measureFileSem, borderTimestamp ) )
     {
-      elog.log( ERROR, "%s: can't separate dayly from weekly data!", FsCheckObject::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: can't separate dayly from weekly data!", FsCheckObject::tag );
       return;
     }
     delay( 2500 );
@@ -358,7 +351,7 @@ namespace EnvServer
     toFile = String( Prefs::WEB_MONTHLY_FILE );
     if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::measureFileSem, borderTimestamp ) )
     {
-      elog.log( ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
       return;
     }
     delay( 2500 );
@@ -371,7 +364,7 @@ namespace EnvServer
     toFile = String( "dummy" );
     if ( !FsCheckObject::separateFromBorder( fromFile, toFile, StatusObject::ackuFileSem, borderTimestamp ) )
     {
-      elog.log( ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: cant separate dayly from weekly data!", FsCheckObject::tag );
       return;
     }
 
@@ -384,8 +377,6 @@ namespace EnvServer
 
   bool FsCheckObject::separateFromBorder( String &fromFile, String &toFile, SemaphoreHandle_t sem, uint32_t borderTimestamp )
   {
-    using namespace logger;
-
     //
     // first open a fresh temfile
     //
@@ -400,25 +391,25 @@ namespace EnvServer
     //
     // part one, separate from source to temp and dest
     //
-    elog.log( INFO, "%s: separate data from file <%s>, part one", FsCheckObject::tag, fromFile.c_str() );
+    logger.log( Prefs::LOGID, INFO, "%s: separate data from file <%s>, part one", FsCheckObject::tag, fromFile.c_str() );
     if ( xSemaphoreTake( sem, pdMS_TO_TICKS( 15000 ) ) == pdTRUE )
     {
       // open temp file
-      elog.log( INFO, "%s: open tempfile <%s> for writing...", FsCheckObject::tag, tempFile.c_str() );
+      logger.log( Prefs::LOGID, INFO, "%s: open tempfile <%s> for writing...", FsCheckObject::tag, tempFile.c_str() );
       fdTemp = SPIFFS.open( tempFile, "w", true );
       if ( !fdTemp )
       {
-        elog.log( ERROR, "%s: open tempfile <%s> for writing FAILED!", FsCheckObject::tag, tempFile.c_str() );
+        logger.log( Prefs::LOGID, ERROR, "%s: open tempfile <%s> for writing FAILED!", FsCheckObject::tag, tempFile.c_str() );
         retVal = false;
       }
       if ( retVal )
       {
         // open source file
-        elog.log( INFO, "%s: open source file <%s> for reading...", FsCheckObject::tag, fromFile.c_str() );
+        logger.log( Prefs::LOGID, INFO, "%s: open source file <%s> for reading...", FsCheckObject::tag, fromFile.c_str() );
         fdFrom = SPIFFS.open( fromFile, "r", false );
         if ( !fdFrom )
         {
-          elog.log( ERROR, "%s: open source file <%s> for reading FAILED!", FsCheckObject::tag, fromFile.c_str() );
+          logger.log( Prefs::LOGID, ERROR, "%s: open source file <%s> for reading FAILED!", FsCheckObject::tag, fromFile.c_str() );
           fdTemp.close();
           retVal = false;
         }
@@ -428,16 +419,16 @@ namespace EnvServer
         if ( isDestFile )
         {
           // open destination file for append
-          elog.log( INFO, "%s: open destination file <%s> for appending...", FsCheckObject::tag, toFile.c_str() );
+          logger.log( Prefs::LOGID, INFO, "%s: open destination file <%s> for appending...", FsCheckObject::tag, toFile.c_str() );
           fdDest = SPIFFS.open( toFile, "a", false );
           if ( !fdDest )
           {
-            elog.log( ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile.c_str() );
-            elog.log( INFO, "%s: try open and create destination file <%s>...", FsCheckObject::tag, fromFile.c_str() );
+            logger.log( Prefs::LOGID, ERROR, "%s: open destination file <%s> for appending FAILED!", FsCheckObject::tag, fromFile.c_str() );
+            logger.log( Prefs::LOGID, INFO, "%s: try open and create destination file <%s>...", FsCheckObject::tag, fromFile.c_str() );
             fdDest = SPIFFS.open( toFile, "a", true );
             if ( !fdDest )
             {
-              elog.log( ERROR, "%s: open and create destination file <%s> FAILED!", FsCheckObject::tag, fromFile.c_str() );
+              logger.log( Prefs::LOGID, ERROR, "%s: open and create destination file <%s> FAILED!", FsCheckObject::tag, fromFile.c_str() );
               fdTemp.close();
               fdFrom.close();
               retVal = false;
@@ -483,7 +474,7 @@ namespace EnvServer
               if ( timestampStart < timestampEnd && timestampStart > 1 && timestampStart < 5 && timestampEnd > 4 && timestampEnd < 24 )
               {
                 String timestampString = line.substring( timestampStart, timestampEnd );
-                // elog.log( DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );
+                // logger.log( Prefs::LOGID, DEBUG, "%s: timestamp %s", FsCheckObject::tag, timestampString.c_str() );
                 //
                 // save ram
                 line.clear();
@@ -491,7 +482,7 @@ namespace EnvServer
                 if ( timestamp < borderTimestamp )
                 {
                   // older data to destination
-                  // elog.log( DEBUG, "%s: timestamp %s write to destfile", FsCheckObject::tag, timestampString.c_str() );
+                  // logger.log( Prefs::LOGID, DEBUG, "%s: timestamp %s write to destfile", FsCheckObject::tag, timestampString.c_str() );
                   if ( isDestFile )
                   {
                     fdDest.write( startPtr, len );
@@ -500,7 +491,7 @@ namespace EnvServer
                 else
                 {
                   // younger data to temp, leave later in current file
-                  // elog.log( DEBUG, "%s: timestamp %s write to tempfile", FsCheckObject::tag, timestampString.c_str() );
+                  // logger.log( Prefs::LOGID, DEBUG, "%s: timestamp %s write to tempfile", FsCheckObject::tag, timestampString.c_str() );
                   fdTemp.write( startPtr, len );
                 }
               }
@@ -509,7 +500,7 @@ namespace EnvServer
                 //
                 // if the search war negative
                 //
-                elog.log( DEBUG, "%s: timestamp write to tempfile, because not found marker", FsCheckObject::tag );
+                logger.log( Prefs::LOGID, DEBUG, "%s: timestamp write to tempfile, because not found marker", FsCheckObject::tag );
                 fdTemp.write( startPtr, len );
               }
               // next round
@@ -523,7 +514,7 @@ namespace EnvServer
             //
             // cant' happen, i think ;-)
             //
-            elog.log( ERROR, "%s: buffer overflow while searching newline char..." );
+            logger.log( Prefs::LOGID, ERROR, "%s: buffer overflow while searching newline char..." );
             // end this routine
             retVal = false;
             break;
@@ -548,7 +539,7 @@ namespace EnvServer
     }
     else
     {
-      elog.log( ERROR, "%s: can't obtain semaphore for filesystem check...", FsCheckObject::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: can't obtain semaphore for filesystem check...", FsCheckObject::tag );
       retVal = false;
     }
     if ( retVal )
@@ -557,10 +548,10 @@ namespace EnvServer
       //
       // Part two, rename tempfile to fromfile
       //
-      elog.log( INFO, "%s: separate data from file <%s>, part two", FsCheckObject::tag, fromFile.c_str() );
+      logger.log( Prefs::LOGID, INFO, "%s: separate data from file <%s>, part two", FsCheckObject::tag, fromFile.c_str() );
       retVal = FsCheckObject::renameFiles( tempFile, fromFile, sem );
       if ( retVal )
-        elog.log( DEBUG, "%s: separate data from file <%s>, part two SUCCESS", FsCheckObject::tag, fromFile.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: separate data from file <%s>, part two SUCCESS", FsCheckObject::tag, fromFile.c_str() );
     }
     return retVal;
   }

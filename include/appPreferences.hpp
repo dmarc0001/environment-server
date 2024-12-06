@@ -6,7 +6,7 @@
 #include <esp_wifi.h>
 #include <stdint.h>
 #include <string>
-#include "elog/eLog.hpp"
+#include <Elog.h>
 #include <Preferences.h>
 
 namespace Prefs
@@ -15,23 +15,21 @@ namespace Prefs
   // some values are depend from compiling mode...
   //
 #ifdef BUILD_DEBUG
-  constexpr logger::Loglevel D_LOG_LEVEL = logger::DEBUG;
+  constexpr LogLevel D_LOG_LEVEL = DEBUG;
   constexpr int D_MININTERVAL = 600;
 #else
 #ifdef BUILD_RELEASE
-  constexpr logger::Loglevel D_LOG_LEVEL = logger::INFO;
+  constexpr LogLevel D_LOG_LEVEL = INFO;
   constexpr int D_MININTERVAL = 600;
 #else
-  constexpr Loglevel D_LOG_LEVEL = WARNING;
+  constexpr LogLevel D_LOG_LEVEL = WARNING;
   constexpr int D_MININTERVAL = 600;
 #endif
 #endif
+  constexpr const uint8_t LOGID{ 5 };                            //! logId for elog
   constexpr const char *DEFAULT_HOSTNAME{ "sensor" };            //! default hostname network
   constexpr const char *APPNAME{ "en-app" };                     //! app name
-  constexpr const char *SYSLOG_APPNAME{ "en-app" };              //! app name for syslog
-  constexpr const uint16_t SYSLOG_PRIO{ 8 };                     //! standart syslog prio (user)
-  constexpr const uint16_t SYSLOG_PROTO{ 0 };                    //! standart syslog protocol (IETF)
-  constexpr const logger::Loglevel LOG_LEVEL = D_LOG_LEVEL;      //! loglevel for App
+  constexpr const LogLevel LOG_LEVEL = D_LOG_LEVEL;              //! loglevel for App
   constexpr const char *WEB_PATH{ "/spiffs" };                   //! virtual path wegserver
   constexpr const char *WEB_DAYLY_FILE{ "/today.jdata" };        //! virtual path today's file (round about 24 hours)
   constexpr const char *WEB_WEEKLY_FILE{ "/week.jdata" };        //! virtual path 7 day-history file
@@ -85,14 +83,6 @@ namespace Prefs
 
     public:
     static void init();                          //! init the preferences Object and Preferences
-    static IPAddress getSyslogServer();          //! get syslog server ip
-    static uint16_t getSyslogPort();             //! get syslog pornum
-    static bool setSyslogServer( IPAddress & );  //! set syslog server ipo
-    static bool setSyslogPort( uint16_t );       //! set syslog portnum
-    static IPAddress getDataServer();            //! get dataserver ip
-    static uint16_t getDataPort();               //! get dataserver port
-    static bool setDataServer( IPAddress & );    //! set dataserver ip
-    static bool setDataPort( uint16_t );         //! set dataserver port
     static String getTimeZone();                 //! get my timezone
     static bool setTimeZone( String & );         //! set my timezone
     static String getHostName();                 //! get my own hostname

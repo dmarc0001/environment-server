@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include "statusObject.hpp"
-#include "statics.hpp"
 #include "ledStripe.hpp"
 #include "appPreferences.hpp"
 #include "ledColorsDefinition.hpp"
@@ -51,12 +50,12 @@ namespace EnvServer
     LEDStripe::setLed( Prefs::LED_ALL, false, true );
     // FastLED.show();
     LEDStripe::start();
-    elog.log( logger::DEBUG, "%s: initialized...", LEDStripe::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: initialized...", LEDStripe::tag );
   }
 
   void LEDStripe::start()
   {
-    elog.log( logger::INFO, "%s: LEDStripe Task start...", LEDStripe::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: LEDStripe Task start...", LEDStripe::tag );
 
     if ( LEDStripe::taskHandle )
     {
@@ -71,9 +70,7 @@ namespace EnvServer
 
   void LEDStripe::ledTask( void * )
   {
-    using namespace logger;
-
-    elog.log( INFO, "%s: LEDStripe Task starting...", LEDStripe::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: LEDStripe Task starting...", LEDStripe::tag );
     using namespace Prefs;
     int64_t nextWLANLedActionTime{ WLANlongActionDist };
     int64_t nextMeasureLedActionTime{ MeasureActionFlushDist };

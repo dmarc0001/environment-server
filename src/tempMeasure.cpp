@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <esp_timer.h>
-#include "statics.hpp"
+#include "common.hpp"
 #include "tempMeasure.hpp"
 #include "statusObject.hpp"
 #include "appPreferences.hpp"
@@ -25,14 +25,12 @@ namespace EnvServer
 
   void TempMeasure::measureTask( void *pvParameter )
   {
-    using namespace logger;
-
     int warning_rounds_count = 0;
     uint8_t sensors_count = 0;
     int64_t measure_interval = static_cast< int64_t >( Prefs::MEASURE_INTERVAL_SEC ) * 1000000LL;
     int64_t scan_interval = static_cast< int64_t >( Prefs::MEASURE_SCAN_SENSOR_INTERVAL ) * 1000000LL;
     // init one wire sensors
-    elog.log( DEBUG, "%s: TempMeasure::measureTask...", TempMeasure::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: TempMeasure::measureTask...", TempMeasure::tag );
     TempMeasure::dht.begin();
     TempMeasure::sensors.begin();
     sensors_count = TempMeasure::renewOneWire();
@@ -69,13 +67,13 @@ namespace EnvServer
         // not found sensors
         if ( sensors_count == 0 )
         {
-          elog.log( WARNING, "%s: not found one wire temp sensors!", TempMeasure::tag );
+          logger.log( Prefs::LOGID, WARNING, "%s: not found one wire temp sensors!", TempMeasure::tag );
           // earlier checking
           nextSensorsScanTime = nowTime + ( 10ULL * 1000000LL );
           vTaskDelay( pdMS_TO_TICKS( 50 ) );
           continue;
         }
-        elog.log( INFO, "%s: %d sensors detected.", TempMeasure::tag, sensors_count );
+        logger.log( Prefs::LOGID, INFO, "%s: %d sensors detected.", TempMeasure::tag, sensors_count );
         // reay only max count sensors, even trough i have found more
         if ( sensors_count > TempMeasure::maxSensors )
           sensors_count = TempMeasure::maxSensors;
@@ -92,7 +90,7 @@ namespace EnvServer
         // first check if voltage is okay
         if ( StatusObject::getIsBrownout() )
         {
-          elog.log( WARNING, "%s: can't write data, voltage to low!", TempMeasure::tag );
+          logger.log( Prefs::LOGID, WARNING, "%s: can't write data, voltage to low!", TempMeasure::tag );
           StatusObject::setMeasureState( MeasureState::MEASURE_CRIT );
           vTaskDelay( pdMS_TO_TICKS( 5000 ) );
           nextMeasureTime = nowTime + measure_interval;
@@ -103,7 +101,7 @@ namespace EnvServer
         // chcek if time synced
         if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
         {
-          elog.log( WARNING, "%s: time not sync, no save measure values!", TempMeasure::tag );
+          logger.log( Prefs::LOGID, WARNING, "%s: time not sync, no save measure values!", TempMeasure::tag );
           StatusObject::setMeasureState( MeasureState::MEASURE_WARN );
           ++warning_rounds_count;
           if ( warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT )
@@ -112,11 +110,11 @@ namespace EnvServer
           }
           continue;
         }
-        elog.log( DEBUG, "%s: measuring...", TempMeasure::tag );
+        logger.log( Prefs::LOGID, DEBUG, "%s: measuring...", TempMeasure::tag );
         timeval val;
         gettimeofday( &val, nullptr );
         TempMeasure::sensors.requestTemperatures();
-        elog.log( INFO, "%s: measuring...done", TempMeasure::tag );
+        logger.log( Prefs::LOGID, INFO, "%s: measuring...done", TempMeasure::tag );
         // dataset create, set timestamp for this dataset
         // create a new dataset for this round of measure
         env_measure_t current_measure;
@@ -141,7 +139,7 @@ namespace EnvServer
           sensor_data.temp = TempMeasure::sensors.getTempC( devAddr );
           if ( sensor_data.temp == DEVICE_DISCONNECTED_C )
           {
-            elog.log( ERROR, "%s: Sensors (ds18x20) read error (DISCONNECTED)!", TempMeasure::tag );
+            logger.log( Prefs::LOGID, ERROR, "%s: Sensors (ds18x20) read error (DISCONNECTED)!", TempMeasure::tag );
             StatusObject::setMeasureState( MeasureState::MEASURE_WARN );
             sensor_data.temp = -100.0f;
             vTaskDelay( pdMS_TO_TICKS( 250 ) );
@@ -149,7 +147,7 @@ namespace EnvServer
           }
           else
           {
-            elog.log( DEBUG, "%s: Sensor %02d reports %.3f°C...", TempMeasure::tag, addr_idx, sensor_data.temp );
+            logger.log( Prefs::LOGID, DEBUG, "%s: Sensor %02d reports %.3f°C...", TempMeasure::tag, addr_idx, sensor_data.temp );
           }
           current_measure.dataset.push_back( sensor_data );
           vTaskDelay( pdMS_TO_TICKS( 50 ) );
@@ -163,7 +161,7 @@ namespace EnvServer
         TempMeasure::dht.temperature().getEvent( &event );
         if ( isnan( event.temperature ) )
         {
-          elog.log( ERROR, "%s: Error while reading temperature in DHT sensor", TempMeasure::tag );
+          logger.log( Prefs::LOGID, ERROR, "%s: Error while reading temperature in DHT sensor", TempMeasure::tag );
         }
         else
         {
@@ -173,7 +171,7 @@ namespace EnvServer
         dht.humidity().getEvent( &event );
         if ( isnan( event.relative_humidity ) )
         {
-          elog.log( ERROR, "%s: Error while reading humidy in DHT sensor", TempMeasure::tag );
+          logger.log( Prefs::LOGID, ERROR, "%s: Error while reading humidy in DHT sensor", TempMeasure::tag );
         }
         else
         {
@@ -183,7 +181,7 @@ namespace EnvServer
         if ( h_sensor_data.humidy > -100.0f || h_sensor_data.temp > -100.0f )
         {
           current_measure.dataset.push_back( h_sensor_data );
-          elog.log( DEBUG, "%s: DHT sensor reports humidy: %.1f%%, temperature: %.1fC", TempMeasure::tag, h_sensor_data.humidy,
+          logger.log( Prefs::LOGID, DEBUG, "%s: DHT sensor reports humidy: %.1f%%, temperature: %.1fC", TempMeasure::tag, h_sensor_data.humidy,
                     h_sensor_data.temp );
           if ( StatusObject::getMeasureState() == MeasureState::MEASURE_ACTION )
           {
@@ -193,13 +191,8 @@ namespace EnvServer
             warning_rounds_count = 0;
           }
         }
-        elog.log( DEBUG, "%s: dataset send to file queue...", TempMeasure::tag );
+        logger.log( Prefs::LOGID, DEBUG, "%s: dataset send to file queue...", TempMeasure::tag );
         StatusObject::dataset->push_back( current_measure );
-        if ( StatusObject::getIsDataSend() )
-        {
-          elog.log( DEBUG, "%s: dataset send to udp datasend queue...", TempMeasure::tag );
-          UDPDataLog::dataset->push_back( current_measure );
-        }
         delay( 50 );
       }
       delay( 500 );
@@ -214,8 +207,8 @@ namespace EnvServer
     // devices found?
     TempMeasure::oneWire.reset_search();
     uint8_t sensors_count = TempMeasure::sensors.getDS18Count();
-    elog.log( logger::DEBUG, "%s: %03d DS18x20 devices found...", TempMeasure::tag, sensors_count );
-    elog.log( logger::DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag, sensors.isParasitePowerMode() ? "true" : "false" );
+    logger.log( Prefs::LOGID, DEBUG, "%s: %03d DS18x20 devices found...", TempMeasure::tag, sensors_count );
+    logger.log( Prefs::LOGID, DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag, sensors.isParasitePowerMode() ? "true" : "false" );
     return ( sensors_count );
   }
 
@@ -224,7 +217,7 @@ namespace EnvServer
    */
   void TempMeasure::start()
   {
-    elog.log( logger::INFO, "%s: start measure task...", TempMeasure::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: start measure task...", TempMeasure::tag );
     if ( TempMeasure::taskHandle )
     {
       vTaskDelete( TempMeasure::taskHandle );
