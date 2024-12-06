@@ -5,7 +5,7 @@
 #include <esp_log.h>
 #include <stdio.h>
 #include <cJSON.h>
-#include "statics.hpp"
+#include "common.hpp"
 #include "appPreferences.hpp"
 #include "statusObject.hpp"
 #include "ledStripe.hpp"
@@ -42,36 +42,34 @@ namespace EnvServer
    */
   void StatusObject::init()
   {
-    using namespace logger;
-
     if ( StatusObject::is_init )
     {
-      elog.log( DEBUG, "%s: always initialized... Igpore call", StatusObject::tag );
+      logger.log( Prefs::LOGID, DEBUG, "%s: always initialized... Igpore call", StatusObject::tag );
       return;
     }
     CRGB color( Prefs::LED_COLOR_BLACK );
-    elog.log( INFO, "%s: init status object...", StatusObject::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: init status object...", StatusObject::tag );
     //
     // init the filesystem for log and web
     //
-    elog.log( DEBUG, "%s: init filesystem...", StatusObject::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: init filesystem...", StatusObject::tag );
     if ( !SPIFFS.begin( false, Prefs::WEB_PATH, 8, Prefs::WEB_PARTITION_LABEL ) )
     {
       color = CRGB( Prefs::LED_COLOR_FORMATTING );
       LEDStripe::setLed( Prefs::LED_ALL, color );
       delay( 1000 );
-      elog.log( INFO, "%s: init failed, FORMAT filesystem...", StatusObject::tag );
+      logger.log( Prefs::LOGID, INFO, "%s: init failed, FORMAT filesystem...", StatusObject::tag );
       if ( !SPIFFS.format() )
       {
         // there is an error BAD!
         color = CRGB( Prefs::LED_COLOR_ALERT );
         LEDStripe::setLed( Prefs::LED_ALL, color );
-        elog.log( ERROR, "%s: An Error has occurred while mounting SPIFFS!", StatusObject::tag );
+        logger.log( Prefs::LOGID, ERROR, "%s: An Error has occurred while mounting SPIFFS!", StatusObject::tag );
         delay( 5000 );
       }
       else
       {
-        elog.log( INFO, "%s: FORMAT filesystem successful...", StatusObject::tag );
+        logger.log( Prefs::LOGID, INFO, "%s: FORMAT filesystem successful...", StatusObject::tag );
         // is okay
         StatusObject::is_spiffs = true;
       }
@@ -81,13 +79,13 @@ namespace EnvServer
     {
       // is okay
       StatusObject::is_spiffs = true;
-      elog.log( DEBUG, "%s: init filesystem...OK", StatusObject::tag );
+      logger.log( Prefs::LOGID, DEBUG, "%s: init filesystem...OK", StatusObject::tag );
     }
     vSemaphoreCreateBinary( StatusObject::measureFileSem );
     vSemaphoreCreateBinary( StatusObject::ackuFileSem );
     StatusObject::is_init = true;
     StatusObject::dataset->clear();
-    elog.log( DEBUG, "%s: init status object...OK", StatusObject::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: init status object...OK", StatusObject::tag );
     StatusObject::start();
   }
 
@@ -144,11 +142,9 @@ namespace EnvServer
    */
   void StatusObject::saveTask( void *ptr )
   {
-    using namespace logger;
-
     uint8_t errorCounter{ 0 };  // count if file semaphore not availible
     //
-    elog.log( INFO, "%s: StatusObject Task started.", StatusObject::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: StatusObject Task started.", StatusObject::tag );
     xSemaphoreGive( StatusObject::measureFileSem );
     //
     // infinity loop
@@ -165,7 +161,7 @@ namespace EnvServer
 
         if ( StatusObject::getIsBrownout() )
         {
-          elog.log( WARNING, "%s: can't write data, voltage too low!", StatusObject::tag );
+          logger.log( Prefs::LOGID, WARNING, "%s: can't write data, voltage too low!", StatusObject::tag );
           delay( 15000 );
           // HEAP check, if to low, delete data
           uint32_t nowHeap = xPortGetFreeHeapSize();
@@ -232,7 +228,7 @@ namespace EnvServer
             auto fh = SPIFFS.open( daylyFileName, "a", true );
             if ( fh )
             {
-              elog.log( DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
+              logger.log( Prefs::LOGID, DEBUG, "%s: datafile <%s> opened...", StatusObject::tag, daylyFileName.c_str() );
               fh.print( "," );
               char *jsonPrintString = cJSON_PrintUnformatted( dataSetObj );
               String jsonString( jsonPrintString );
@@ -244,7 +240,7 @@ namespace EnvServer
               StatusObject::setTodayFileSize( fh.size() );
               fh.close();
               cJSON_Delete( dataSetObj );
-              elog.log( INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );
+              logger.log( Prefs::LOGID, INFO, "%s: datafile <%s> written and closed...", StatusObject::tag, daylyFileName.c_str() );
             }
             else
             {
@@ -252,7 +248,7 @@ namespace EnvServer
               {
                 StatusObject::dataset->erase( StatusObject::dataset->begin() );
               }
-              elog.log( ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag, daylyFileName.c_str() );
+              logger.log( Prefs::LOGID, ERROR, "%s: datafile <%s> can't open, data lost!", StatusObject::tag, daylyFileName.c_str() );
             }
             // We have finished accessing the shared resource.  Release the
             // semaphore.
@@ -266,18 +262,20 @@ namespace EnvServer
             //
             ++errorCounter;
             //
-            elog.log( ERROR, "%s: can't get the semaphore for write datafile, garbage collector running to long?", StatusObject::tag );
-            elog.log( ERROR, "%s: data may be lost!", StatusObject::tag );
+            logger.log( Prefs::LOGID, ERROR, "%s: can't get the semaphore for write datafile, garbage collector running to long?",
+                      StatusObject::tag );
+            logger.log( Prefs::LOGID, ERROR, "%s: data may be lost!", StatusObject::tag );
             delay( 800 );
             if ( errorCounter > 10 )
             {
-              elog.log( ERROR, "%s: too many errors in spiffs... warning!!!!!", StatusObject::tag );
+              logger.log( Prefs::LOGID, ERROR, "%s: too many errors in spiffs... warning!!!!!", StatusObject::tag );
               if ( errorCounter > 15 )
               {
                 //
                 // maybe the whole system is bad
                 //
-                elog.log( ERROR, "%s: seems the SPIFFS filesystem hat an problem, restart controller!", StatusObject::tag );
+                logger.log( Prefs::LOGID, ERROR, "%s: seems the SPIFFS filesystem hat an problem, restart controller!",
+                          StatusObject::tag );
                 delay( 5000 );
                 esp_restart();
               }
@@ -362,13 +360,11 @@ namespace EnvServer
    */
   void StatusObject::start()
   {
-    using namespace logger;
-
-    elog.log( INFO, "%s: StatusObject Task start...", StatusObject::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: StatusObject Task start...", StatusObject::tag );
 
     if ( StatusObject::is_running )
     {
-      elog.log( ERROR, "%s: StatusObject Task is already running, abort.", StatusObject::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: StatusObject Task is already running, abort.", StatusObject::tag );
     }
     else
     {

@@ -1,6 +1,7 @@
 #include "ackuRead.hpp"
 #include "statusObject.hpp"
 #include <cJSON.h>
+#include <Elog.h>
 
 namespace EnvServer
 {
@@ -11,10 +12,9 @@ namespace EnvServer
 
   void AckuVoltage::start()
   {
-    using namespace logger;
     AckuVoltage::adc.attach( Prefs::ACKU_MEASURE_GPIO );
-    elog.log( DEBUG, "%s: ADC for acku initialized...", AckuVoltage::tag );
-    elog.log( INFO, "%s: axcku tast started...", AckuVoltage::tag );
+    logger.log( Prefs::LOGID, DEBUG, "%s: ADC for acku initialized...", AckuVoltage::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: axcku tast started...", AckuVoltage::tag );
 
     if ( AckuVoltage::taskHandle )
     {
@@ -33,7 +33,6 @@ namespace EnvServer
   void AckuVoltage::ackuTask( void * )
   {
     using namespace Prefs;
-    using namespace logger;
 
     static uint32_t measures[ ACKU_CURRENT_SMOOTH_COUNT ];
     uint32_t idx = 0;
@@ -65,7 +64,7 @@ namespace EnvServer
         voltage += measures[ i ];
       }
       voltage = static_cast< uint32_t >( floor( voltage / ACKU_CURRENT_SMOOTH_COUNT ) );
-      elog.log( DEBUG, "%s: acku smooth: %d mV (measured %d )", AckuVoltage::tag, static_cast< int >( voltage ),
+      logger.log( Prefs::LOGID, DEBUG, "%s: acku smooth: %d mV (measured %d )", AckuVoltage::tag, static_cast< int >( voltage ),
                 static_cast< int >( m_value ) );
       StatusObject::setVoltage( voltage );
       ++idx;
@@ -80,7 +79,7 @@ namespace EnvServer
       {
         // write acku value to logfile
         String fileName( Prefs::ACKU_LOG_FILE_01 );
-        elog.log( DEBUG, "%s: acku value to file <%s>", AckuVoltage::tag, fileName.c_str() );
+        logger.log( Prefs::LOGID, DEBUG, "%s: acku value to file <%s>", AckuVoltage::tag, fileName.c_str() );
         //
         // if filesystemchecker want to write, prevent this
         // read is walways possible
@@ -109,11 +108,11 @@ namespace EnvServer
             cJSON_Delete( dataSetObj );
             cJSON_free( jsonPrintString );  // !!!!!!!
             // memory leak if not do it!
-            elog.log( INFO, "%s: acku value wrote to file <%s>.", AckuVoltage::tag, fileName.c_str() );
+            logger.log( Prefs::LOGID, INFO, "%s: acku value wrote to file <%s>.", AckuVoltage::tag, fileName.c_str() );
           }
           else
           {
-            elog.log( WARNING, "%s: acku value can't wrote to file <%s>!", AckuVoltage::tag, fileName.c_str() );
+            logger.log( Prefs::LOGID, WARNING, "%s: acku value can't wrote to file <%s>!", AckuVoltage::tag, fileName.c_str() );
           }
           xSemaphoreGive( StatusObject::ackuFileSem );
         }

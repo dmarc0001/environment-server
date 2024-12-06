@@ -1,10 +1,8 @@
 /*
   main, hier startet es
 */
-#include "elog/eLog.hpp"
 #include "common.hpp"
 #include "main.hpp"
-#include "statics.hpp"
 #include "ledStripe.hpp"
 #include "ackuRead.hpp"
 #include "tempMeasure.hpp"
@@ -20,67 +18,43 @@
 void setup()
 {
   using namespace EnvServer;
-  using namespace logger;
 
   // Debug Ausgabe initialisieren
   Serial.begin( 115200 );
   Serial.println( "main: program started..." );
   // read persistent config
   Serial.println( "main: init local preferences..." );
+  // Elog &elog = Elog::getInstance();
   Prefs::LocalPrefs::init();
   // correct loglevel
-  Loglevel level = static_cast< Loglevel >( Prefs::LocalPrefs::getLogLevel() );
-  elog.addSerialLogging( Serial, "MAIN", level );  // Enable serial logging. We want only INFO or lower logleve.
-  elog.setSyslogOnline( false );
-  elog.addSyslogLogging( level );
-  elog.log( INFO, "main: start with logging..." );
+  LogLevel level = static_cast< LogLevel >( Prefs::LocalPrefs::getLogLevel() );
+  // LogLevel level = DEBUG;
+  // elog = Elog::getInstance();
+  logger.registerSerial( Prefs::LOGID, level, "ENV", Serial, FLAG_TIME_SHORT|FLAG_SERVICE_LONG );
+  logger.log( Prefs::LOGID, INFO, "main: start with logging..." );
   // set my timezone, i deal with timestamps
-  elog.log( DEBUG, "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
+  logger.log( Prefs::LOGID, DEBUG,  "main: set timezone (%s)...", Prefs::LocalPrefs::getTimeZone().c_str() );
   setenv( "TZ", Prefs::LocalPrefs::getTimeZone().c_str(), 1 );
   tzset();
   static String hName( Prefs::LocalPrefs::getHostName() );
-  elog.log( INFO, "main: hostname: <%s>...", hName.c_str() );
-  //
-  // check if syslog and/or datalog present
-  //
-  IPAddress addr( Prefs::LocalPrefs::getSyslogServer() );
-  uint16_t port( Prefs::LocalPrefs::getSyslogPort() );
-  elog.log( INFO, "main: syslog %s:%d", addr.toString().c_str(), port );
-  if ( ( addr > 0 ) && ( port > 0 ) )
-  {
-    elog.log( INFO, "main: init syslog protocol to %s:%d...", addr.toString().c_str(), port );
-    elog.setUdpClient( udpClient, addr, port, hName.c_str(), Prefs::SYSLOG_APPNAME, Prefs::SYSLOG_PRIO, Prefs::SYSLOG_PROTO );
-  }
-  elog.log( DEBUG, "main: init LED Stripe..." );
+  logger.log( Prefs::LOGID, INFO, "main: hostname: <%s>...", hName.c_str() );
+  logger.log( Prefs::LOGID, DEBUG, "main: init LED Stripe..." );
   LEDStripe::init();
-  elog.log( DEBUG, "main: init statusobject..." );
+  logger.log( Prefs::LOGID, DEBUG, "main: init statusobject..." );
   StatusObject::init();
-  //
-  // check if config for data server peresent
-  //
-  addr = Prefs::LocalPrefs::getDataServer();
-  port = Prefs::LocalPrefs::getDataPort();
-  elog.log( INFO, "main: datalog %s:%d", addr.toString().c_str(), port );
-  if ( ( addr > 0 ) && ( port > 0 ) )
-  {
-    elog.log( INFO, "main: init data log protocol to %s:%d...", addr.toString().c_str(), port );
-    UDPDataLog::setUdpDataLog( udpDataClient, addr, port, Prefs::SYSLOG_APPNAME );
-    StatusObject::setIsDataSend( true );
-  }
-  elog.log( DEBUG, "main: init acku watch..." );
+  logger.log( Prefs::LOGID, DEBUG, "main: init acku watch..." );
   AckuVoltage::start();
-  elog.log( DEBUG, "main: start sensor watching..." );
+  logger.log( Prefs::LOGID, DEBUG, "main: start sensor watching..." );
   TempMeasure::start();
-  elog.log( DEBUG, "main: start wifi..." );
+  logger.log( Prefs::LOGID, DEBUG, "main: start wifi..." );
   WifiConfig::init();
-  elog.log( DEBUG, "main: start filesystemchecker..." );
+  logger.log( Prefs::LOGID, DEBUG, "main: start filesystemchecker..." );
   FsCheckObject::start();
 }
 
 void loop()
 {
   using namespace EnvServer;
-  using namespace logger;
 
   static uint16_t counter = 0;
   // next time logger time sync
@@ -95,18 +69,18 @@ void loop()
     //
     // somtimes correct elog time
     //
-    elog.log( DEBUG, "main: logger time correction..." );
+    logger.log( Prefs::LOGID, DEBUG, "main: logger time correction..." );
     setNextTimeCorrect = ( millis() * 1000UL * 21600UL );
     struct tm ti;
     if ( !getLocalTime( &ti ) )
     {
-      elog.log( WARNING, "main: failed to obtain system time!" );
+      logger.log( Prefs::LOGID, WARNING, "main: failed to obtain system time!" );
     }
     else
     {
-      elog.log( DEBUG, "main: gotten system time!" );
-      Elog::provideTime( ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
-      elog.log( DEBUG, "main: logger time correction...OK" );
+      logger.log( Prefs::LOGID, DEBUG, "main: gotten system time!" );
+      logger.provideTime( ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday, ti.tm_hour, ti.tm_min, ti.tm_sec );
+      logger.log( Prefs::LOGID, DEBUG, "main: logger time correction...OK" );
     }
   }
   delay( 600 );
@@ -123,12 +97,12 @@ void loop()
         //
         // new connection, start webservice
         //
-        elog.log( INFO, "main: ip connectivity found, start webserver." );
+        logger.log( Prefs::LOGID, INFO, "main: ip connectivity found, start webserver." );
         EnvWebServer::start();
       }
       else
       {
-        elog.log( WARNING, "main: ip connectivity lost, stop webserver." );
+        logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost, stop webserver." );
         EnvWebServer::stop();
       }
     }
@@ -142,7 +116,7 @@ void loop()
         //
         // not longer functional
         //
-        elog.log( WARNING, "main: ip connectivity lost, stop webserver." );
+        logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost, stop webserver." );
         EnvWebServer::stop();
       }
     }

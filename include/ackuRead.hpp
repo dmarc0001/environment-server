@@ -2,7 +2,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "common.hpp"
-#include "statics.hpp"
 #include "appPreferences.hpp"
 #include <ESP32AnalogRead.h>
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "appPreferences.hpp"
-#include "statics.hpp"
 #include <esp_sntp.h>
 #include <WiFiManager.h>
 

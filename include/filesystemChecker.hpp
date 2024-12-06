@@ -1,5 +1,5 @@
 #pragma once
-#include <Arduino.h>
+#include <common.hpp>
 #include <memory>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
