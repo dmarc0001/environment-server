@@ -22,6 +22,7 @@ namespace EnvServer
     static void onApiV1( AsyncWebServerRequest * );                               //! on url path "/api/v1/"
     static void onApiV1Set( AsyncWebServerRequest * );                            //! on url path "/api/v1/set-*"
     static void onFilesReq( AsyncWebServerRequest * );                            //! on some file
+    static void onMetricsReq( AsyncWebServerRequest * );                          //! handle prometheus interface
     static void apiGetTodayData( AsyncWebServerRequest * );                       //! on api get today data
     static void apiGetRestDataFileFrom( AsyncWebServerRequest * );                //! get data file from date (if availible)
     static void apiSystemInfoGetHandler( AsyncWebServerRequest * );               //! deliver server info

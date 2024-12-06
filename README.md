@@ -13,7 +13,8 @@
   - /api/v1/fsstat : amount of space in SPIFFS filesystem an measure files
   - /api/v1/set-timezone?timezone=CET-1 : set internal timezone (for GUI)
   - /api/v1/set-loglevel?level=7 : set controller loglevel, only app
-
+- prometheus interface 
+  - /metrics
 
 
 ## liglevels (numeric)

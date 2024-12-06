@@ -1,6 +1,7 @@
 #include <memory>
 #include <cJSON.h>
 #include <esp_chip_info.h>
+#include <esp_spiffs.h>
 #include "common.hpp"
 #include "webServer.hpp"
 #include "appPreferences.hpp"
@@ -31,7 +32,7 @@ namespace EnvServer
   {
     logger.log( Prefs::LOGID, INFO, "%s: start webserver...", EnvWebServer::tag );
     // Cache responses for 1 minutes (60 seconds)
-    EnvWebServer::server.serveStatic( "/", SPIFFS, Prefs::WEB_SITE_PATH ).setCacheControl( "max-age=60" );
+    EnvWebServer::server.serveStatic( "/", SPIFFS, Prefs::WEB_SITE_PATH ).setCacheControl( "max-age=10" );
     //
     // response filters
     //
@@ -39,6 +40,7 @@ namespace EnvServer
     EnvWebServer::server.on( "/index\\.html", HTTP_GET, EnvWebServer::onIndex );
     EnvWebServer::server.on( "^\\/api\\/v1\\/set-(.*)\?(.*)$", HTTP_GET, EnvWebServer::onApiV1Set );
     EnvWebServer::server.on( "^\\/api\\/v1\\/(.*)$", HTTP_GET, EnvWebServer::onApiV1 );
+    EnvWebServer::server.on( "^/metrics$", HTTP_GET, EnvWebServer::onMetricsReq );
     EnvWebServer::server.on( "^\\/.*$", HTTP_GET, EnvWebServer::onFilesReq );
     EnvWebServer::server.onNotFound( EnvWebServer::onNotFound );
     EnvWebServer::server.begin();
@@ -70,10 +72,99 @@ namespace EnvServer
    */
   void EnvWebServer::onFilesReq( AsyncWebServerRequest *request )
   {
-
     StatusObject::setHttpActive( true );
     String file( request->url() );
     EnvWebServer::deliverFileToHttpd( file, request );
+  }
+
+  /**
+   * response for prometheus metrics
+   */
+  void EnvWebServer::onMetricsReq( AsyncWebServerRequest *request )
+  {
+    StatusObject::setHttpActive( true );
+
+    char buffer[ 24 ];
+    size_t flash_total;
+    size_t flash_used;
+    size_t flash_free;
+
+    logger.log( Prefs::LOGID, DEBUG, "%s: access metrics...", EnvWebServer::tag );
+    //
+    // per LINE:
+    // metric_name [
+    //   "{" label_name "=" `"` label_value `"` { "," label_name "=" `"` label_value `"` } [ "," ] "}"
+    // ] value [ timestamp ]
+    //
+    //
+    // https://prometheus.io/docs/instrumenting/exposition_formats/
+    //
+
+    //
+    // say prometheus that values are conters
+    //
+    String msg( "# TYPE environment counter\n" );
+    // print last measured millivolts
+    if ( StatusObject::getMeasureState() == MEASURE_ACTION || StatusObject::getMeasureState() == MEASURE_NOMINAL )
+    {
+      env_measure_t measured = StatusObject::getLastDataset();
+      // std::vector< env_dataset_t > dataset ;
+      for ( env_dataset_t set : measured.dataset )
+      {
+        snprintf( buffer, 8, "%.1f\0", set.temp );
+        msg += String( "environment_temperature {meaning=\"temperature\", type=\"temperature\", device=\"" + set.addr + "\"} " ) +
+               String( buffer ) + String( "\n" );
+        if ( set.humidy > -100.0F )
+        {
+          snprintf( buffer, 8, "%.1f\0", set.humidy );
+          msg += String( "environment_humidy {meaning=\"humidy\", type=\"humidy\", device=\"" + set.addr + "\"} " ) +
+                 String( buffer ) + String( "\n" );
+        }
+      }
+    }
+    //
+    // Acku voltage
+    //
+    snprintf( buffer, 8, "%04d\0", StatusObject::getVoltage() );
+    msg += String( "environment_acku {meaning=\"acku voltage\"} " ) + String( buffer ) + String( "\n" );
+    //
+    // check flash memory
+    //
+    esp_err_t errorcode = esp_spiffs_info( Prefs::WEB_PARTITION_LABEL, &flash_total, &flash_used );
+    if ( errorcode == ESP_OK )
+    {
+      StatusObject::setFsTotalSpace( flash_total );
+      StatusObject::setFsUsedSpace( flash_used );
+      flash_free = flash_total - flash_used;
+    }
+    //
+    // print total flash memory
+    //
+    snprintf( buffer, 11, "%08d\0", StatusObject::getFsTotalSpace() );
+    msg += String( "environment_total_flash {meaning=\"total space on flash\"} " ) + String( buffer ) + String( "\n" );
+    //
+    // print used flash memory
+    //
+    snprintf( buffer, 11, "%08d\0", StatusObject::getFsUsedSpace() );
+    msg += String( "environment_used_flash {meaning=\"used space on flash\"} " ) + String( buffer ) + String( "\n" );
+    //
+    // print free ram
+    //
+    snprintf( buffer, 11, "%08d\0", ESP.getFreeHeap() );
+    msg += String( "environment_free_ram {meaning=\"free ram on esp32\"} " ) + String( buffer ) + String( "\n" );
+    //
+    // print uptime in sec
+    //
+    uint32_t uptime = millis();
+    snprintf( buffer, 16, "%016u\0", uptime );
+    msg += String( "environment_uptime {meaning=\"esp32 uptime secounds\"} " ) + String( buffer ) + String( "\n" );
+    //
+    // send to client
+    //
+    request->send( 200, "text/plain", msg );
+    return;
+    // String msg = "ERROR api call v1 for <" + parameter + ">";
+    // APIWebServer::onServerError( request, 303, msg );
   }
 
   /**

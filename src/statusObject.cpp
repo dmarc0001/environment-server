@@ -31,6 +31,7 @@ namespace EnvServer
   MeasureState StatusObject::msgState{ MeasureState::MEASURE_UNKNOWN };
   bool StatusObject::http_active{ false };
   std::shared_ptr< env_dataset > StatusObject::dataset = std::shared_ptr< env_dataset >( new env_dataset() );
+  env_measure_t StatusObject::last_set{};
   //
   SemaphoreHandle_t StatusObject::measureFileSem{ nullptr };
   SemaphoreHandle_t StatusObject::ackuFileSem{ nullptr };
