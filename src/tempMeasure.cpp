@@ -99,17 +99,17 @@ namespace EnvServer
         // next time to measure
         nextMeasureTime = nowTime + measure_interval;
         // chcek if time synced
-        if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
-        {
-          logger.log( Prefs::LOGID, WARNING, "%s: time not sync, no save measure values!", TempMeasure::tag );
-          StatusObject::setMeasureState( MeasureState::MEASURE_WARN );
-          ++warning_rounds_count;
-          if ( warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT )
-          {
-            StatusObject::setMeasureState( MeasureState::MEASURE_CRIT );
-          }
-          continue;
-        }
+        // if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
+        // {
+        //   logger.log( Prefs::LOGID, WARNING, "%s: time not sync, no save measure values!", TempMeasure::tag );
+        //   StatusObject::setMeasureState( MeasureState::MEASURE_WARN );
+        //   ++warning_rounds_count;
+        //   if ( warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT )
+        //   {
+        //     StatusObject::setMeasureState( MeasureState::MEASURE_CRIT );
+        //   }
+        //   continue;
+        // }
         logger.log( Prefs::LOGID, DEBUG, "%s: measuring...", TempMeasure::tag );
         timeval val;
         gettimeofday( &val, nullptr );
@@ -181,8 +181,8 @@ namespace EnvServer
         if ( h_sensor_data.humidy > -100.0f || h_sensor_data.temp > -100.0f )
         {
           current_measure.dataset.push_back( h_sensor_data );
-          logger.log( Prefs::LOGID, DEBUG, "%s: DHT sensor reports humidy: %.1f%%, temperature: %.1fC", TempMeasure::tag, h_sensor_data.humidy,
-                    h_sensor_data.temp );
+          logger.log( Prefs::LOGID, DEBUG, "%s: DHT sensor reports humidy: %.1f%%, temperature: %.1fC", TempMeasure::tag,
+                      h_sensor_data.humidy, h_sensor_data.temp );
           if ( StatusObject::getMeasureState() == MeasureState::MEASURE_ACTION )
           {
             // nur wenn keine Warnungen gesetzt wurden
@@ -190,6 +190,19 @@ namespace EnvServer
             StatusObject::setMeasureState( MeasureState::MEASURE_NOMINAL );
             warning_rounds_count = 0;
           }
+        }
+        if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
+        {
+          logger.log( Prefs::LOGID, WARNING, "%s: time not sync, no save measure values!", TempMeasure::tag );
+          StatusObject::setMeasureState( MeasureState::MEASURE_WARN );
+          ++warning_rounds_count;
+          if ( warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT )
+          {
+            StatusObject::setMeasureState( MeasureState::MEASURE_CRIT );
+          }
+          // for promethsue purpose, his has his own timebase
+          StatusObject::putCurrentMeasureDataset( current_measure );
+          continue;
         }
         logger.log( Prefs::LOGID, DEBUG, "%s: dataset send to file queue...", TempMeasure::tag );
         StatusObject::putMeasureDataset( current_measure );
@@ -208,7 +221,8 @@ namespace EnvServer
     TempMeasure::oneWire.reset_search();
     uint8_t sensors_count = TempMeasure::sensors.getDS18Count();
     logger.log( Prefs::LOGID, DEBUG, "%s: %03d DS18x20 devices found...", TempMeasure::tag, sensors_count );
-    logger.log( Prefs::LOGID, DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag, sensors.isParasitePowerMode() ? "true" : "false" );
+    logger.log( Prefs::LOGID, DEBUG, "%s: sensors parasite mode: %s...", TempMeasure::tag,
+                sensors.isParasitePowerMode() ? "true" : "false" );
     return ( sensors_count );
   }
 

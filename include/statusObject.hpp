@@ -80,6 +80,11 @@ namespace EnvServer
       dataset->push_back( _set );
       StatusObject::last_set = _set;
     }
+    static void putCurrentMeasureDataset( env_measure_t _set )
+    {
+      // for prometheus purpose, it has his own time
+      StatusObject::last_set = _set;
+    }
     static env_measure_t getLastDataset()
     {
       return StatusObject::last_set;

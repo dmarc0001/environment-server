@@ -13,7 +13,7 @@ namespace EnvServer
   void WifiConfig::init()
   {
     char hostname[ 32 ];
-    logger.log( Prefs::LOGID, INFO, "%s: initialize wifi...", WifiConfig::tag );
+    logger.log( Prefs::LOGID, INFO, "%s: first-time initialize wifi...", WifiConfig::tag );
     uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
     snprintf( hostname, 32, "%s-%08X", Prefs::DEFAULT_HOSTNAME, chip );
     WiFi.setHostname( hostname );
@@ -25,28 +25,44 @@ namespace EnvServer
     WifiConfig::wm.setConfigPortalBlocking( true );
     WifiConfig::wm.setConnectTimeout( 20 );
     WifiConfig::wm.setConfigPortalTimeout( 120 );  // 2 minutes up to auto connect again
+    WifiConfig::wm.setConnectRetries( 5 );         // retry 5 times to reconnect
     sntp_set_sync_mode( SNTP_SYNC_MODE_IMMED );
     sntp_setoperatingmode( SNTP_OPMODE_POLL );
     sntp_setservername( 1, Prefs::NTP_POOL_EUROPE_NAME );
     sntp_setservername( 2, Prefs::NTP_POOL_GERMANY_NAME );
     sntp_set_time_sync_notification_cb( WifiConfig::timeSyncNotificationCallback );
-    if ( WifiConfig::wm.autoConnect( "EnvServerConfigAP" ) )
-    {
-      logger.log( Prefs::LOGID, INFO, "%s: wifi connected...", WifiConfig::tag );
-      StatusObject::setWlanState( WlanState::CONNECTED );
-      logger.log( Prefs::LOGID, DEBUG, "%s: try to sync time...", WifiConfig::tag );
-      sntp_init();
-      WifiConfig::is_sntp_init = true;
-      WifiConfig::wm.stopWebPortal();
-    }
-    else
-    {
-      logger.log( Prefs::LOGID, WARNING, "%s: wifi not connected, access point running...", WifiConfig::tag );
-      StatusObject::setWlanState( WlanState::DISCONNECTED );
-      // WifiConfig::wm.setAPCallback( WifiConfig::configModeCallback );
-      // set dark mode
-      WifiConfig::wm.setClass( "invert" );
-    }
+    WifiConfig::reInit();
+  }
+
+  void WifiConfig::reInit()
+  {
+    logger.log( Prefs::LOGID, INFO, "%s: initialize wifi...", WifiConfig::tag );
+    StatusObject::setWlanState( WlanState::FAILED );
+    char apName[ 42 ];
+    uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
+    snprintf( apName, 42, "AP-%s-%08X", Prefs::DEFAULT_HOSTNAME, chip );
+
+    // while ( ( StatusObject::getWlanState() != WlanState::CONNECTED ) &&
+    //         ( StatusObject::getWlanState() != WlanState::TIMESYNCED ) )
+    // {
+      if ( WifiConfig::wm.autoConnect( apName ) )
+      {
+        logger.log( Prefs::LOGID, INFO, "%s: wifi connected...", WifiConfig::tag );
+        StatusObject::setWlanState( WlanState::CONNECTED );
+        logger.log( Prefs::LOGID, DEBUG, "%s: try to sync time...", WifiConfig::tag );
+        sntp_init();
+        WifiConfig::is_sntp_init = true;
+        WifiConfig::wm.stopWebPortal();
+      }
+      else
+      {
+        logger.log( Prefs::LOGID, WARNING, "%s: wifi not connected, access point running...", WifiConfig::tag );
+        StatusObject::setWlanState( WlanState::DISCONNECTED );
+        // WifiConfig::wm.setAPCallback( WifiConfig::configModeCallback );
+        // set dark mode
+        WifiConfig::wm.setClass( "invert" );
+      }
+    // }
     logger.log( Prefs::LOGID, INFO, "%s: initialize wifi...OK", WifiConfig::tag );
   }
 
