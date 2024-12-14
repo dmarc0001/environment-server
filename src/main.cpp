@@ -119,8 +119,10 @@ void loop()
         //
         // not longer functional
         //
-        logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost, stop webserver." );
-        EnvWebServer::stop();
+        logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost!" );
+        WifiConfig::reInit();
+        // logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost, stop webserver." );
+        // EnvWebServer::stop();
       }
     }
     // mark new value
