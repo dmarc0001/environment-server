@@ -98,18 +98,6 @@ namespace EnvServer
         }
         // next time to measure
         nextMeasureTime = nowTime + measure_interval;
-        // chcek if time synced
-        // if ( StatusObject::getWlanState() != WlanState::TIMESYNCED )
-        // {
-        //   logger.log( Prefs::LOGID, WARNING, "%s: time not sync, no save measure values!", TempMeasure::tag );
-        //   StatusObject::setMeasureState( MeasureState::MEASURE_WARN );
-        //   ++warning_rounds_count;
-        //   if ( warning_rounds_count > Prefs::MEASURE_WARN_TO_CRIT_COUNT )
-        //   {
-        //     StatusObject::setMeasureState( MeasureState::MEASURE_CRIT );
-        //   }
-        //   continue;
-        // }
         logger.log( Prefs::LOGID, DEBUG, "%s: measuring...", TempMeasure::tag );
         timeval val;
         gettimeofday( &val, nullptr );
