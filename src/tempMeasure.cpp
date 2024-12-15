@@ -106,7 +106,8 @@ namespace EnvServer
         // dataset create, set timestamp for this dataset
         // create a new dataset for this round of measure
         env_measure_t current_measure;
-        current_measure.timestamp = val.tv_sec;
+        if ( StatusObject::getWlanState() == WlanState::TIMESYNCED )
+          current_measure.timestamp = val.tv_sec;
         //
         // all addrs
         //
@@ -138,32 +139,33 @@ namespace EnvServer
             logger.log( Prefs::LOGID, DEBUG, "%s: Sensor %02d reports %.3f°C...", TempMeasure::tag, addr_idx, sensor_data.temp );
           }
           current_measure.dataset.push_back( sensor_data );
-          vTaskDelay( pdMS_TO_TICKS( 50 ) );
+          delay(50);
         }
         // plus 1 for dht11
         env_dataset_t h_sensor_data;
-        sensors_event_t event;
+        sensors_event_t event_t;
+        sensors_event_t event_h;
         h_sensor_data.addr = String( "HUM" );
         h_sensor_data.humidy = -100.0f;
         h_sensor_data.temp = -100.0f;
-        TempMeasure::dht.temperature().getEvent( &event );
-        if ( isnan( event.temperature ) )
+        TempMeasure::dht.temperature().getEvent( &event_t );
+        if ( isnan( event_t.temperature ) )
         {
           logger.log( Prefs::LOGID, ERROR, "%s: Error while reading temperature in DHT sensor", TempMeasure::tag );
         }
         else
         {
-          h_sensor_data.temp = event.temperature;
+          h_sensor_data.temp = event_t.temperature;
         }
         // Get humidity event and print its value.
-        dht.humidity().getEvent( &event );
-        if ( isnan( event.relative_humidity ) )
+        dht.humidity().getEvent( &event_h );
+        if ( isnan( event_h.relative_humidity ) )
         {
           logger.log( Prefs::LOGID, ERROR, "%s: Error while reading humidy in DHT sensor", TempMeasure::tag );
         }
         else
         {
-          h_sensor_data.humidy = event.relative_humidity;
+          h_sensor_data.humidy = event_h.relative_humidity;
         }
         // if data availible
         if ( h_sensor_data.humidy > -100.0f || h_sensor_data.temp > -100.0f )
