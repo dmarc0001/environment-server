@@ -32,6 +32,7 @@ namespace EnvServer
   {
     logger.log( Prefs::LOGID, INFO, "%s: start webserver...", EnvWebServer::tag );
     // Cache responses for 1 minutes (60 seconds)
+    EnvWebServer::server.reset();  // reset all propertys
     EnvWebServer::server.serveStatic( "/", SPIFFS, Prefs::WEB_SITE_PATH ).setCacheControl( "max-age=10" );
     //
     // response filters
