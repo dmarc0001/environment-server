@@ -139,7 +139,7 @@ namespace EnvServer
             logger.log( Prefs::LOGID, DEBUG, "%s: Sensor %02d reports %.3f°C...", TempMeasure::tag, addr_idx, sensor_data.temp );
           }
           current_measure.dataset.push_back( sensor_data );
-          delay(50);
+          delay( 50 );
         }
         // plus 1 for dht11
         env_dataset_t h_sensor_data;
@@ -151,21 +151,22 @@ namespace EnvServer
         TempMeasure::dht.temperature().getEvent( &event_t );
         if ( isnan( event_t.temperature ) )
         {
-          logger.log( Prefs::LOGID, ERROR, "%s: Error while reading temperature in DHT sensor", TempMeasure::tag );
+          logger.log( Prefs::LOGID, ERROR, "%s: Error while reading DHT sensor", TempMeasure::tag );
         }
         else
         {
           h_sensor_data.temp = event_t.temperature;
-        }
-        // Get humidity event and print its value.
-        dht.humidity().getEvent( &event_h );
-        if ( isnan( event_h.relative_humidity ) )
-        {
-          logger.log( Prefs::LOGID, ERROR, "%s: Error while reading humidy in DHT sensor", TempMeasure::tag );
-        }
-        else
-        {
-          h_sensor_data.humidy = event_h.relative_humidity;
+          delay( 50 );
+          // Get humidity event and print its value.
+          dht.humidity().getEvent( &event_h );
+          if ( isnan( event_h.relative_humidity ) )
+          {
+            logger.log( Prefs::LOGID, ERROR, "%s: Error while reading DHT sensor", TempMeasure::tag );
+          }
+          else
+          {
+            h_sensor_data.humidy = event_h.relative_humidity;
+          }
         }
         // if data availible
         if ( h_sensor_data.humidy > -100.0f || h_sensor_data.temp > -100.0f )
