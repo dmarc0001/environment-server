@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "wifiConfig.hpp"
 #include "statusObject.hpp"
+#include "webServer.hpp"
 
 namespace EnvServer
 {
@@ -24,13 +25,16 @@ namespace EnvServer
     // WifiConfig::wm.setConfigPortalBlocking( false );
     WifiConfig::wm.setConfigPortalBlocking( true );
     WifiConfig::wm.setConnectTimeout( 20 );
-    WifiConfig::wm.setConfigPortalTimeout( 120 );  // 2 minutes up to auto connect again
-    WifiConfig::wm.setConnectRetries( 5 );         // retry 5 times to reconnect
+    WifiConfig::wm.setConfigPortalTimeout( 180 );        // 3 minutes up to auto connect again
+    WifiConfig::wm.setConnectRetries( 5 );               // retry 5 times to reconnect
+    WifiConfig::wm.setAPCallback( configModeCallback );  // callback when manager starts
+    WifiConfig::wm.setClass( "invert" );                 // design niceer
     sntp_set_sync_mode( SNTP_SYNC_MODE_IMMED );
     sntp_setoperatingmode( SNTP_OPMODE_POLL );
     sntp_setservername( 1, Prefs::NTP_POOL_EUROPE_NAME );
     sntp_setservername( 2, Prefs::NTP_POOL_GERMANY_NAME );
     sntp_set_time_sync_notification_cb( WifiConfig::timeSyncNotificationCallback );
+
     WifiConfig::reInit();
   }
 
@@ -41,28 +45,21 @@ namespace EnvServer
     char apName[ 42 ];
     uint16_t chip = static_cast< uint16_t >( ESP.getEfuseMac() >> 32 );
     snprintf( apName, 42, "AP-%s-%08X", Prefs::DEFAULT_HOSTNAME, chip );
-
-    // while ( ( StatusObject::getWlanState() != WlanState::CONNECTED ) &&
-    //         ( StatusObject::getWlanState() != WlanState::TIMESYNCED ) )
-    // {
-      if ( WifiConfig::wm.autoConnect( apName ) )
-      {
-        logger.log( Prefs::LOGID, INFO, "%s: wifi connected...", WifiConfig::tag );
-        StatusObject::setWlanState( WlanState::CONNECTED );
-        logger.log( Prefs::LOGID, DEBUG, "%s: try to sync time...", WifiConfig::tag );
-        sntp_init();
-        WifiConfig::is_sntp_init = true;
-        WifiConfig::wm.stopWebPortal();
-      }
-      else
-      {
-        logger.log( Prefs::LOGID, WARNING, "%s: wifi not connected, access point running...", WifiConfig::tag );
-        StatusObject::setWlanState( WlanState::DISCONNECTED );
-        // WifiConfig::wm.setAPCallback( WifiConfig::configModeCallback );
-        // set dark mode
-        WifiConfig::wm.setClass( "invert" );
-      }
-    // }
+    if ( !WifiConfig::wm.autoConnect( apName ) )
+    {
+      logger.log( Prefs::LOGID, WARNING, "%s: wifi not connected, access point running...", WifiConfig::tag );
+      StatusObject::setWlanState( WlanState::DISCONNECTED );
+      logger.log( Prefs::LOGID, ERROR, "%s: wifi not connected!", WifiConfig::tag );
+      logger.log( Prefs::LOGID, ERROR, "%s: RESTART Controller", WifiConfig::tag );
+      delay( 4500 );
+      ESP.restart();
+    }
+    WifiConfig::wm.stopWebPortal();
+    logger.log( Prefs::LOGID, INFO, "%s: wifi connected...", WifiConfig::tag );
+    StatusObject::setWlanState( WlanState::CONNECTED );
+    logger.log( Prefs::LOGID, DEBUG, "%s: try to sync time...", WifiConfig::tag );
+    sntp_init();
+    WifiConfig::is_sntp_init = true;
     logger.log( Prefs::LOGID, INFO, "%s: initialize wifi...OK", WifiConfig::tag );
   }
 
@@ -88,6 +85,7 @@ namespace EnvServer
         logger.log( Prefs::LOGID, INFO, "%s: device got ip <%s>...", WifiConfig::tag, WiFi.localIP().toString().c_str() );
         if ( StatusObject::getWlanState() == WlanState::DISCONNECTED )
           StatusObject::setWlanState( WlanState::CONNECTED );
+        EnvWebServer::start();
         // sntp_init();
         if ( WifiConfig::is_sntp_init )
           sntp_restart();
@@ -102,6 +100,7 @@ namespace EnvServer
         StatusObject::setWlanState( WlanState::DISCONNECTED );
         sntp_stop();
         WifiConfig::is_sntp_init = false;
+        EnvWebServer::stop();
         break;
       default:
         break;
