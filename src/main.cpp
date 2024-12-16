@@ -101,12 +101,12 @@ void loop()
         // new connection, start webservice
         //
         logger.log( Prefs::LOGID, INFO, "main: ip connectivity found, start webserver." );
-        EnvWebServer::start();
+        // EnvWebServer::start();
       }
       else
       {
         logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost, stop webserver." );
-        EnvWebServer::stop();
+        // EnvWebServer::stop();
       }
     }
     else
@@ -120,9 +120,7 @@ void loop()
         // not longer functional
         //
         logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost!" );
-        WifiConfig::reInit();
-        // logger.log( Prefs::LOGID, WARNING, "main: ip connectivity lost, stop webserver." );
-        // EnvWebServer::stop();
+        // WifiConfig::reInit();
       }
     }
     // mark new value
