@@ -75,6 +75,7 @@ namespace EnvServer
       case SYSTEM_EVENT_STA_DISCONNECTED:
         logger.log( Prefs::LOGID, INFO, "%s: device disconnected from accesspoint...", WifiConfig::tag );
         StatusObject::setWlanState( WlanState::DISCONNECTED );
+        WifiConfig::reInit();
         break;
       case SYSTEM_EVENT_AP_STADISCONNECTED:
         logger.log( Prefs::LOGID, INFO, "%s: WIFI client disconnected...", WifiConfig::tag );
