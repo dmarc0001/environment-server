@@ -86,7 +86,7 @@ void loop()
       logger.log( Prefs::LOGID, DEBUG, "main: logger time correction...OK" );
     }
   }
-  delay( 600 );
+  delay( 400 );
   if ( connected != StatusObject::getWlanState() )
   {
     auto new_connected = StatusObject::getWlanState();
